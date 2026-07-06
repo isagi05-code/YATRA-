@@ -1,0 +1,53 @@
+import subprocess
+import sys
+import time
+import os
+
+def run_servers():
+    print("Starting all Yatra AI FastAPI backend services...")
+    
+    # Check if data directory and sqlite databases exist, initialize them if they don't
+    if not os.path.exists("data/agency.db") or not os.path.exists("data/traveller.db") or not os.path.exists("data/team.db"):
+        print("Database files not found. Initializing databases first...")
+        subprocess.run([sys.executable, "db_init.py"])
+        
+    processes = []
+    
+    # Server configs
+    servers = [
+        {"name": "Agency Dashboard API", "command": [sys.executable, "-m", "uvicorn", "agency_api:app", "--port", "8000", "--host", "0.0.0.0"]},
+        {"name": "Traveller Dashboard API", "command": [sys.executable, "-m", "uvicorn", "traveller_api:app", "--port", "8001", "--host", "0.0.0.0"]},
+        {"name": "Yatra Team Admin API", "command": [sys.executable, "-m", "uvicorn", "team_api:app", "--port", "8002", "--host", "0.0.0.0"]}
+    ]
+    
+    try:
+        for s in servers:
+            print(f"Launching {s['name']} on http://localhost:{s['command'][5]} ...")
+            # We run uvicorn as a subprocess. We don't pipe stdout so the uvicorn logs output directly to terminal.
+            p = subprocess.Popen(s["command"])
+            processes.append(p)
+            # Short sleep to prevent port collision race conditions
+            time.sleep(0.5)
+            
+        print("\nAll backend services launched successfully! Press Ctrl+C to terminate all servers.")
+        
+        # Keep the main process alive
+        while True:
+            time.sleep(1)
+            # Monitor if any process died
+            for i, p in enumerate(processes):
+                if p.poll() is not None:
+                    print(f"\n[Warning] {servers[i]['name']} exited with code {p.returncode}")
+                    sys.exit(1)
+                    
+    except KeyboardInterrupt:
+        print("\nKeyboardInterrupt received. Shutting down all backend services...")
+    finally:
+        for p in processes:
+            if p.poll() is None:
+                p.terminate()
+                p.wait()
+        print("All servers cleanly terminated.")
+
+if __name__ == "__main__":
+    run_servers()
