@@ -12,7 +12,14 @@ async function request(url, options = {}) {
   });
   if (!res.ok) {
     const text = await res.text();
-    throw new Error(text || `HTTP Error ${res.status}`);
+    let msg = text;
+    try {
+      const parsed = JSON.parse(text);
+      if (parsed.detail) {
+        msg = parsed.detail;
+      }
+    } catch (e) {}
+    throw new Error(msg || `HTTP Error ${res.status}`);
   }
   return res.json();
 }
@@ -123,4 +130,17 @@ export const api = {
       return request(url);
     },
   },
+  
+  // --- AUTH SERVICES ---
+  auth: {
+    sendOtp: (portal, data) => {
+      const base = portal === 'agency' ? AGENCY_BASE : portal === 'user' ? TRAVELLER_BASE : ADMIN_BASE;
+      return request(`${base}/auth/send-otp`, { method: "POST", body: JSON.stringify(data) });
+    },
+    verifyOtp: (portal, data) => {
+      const base = portal === 'agency' ? AGENCY_BASE : portal === 'user' ? TRAVELLER_BASE : ADMIN_BASE;
+      return request(`${base}/auth/verify-otp`, { method: "POST", body: JSON.stringify(data) });
+    }
+  }
 };
+

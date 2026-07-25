@@ -20,7 +20,7 @@ CREATE TABLE IF NOT EXISTS tours (
   vehicle VARCHAR(100),
   driver VARCHAR(255),
   passengers INT,
-  guide_name VARCHAR(255),
+  guide VARCHAR(255),
   budget DECIMAL(12,2),
   current_lat DECIMAL(10,6),
   current_lng DECIMAL(10,6),
@@ -54,8 +54,8 @@ CREATE TABLE IF NOT EXISTS expenses (
   gst DECIMAL(12,2),
   vendor VARCHAR(255),
   category VARCHAR(100),
-  expense_date DATE,
-  expense_time TIME,
+  `date` DATE,
+  `time` TIME,
   description TEXT,
   payment_mode VARCHAR(100),
   approved_by VARCHAR(255),
@@ -116,13 +116,13 @@ CREATE TABLE IF NOT EXISTS notifications (
   type VARCHAR(100),
   title VARCHAR(255),
   message TEXT,
-  notification_date DATE,
-  is_read TINYINT(1) DEFAULT 0
+  `date` DATE,
+  `read` TINYINT(1) DEFAULT 0
 ) ENGINE=InnoDB;
 
 CREATE TABLE IF NOT EXISTS settings (
-  setting_key VARCHAR(100) PRIMARY KEY,
-  setting_value TEXT
+  `key` VARCHAR(100) PRIMARY KEY,
+  `value` TEXT
 ) ENGINE=InnoDB;
 
 USE yatra_traveller;
@@ -131,7 +131,7 @@ CREATE TABLE IF NOT EXISTS trips (
   id INT AUTO_INCREMENT PRIMARY KEY,
   name VARCHAR(255),
   route TEXT,
-  trip_date DATE,
+  `date` DATE,
   duration VARCHAR(100),
   budget DECIMAL(12,2),
   status VARCHAR(100),
@@ -143,7 +143,7 @@ CREATE TABLE IF NOT EXISTS expenses (
   id INT AUTO_INCREMENT PRIMARY KEY,
   title VARCHAR(255),
   amount DECIMAL(12,2),
-  expense_date DATE,
+  `date` DATE,
   category VARCHAR(100),
   status VARCHAR(100)
 ) ENGINE=InnoDB;
@@ -206,7 +206,7 @@ CREATE TABLE IF NOT EXISTS payments (
   id INT AUTO_INCREMENT PRIMARY KEY,
   agency_id INT,
   amount DECIMAL(12,2),
-  payment_date DATE,
+  `date` DATE,
   status VARCHAR(100),
   description TEXT,
   CONSTRAINT fk_team_payments_agency FOREIGN KEY (agency_id) REFERENCES agencies(id)
@@ -228,14 +228,14 @@ CREATE TABLE IF NOT EXISTS support_tickets (
   description TEXT,
   status VARCHAR(100),
   priority VARCHAR(50),
-  ticket_date DATE,
+  `date` DATE,
   CONSTRAINT fk_support_ticket_agency FOREIGN KEY (agency_id) REFERENCES agencies(id),
   CONSTRAINT fk_support_ticket_traveller FOREIGN KEY (traveller_id) REFERENCES travellers(id)
 ) ENGINE=InnoDB;
 
 CREATE TABLE IF NOT EXISTS logs (
   id INT AUTO_INCREMENT PRIMARY KEY,
-  log_timestamp DATETIME,
+  `timestamp` DATETIME,
   level VARCHAR(50),
   message TEXT
 ) ENGINE=InnoDB;

@@ -239,10 +239,37 @@ export default function Header({ title, description, portal, onPortalSwitch }) {
 
         {/* User Profile Avatar */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <div className="avatar sm" style={{ background: 'linear-gradient(135deg, var(--primary), var(--primary-light))', color: 'white', fontWeight: 700 }}>
-            {portal === 'agency' ? 'RT' : portal === 'user' ? 'PS' : 'YA'}
+          <div 
+            className="avatar sm" 
+            style={{ background: 'linear-gradient(135deg, var(--primary), var(--primary-light))', color: 'white', fontWeight: 700 }}
+            title={(() => {
+              try {
+                const u = localStorage.getItem('yatra_user');
+                return u ? JSON.parse(u).name : getPortalLabel();
+              } catch {
+                return getPortalLabel();
+              }
+            })()}
+          >
+            {(() => {
+              try {
+                const uStr = localStorage.getItem('yatra_user');
+                if (uStr) {
+                  const u = JSON.parse(uStr);
+                  if (u && u.name) {
+                    const parts = u.name.split(' ');
+                    if (parts.length > 1) return (parts[0][0] + parts[1][0]).toUpperCase();
+                    return parts[0].substring(0, 2).toUpperCase();
+                  }
+                }
+              } catch (e) {
+                console.error(e);
+              }
+              return portal === 'agency' ? 'AG' : portal === 'user' ? 'TR' : 'AD';
+            })()}
           </div>
         </div>
+
 
       </div>
     </header>

@@ -1,6 +1,8 @@
-import sqlite3
+from mysql_helper import get_db_conn as get_mysql_conn
+from sms_helper import normalize_phone, send_actual_sms
 import json
 import os
+import random
 from typing import List, Optional, Dict, Any
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -16,12 +18,145 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-DB_PATH = "data/traveller.db"
-
 def get_db_conn():
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    return conn
+    return get_mysql_conn("yatra_traveller")
+
+# --- AUTHENTICATION & OTP SCHEMAS ---
+class SendOtpPayload(BaseModel):
+    phone: str
+    email: Optional[str] = None
+    mode: str  # "login" or "register"
+    name: Optional[str] = None
+
+class VerifyOtpPayload(BaseModel):
+    phone: str
+    otp: str
+    mode: str  # "login" or "register"
+    email: Optional[str] = None
+    name: Optional[str] = None
+
+# In-memory OTP store: mapping phone -> otp_code
+otp_store: Dict[str, str] = {}
+
+@app.post("/auth/send-otp")
+def send_otp(payload: SendOtpPayload):
+    if not payload.phone:
+        raise HTTPException(status_code=400, detail="Phone number is required")
+        
+    phone = normalize_phone(payload.phone)
+    
+    # Verify existence/duplicates
+    if payload.mode == "login":
+        try:
+            trav_conn = get_db_conn()
+            trav_cursor = trav_conn.cursor()
+            trav_cursor.execute("SELECT * FROM profile WHERE contact = ?", (phone,))
+            prof_row = trav_cursor.fetchone()
+            trav_conn.close()
+            if not prof_row:
+                raise HTTPException(status_code=400, detail="Phone number not registered. Please register first.")
+        except HTTPException as he:
+            raise he
+        except Exception as e:
+            print(f"[AUTH] Error verifying login phone: {e}")
+    elif payload.mode == "register":
+        try:
+            trav_conn = get_db_conn()
+            trav_cursor = trav_conn.cursor()
+            trav_cursor.execute("SELECT * FROM profile WHERE contact = ?", (phone,))
+            prof_row = trav_cursor.fetchone()
+            trav_conn.close()
+            if prof_row:
+                raise HTTPException(status_code=400, detail="Phone number already registered. Please log in.")
+        except HTTPException as he:
+            raise he
+        except Exception as e:
+            print(f"[AUTH] Error checking register phone: {e}")
+
+    # Generate 6-digit OTP
+    otp_code = f"{random.randint(100000, 999999)}"
+    otp_store[phone] = otp_code
+    
+    # Send actual SMS
+    send_actual_sms(phone, otp_code)
+    
+    return {"message": "OTP sent successfully", "otp": otp_code}
+
+@app.post("/auth/verify-otp")
+def verify_otp(payload: VerifyOtpPayload):
+    if not payload.phone or not payload.otp:
+        raise HTTPException(status_code=400, detail="Phone number and OTP are required")
+        
+    phone = normalize_phone(payload.phone)
+    stored_otp = otp_store.get(phone)
+    if not stored_otp or stored_otp != payload.otp:
+        raise HTTPException(status_code=400, detail="Invalid or expired OTP")
+        
+    # Clear OTP after successful verification
+    if phone in otp_store:
+        del otp_store[phone]
+        
+    user_name = payload.name or "Traveller User"
+    user_email = payload.email or f"traveller_{phone[-4:]}@example.com"
+    
+    # If mode is register, insert/check in traveller database (profile table) and team database
+    if payload.mode == "register":
+        try:
+            trav_conn = get_db_conn()
+            trav_cursor = trav_conn.cursor()
+            # Check if there is a profile with this phone or email
+            trav_cursor.execute("SELECT * FROM profile WHERE contact = ? OR email = ?", (phone, user_email))
+            prof_row = trav_cursor.fetchone()
+            if not prof_row:
+                # Insert profile
+                trav_cursor.execute("""
+                INSERT INTO profile (name, email, contact, preferences)
+                VALUES (?, ?, ?, ?)
+                """, (user_name, user_email, phone, "Vegetarian, Window seat"))
+                print(f"[AUTH] Registered new traveller profile: {user_name} ({user_email}, {phone})")
+            else:
+                user_name = prof_row["name"]
+                user_email = prof_row["email"]
+            trav_conn.close()
+            
+            # Also insert in team database
+            team_conn = get_mysql_conn("yatra_team")
+            team_cursor = team_conn.cursor()
+            team_cursor.execute("SELECT * FROM travellers WHERE email = ?", (user_email,))
+            team_trav = team_cursor.fetchone()
+            if not team_trav:
+                team_cursor.execute("""
+                INSERT INTO travellers (name, email, trips_count, expenses_count, bookings_count, feedback_rating, ai_usage_tokens)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                """, (user_name, user_email, 0, 0, 0, 5.0, 0))
+                print(f"[AUTH] Registered new traveller in team DB: {user_name} ({user_email})")
+            team_conn.close()
+        except Exception as e:
+            print(f"[AUTH] Error writing traveller register info: {e}")
+    else:
+        # If login, lookup traveller details by phone number
+        try:
+            trav_conn = get_db_conn()
+            trav_cursor = trav_conn.cursor()
+            trav_cursor.execute("SELECT * FROM profile WHERE contact = ?", (phone,))
+            prof_row = trav_cursor.fetchone()
+            if prof_row:
+                user_name = prof_row["name"]
+                user_email = prof_row["email"]
+            trav_conn.close()
+        except Exception as e:
+            print(f"[AUTH] Error reading traveller login info: {e}")
+            
+    return {
+        "status": "success",
+        "user": {
+            "email": user_email,
+            "phone": phone,
+            "role": "user",
+            "name": user_name
+        }
+    }
+
 
 # Pydantic models
 class ExpenseCreate(BaseModel):

@@ -6,9 +6,20 @@ import os
 def run_servers():
     print("Starting all Yatra AI FastAPI backend services...")
     
-    # Check if data directory and sqlite databases exist, initialize them if they don't
-    if not os.path.exists("data/agency.db") or not os.path.exists("data/traveller.db") or not os.path.exists("data/team.db"):
-        print("Database files not found. Initializing databases first...")
+    # Check if MySQL databases exist and connect successfully. Initialize if missing.
+    sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+    from mysql_helper import get_db_conn
+    db_missing = False
+    for db_name in ["yatra_agency", "yatra_traveller", "yatra_team"]:
+        try:
+            conn = get_db_conn(db_name)
+            conn.close()
+        except Exception:
+            db_missing = True
+            break
+            
+    if db_missing:
+        print("MySQL databases not found or incomplete. Initializing databases first...")
         subprocess.run([sys.executable, "db_init.py"])
         
     processes = []

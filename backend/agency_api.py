@@ -1,6 +1,8 @@
-import sqlite3
+from mysql_helper import get_db_conn as get_mysql_conn
+from sms_helper import normalize_phone, send_actual_sms
 import json
 import os
+import random
 from typing import List, Optional, Dict, Any
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
@@ -16,12 +18,131 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-DB_PATH = "data/agency.db"
-
 def get_db_conn():
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    return conn
+    return get_mysql_conn("yatra_agency")
+
+# --- AUTHENTICATION & OTP SCHEMAS ---
+class SendOtpPayload(BaseModel):
+    phone: str
+    email: Optional[str] = None
+    mode: str  # "login" or "register"
+    name: Optional[str] = None
+
+class VerifyOtpPayload(BaseModel):
+    phone: str
+    otp: str
+    mode: str  # "login" or "register"
+    email: Optional[str] = None
+    name: Optional[str] = None
+
+# In-memory OTP store: mapping phone -> otp_code
+otp_store: Dict[str, str] = {}
+
+@app.post("/auth/send-otp")
+def send_otp(payload: SendOtpPayload):
+    if not payload.phone:
+        raise HTTPException(status_code=400, detail="Phone number is required")
+        
+    phone = normalize_phone(payload.phone)
+    
+    # Verify existence/duplicates
+    if payload.mode == "login":
+        try:
+            team_conn = get_mysql_conn("yatra_team")
+            team_cursor = team_conn.cursor()
+            team_cursor.execute("SELECT * FROM agencies WHERE contact = ?", (phone,))
+            agency_row = team_cursor.fetchone()
+            team_conn.close()
+            if not agency_row:
+                raise HTTPException(status_code=400, detail="Phone number not registered. Please register first.")
+        except HTTPException as he:
+            raise he
+        except Exception as e:
+            print(f"[AUTH] Error verifying login phone: {e}")
+    elif payload.mode == "register":
+        try:
+            team_conn = get_mysql_conn("yatra_team")
+            team_cursor = team_conn.cursor()
+            team_cursor.execute("SELECT * FROM agencies WHERE contact = ?", (phone,))
+            agency_row = team_cursor.fetchone()
+            team_conn.close()
+            if agency_row:
+                raise HTTPException(status_code=400, detail="Phone number already registered. Please log in.")
+        except HTTPException as he:
+            raise he
+        except Exception as e:
+            print(f"[AUTH] Error checking register phone: {e}")
+
+    # Generate 6-digit OTP
+    otp_code = f"{random.randint(100000, 999999)}"
+    otp_store[phone] = otp_code
+    
+    # Send actual SMS
+    send_actual_sms(phone, otp_code)
+    
+    return {"message": "OTP sent successfully", "otp": otp_code}
+
+@app.post("/auth/verify-otp")
+def verify_otp(payload: VerifyOtpPayload):
+    if not payload.phone or not payload.otp:
+        raise HTTPException(status_code=400, detail="Phone number and OTP are required")
+        
+    phone = normalize_phone(payload.phone)
+    stored_otp = otp_store.get(phone)
+    if not stored_otp or stored_otp != payload.otp:
+        raise HTTPException(status_code=400, detail="Invalid or expired OTP")
+        
+    # Clear OTP after successful verification
+    if phone in otp_store:
+        del otp_store[phone]
+        
+    user_name = payload.name or "Agency User"
+    user_email = payload.email or f"agency_{phone[-4:]}@example.com"
+    
+    # If mode is register, insert/check in team database (admin platform)
+    if payload.mode == "register":
+        try:
+            team_conn = get_mysql_conn("yatra_team")
+            team_cursor = team_conn.cursor()
+            # Check if agency with this phone or email exists
+            team_cursor.execute("SELECT * FROM agencies WHERE contact = ? OR email = ?", (phone, user_email))
+            agency_row = team_cursor.fetchone()
+            if not agency_row:
+                team_cursor.execute("""
+                INSERT INTO agencies (name, owner, contact, email, status, active_tours, revenue, expenses, drivers_count, vehicles_count, subscription_status, documents)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (user_name, user_name, phone, user_email, "Active", 0, 0.0, 0.0, 0, 0, "Trial (Expires: 2026-08-15)", "[]"))
+                print(f"[AUTH] Registered new agency: {user_name} ({user_email}, {phone})")
+            else:
+                user_name = agency_row["owner"]
+                user_email = agency_row["email"]
+            team_conn.close()
+        except Exception as e:
+            print(f"[AUTH] Error writing register info to team DB: {e}")
+    else:
+        # If mode is login, try to lookup agency owner name & email from team DB by phone number
+        try:
+            team_conn = get_mysql_conn("yatra_team")
+            team_cursor = team_conn.cursor()
+            team_cursor.execute("SELECT * FROM agencies WHERE contact = ?", (phone,))
+            agency_row = team_cursor.fetchone()
+            if agency_row:
+                user_name = agency_row["owner"]
+                user_email = agency_row["email"]
+            team_conn.close()
+        except Exception as e:
+            print(f"[AUTH] Error reading login info from team DB: {e}")
+            
+    return {
+        "status": "success",
+        "user": {
+            "email": user_email,
+            "phone": phone,
+            "role": "agency",
+            "name": user_name
+        }
+    }
+
 
 # Pydantic Schemas
 class TourCreate(BaseModel):

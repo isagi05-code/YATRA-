@@ -1,6 +1,8 @@
-import sqlite3
+from mysql_helper import get_db_conn as get_mysql_conn
+from sms_helper import normalize_phone, send_actual_sms
 import json
 import os
+import random
 from typing import List, Optional, Dict, Any
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
@@ -16,12 +18,69 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-DB_PATH = "data/team.db"
-
 def get_db_conn():
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    return conn
+    return get_mysql_conn("yatra_team")
+
+# --- AUTHENTICATION & OTP SCHEMAS ---
+class SendOtpPayload(BaseModel):
+    phone: str
+    email: Optional[str] = None
+    mode: str  # "login" or "register"
+    name: Optional[str] = None
+
+class VerifyOtpPayload(BaseModel):
+    phone: str
+    otp: str
+    mode: str  # "login" or "register"
+    email: Optional[str] = None
+    name: Optional[str] = None
+
+# In-memory OTP store: mapping phone -> otp_code
+otp_store: Dict[str, str] = {}
+
+@app.post("/auth/send-otp")
+def send_otp(payload: SendOtpPayload):
+    if not payload.phone:
+        raise HTTPException(status_code=400, detail="Phone number is required")
+        
+    phone = normalize_phone(payload.phone)
+    
+    # Generate 6-digit OTP
+    otp_code = f"{random.randint(100000, 999999)}"
+    otp_store[phone] = otp_code
+    
+    # Send actual SMS
+    send_actual_sms(phone, otp_code)
+    
+    return {"message": "OTP sent successfully", "otp": otp_code}
+
+@app.post("/auth/verify-otp")
+def verify_otp(payload: VerifyOtpPayload):
+    if not payload.phone or not payload.otp:
+        raise HTTPException(status_code=400, detail="Phone number and OTP are required")
+        
+    phone = normalize_phone(payload.phone)
+    stored_otp = otp_store.get(phone)
+    if not stored_otp or stored_otp != payload.otp:
+        raise HTTPException(status_code=400, detail="Invalid or expired OTP")
+        
+    # Clear OTP after successful verification
+    if phone in otp_store:
+        del otp_store[phone]
+        
+    user_name = payload.name or "Admin User"
+    user_email = payload.email or "admin@yatra.ai"
+    
+    return {
+        "status": "success",
+        "user": {
+            "email": user_email,
+            "phone": phone,
+            "role": "yatra-team",
+            "name": user_name
+        }
+    }
+
 
 # Pydantic schemas
 class AgencyUpdate(BaseModel):

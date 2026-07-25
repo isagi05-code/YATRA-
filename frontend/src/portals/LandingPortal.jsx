@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import * as Icons from 'lucide-react';
+import { api } from '../services/api';
 
 export default function LandingPortal({ onSelectRole }) {
   const [activeSlide, setActiveSlide] = useState(0); // 0: Agency, 1: Traveller, 2: Yatra Team
@@ -42,10 +43,101 @@ export default function LandingPortal({ onSelectRole }) {
     setActiveSlide((prev) => (prev - 1 + slides.length) % slides.length);
   };
 
-  const handleRoleSelect = () => {
-    if (activeSlide === 0) onSelectRole('agency');
-    else if (activeSlide === 1) onSelectRole('user');
-    else onSelectRole('yatra-team');
+  // OTP Modal & Form states
+  const [showModal, setShowModal] = useState(false);
+  const [modalMode, setModalMode] = useState('login'); // 'login' or 'register'
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
+  const [otp, setOtp] = useState('');
+  const [otpSent, setOtpSent] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [otpNotification, setOtpNotification] = useState('');
+
+  const getActiveRole = () => {
+    if (activeSlide === 0) return 'agency';
+    if (activeSlide === 1) return 'user';
+    return 'yatra-team';
+  };
+
+  const handleOpenAuth = (mode) => {
+    setModalMode(mode);
+    setError('');
+    setOtpNotification('');
+    setOtpSent(false);
+    setOtp('');
+    setName('');
+    setEmail('');
+    // Prefill default demo phone number for easier check
+    if (mode === 'login') {
+      if (activeSlide === 0) setPhone('+91 99999 22222');
+      else if (activeSlide === 1) setPhone('+91 99999 11111');
+      else setPhone('+91 99999 00000');
+    } else {
+      setPhone('');
+    }
+    setShowModal(true);
+  };
+
+  const handleSendOtp = async (e) => {
+    e.preventDefault();
+    if (!phone) {
+      setError('Please enter a valid phone number.');
+      return;
+    }
+    if (modalMode === 'register' && !email) {
+      setError('Please enter a valid email address.');
+      return;
+    }
+    setError('');
+    setLoading(true);
+    try {
+      const role = getActiveRole();
+      const res = await api.auth.sendOtp(role, {
+        email: modalMode === 'register' ? email : undefined,
+        phone,
+        mode: modalMode,
+        name: modalMode === 'register' ? name : undefined
+      });
+      setOtpSent(true);
+      setOtpNotification(`A verification code has been dispatched to ${phone}. For local testing, please check the backend terminal console log.`);
+    } catch (err) {
+      setError(err.message || 'Failed to send OTP. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerifyOtp = async (e) => {
+    e.preventDefault();
+    if (otp.length < 6) {
+      setError('Please enter a 6-digit verification code.');
+      return;
+    }
+    setError('');
+    setLoading(true);
+    try {
+      const role = getActiveRole();
+      const res = await api.auth.verifyOtp(role, {
+        phone,
+        otp,
+        mode: modalMode,
+        email: modalMode === 'register' ? email : undefined,
+        name: modalMode === 'register' ? name : undefined
+      });
+      if (res.status === 'success') {
+        localStorage.setItem('yatra_user', JSON.stringify(res.user));
+        setShowModal(false);
+        onSelectRole(role);
+      } else {
+        setError('Verification failed. Invalid code.');
+      }
+    } catch (err) {
+      setError(err.message || 'Invalid or expired OTP code.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -163,7 +255,7 @@ export default function LandingPortal({ onSelectRole }) {
 
             <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '12px', marginTop: '4px' }}>
               <button 
-                onClick={handleRoleSelect} 
+                onClick={() => handleOpenAuth('login')} 
                 className="btn btn-primary" 
                 style={{ 
                   padding: '12px', 
@@ -178,6 +270,7 @@ export default function LandingPortal({ onSelectRole }) {
                 Sign in to Dashboard
               </button>
               <button 
+                onClick={() => handleOpenAuth('register')} 
                 className="btn btn-outline" 
                 style={{ 
                   padding: '12px', 
@@ -297,6 +390,305 @@ export default function LandingPortal({ onSelectRole }) {
 
       </footer>
 
+      {/* --- PREMIUM GLASSMORPHIC AUTH OTP MODAL --- */}
+      {showModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100vw',
+          height: '100vh',
+          background: 'rgba(8, 12, 20, 0.75)',
+          backdropFilter: 'blur(16px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000,
+          fontFamily: "'Inter', sans-serif"
+        }}>
+          <div style={{
+            background: 'rgba(17, 24, 39, 0.65)',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            borderRadius: '24px',
+            padding: '36px',
+            width: '100%',
+            maxWidth: '440px',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
+            position: 'relative',
+            color: 'white',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '24px'
+          }}>
+            {/* Close Button */}
+            <button 
+              onClick={() => setShowModal(false)}
+              style={{
+                position: 'absolute',
+                top: '20px',
+                right: '20px',
+                background: 'rgba(255, 255, 255, 0.05)',
+                border: 'none',
+                borderRadius: '50%',
+                width: '32px',
+                height: '32px',
+                color: 'rgba(255,255,255,0.7)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                transition: 'all 0.2s'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
+              onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
+            >
+              <Icons.X size={16} />
+            </button>
+
+            {/* Header */}
+            <div style={{ textAlign: 'center' }}>
+              <div style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '48px',
+                height: '48px',
+                borderRadius: '12px',
+                background: activeSlide === 0 ? 'rgba(37, 99, 235, 0.15)' : activeSlide === 1 ? 'rgba(16, 185, 129, 0.15)' : 'rgba(99, 102, 241, 0.15)',
+                color: activeSlide === 0 ? 'var(--primary)' : activeSlide === 1 ? 'var(--success)' : 'var(--info)',
+                marginBottom: '16px'
+              }}>
+                {modalMode === 'login' ? <Icons.LogIn size={24} /> : <Icons.UserPlus size={24} />}
+              </div>
+              <h3 style={{ fontSize: '20px', fontWeight: 800, fontFamily: "'Poppins', sans-serif" }}>
+                {modalMode === 'login' ? 'Portal Log In' : 'Portal Registration'}
+              </h3>
+              <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)', marginTop: '4px' }}>
+                Access the {slides[activeSlide].id} platform
+              </p>
+            </div>
+
+            {/* Error Banner */}
+            {error && (
+              <div style={{
+                background: 'rgba(239, 68, 68, 0.15)',
+                border: '1px solid rgba(239, 68, 68, 0.3)',
+                borderRadius: '10px',
+                padding: '12px',
+                fontSize: '12px',
+                color: '#FCA5A5',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}>
+                <Icons.AlertCircle size={16} />
+                <span>{error}</span>
+              </div>
+            )}
+
+            {/* Simulated Notification Toast for local PoC */}
+            {otpNotification && (
+              <div style={{
+                background: 'rgba(16, 185, 129, 0.15)',
+                border: '1px solid rgba(16, 185, 129, 0.3)',
+                borderRadius: '10px',
+                padding: '12px',
+                fontSize: '12px',
+                color: '#A7F3D0',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '4px'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 700 }}>
+                  <Icons.MessageSquareCode size={16} />
+                  <span>OTP Dispatched!</span>
+                </div>
+                <p style={{ fontSize: '11px', color: 'rgba(255, 255, 255, 0.7)', lineHeight: 1.5 }}>
+                  {otpNotification}
+                </p>
+              </div>
+            )}
+
+            {/* Forms */}
+            {!otpSent ? (
+              <form onSubmit={handleSendOtp} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                {modalMode === 'register' && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <label style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', color: 'rgba(255,255,255,0.6)' }}>Full Name</label>
+                    <input 
+                      type="text" 
+                      required
+                      placeholder="e.g. Yugal Kishor"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      style={{
+                        background: 'rgba(255,255,255,0.05)',
+                        border: '1px solid rgba(255,255,255,0.1)',
+                        borderRadius: '10px',
+                        padding: '12px',
+                        color: 'white',
+                        fontSize: '13px',
+                        outline: 'none'
+                      }}
+                    />
+                  </div>
+                )}
+
+                {modalMode === 'login' ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <label style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', color: 'rgba(255,255,255,0.6)' }}>Phone Number</label>
+                    <input 
+                      type="tel" 
+                      required
+                      placeholder="e.g. +91 99999 11111"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      style={{
+                        background: 'rgba(255,255,255,0.05)',
+                        border: '1px solid rgba(255,255,255,0.1)',
+                        borderRadius: '10px',
+                        padding: '12px',
+                        color: 'white',
+                        fontSize: '13px',
+                        outline: 'none'
+                      }}
+                    />
+                  </div>
+                ) : (
+                  <>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      <label style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', color: 'rgba(255,255,255,0.6)' }}>Email Address</label>
+                      <input 
+                        type="email" 
+                        required
+                        placeholder="e.g. yugal@example.com"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        style={{
+                          background: 'rgba(255,255,255,0.05)',
+                          border: '1px solid rgba(255,255,255,0.1)',
+                          borderRadius: '10px',
+                          padding: '12px',
+                          color: 'white',
+                          fontSize: '13px',
+                          outline: 'none'
+                        }}
+                      />
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      <label style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', color: 'rgba(255,255,255,0.6)' }}>Phone Number</label>
+                      <input 
+                        type="tel" 
+                        required
+                        placeholder="e.g. +91 99999 11111"
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value)}
+                        style={{
+                          background: 'rgba(255,255,255,0.05)',
+                          border: '1px solid rgba(255,255,255,0.1)',
+                          borderRadius: '10px',
+                          padding: '12px',
+                          color: 'white',
+                          fontSize: '13px',
+                          outline: 'none'
+                        }}
+                      />
+                    </div>
+                  </>
+                )}
+
+                <button 
+                  type="submit" 
+                  disabled={loading}
+                  style={{
+                    background: activeSlide === 0 ? 'var(--primary)' : activeSlide === 1 ? 'var(--success)' : 'var(--info)',
+                    color: '#080C14',
+                    border: 'none',
+                    borderRadius: '10px',
+                    padding: '14px',
+                    fontSize: '13px',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    marginTop: '8px',
+                    transition: 'opacity 0.2s',
+                    opacity: loading ? 0.7 : 1
+                  }}
+                >
+                  {loading ? 'Generating Code...' : 'Request OTP Verification'}
+                </button>
+              </form>
+            ) : (
+              <form onSubmit={handleVerifyOtp} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'center' }}>
+                  <label style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', color: 'rgba(255,255,255,0.6)' }}>Enter Verification Code</label>
+                  <input 
+                    type="text" 
+                    maxLength={6}
+                    required
+                    placeholder="******"
+                    value={otp}
+                    onChange={(e) => setOtp(e.target.value)}
+                    style={{
+                      background: 'rgba(255,255,255,0.08)',
+                      border: '1px solid rgba(255,255,255,0.15)',
+                      borderRadius: '12px',
+                      padding: '14px',
+                      color: 'white',
+                      fontSize: '20px',
+                      fontWeight: 800,
+                      textAlign: 'center',
+                      letterSpacing: '6px',
+                      width: '180px',
+                      outline: 'none',
+                      fontFamily: 'monospace'
+                    }}
+                  />
+                </div>
+
+                <div style={{ display: 'flex', gap: '12px' }}>
+                  <button 
+                    type="button" 
+                    onClick={() => { setOtpSent(false); setOtp(''); }}
+                    style={{
+                      flex: 1,
+                      background: 'rgba(255, 255, 255, 0.05)',
+                      border: '1px solid rgba(255, 255, 255, 0.1)',
+                      borderRadius: '10px',
+                      padding: '12px',
+                      color: 'white',
+                      fontSize: '12px',
+                      fontWeight: 600,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Back
+                  </button>
+                  <button 
+                    type="submit"
+                    disabled={loading}
+                    style={{
+                      flex: 2,
+                      background: activeSlide === 0 ? 'var(--primary)' : activeSlide === 1 ? 'var(--success)' : 'var(--info)',
+                      color: '#080C14',
+                      border: 'none',
+                      borderRadius: '10px',
+                      padding: '12px',
+                      fontSize: '12px',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      opacity: loading ? 0.7 : 1
+                    }}
+                  >
+                    {loading ? 'Verifying...' : 'Verify & Enter Dashboard'}
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+
