@@ -3,6 +3,17 @@ import sys
 import time
 import os
 
+# Load .env file into environment variables (so SMTP config etc. is available)
+_env_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env")
+if os.path.exists(_env_path):
+    with open(_env_path) as _f:
+        for _line in _f:
+            _line = _line.strip()
+            if "=" in _line and not _line.startswith("#"):
+                _key, _, _val = _line.partition("=")
+                _val = _val.split("#")[0].strip()  # strip inline comments
+                os.environ.setdefault(_key.strip(), _val)
+
 def run_servers():
     print("Starting all Yatra AI FastAPI backend services...")
     
@@ -35,7 +46,7 @@ def run_servers():
         for s in servers:
             print(f"Launching {s['name']} on http://localhost:{s['command'][5]} ...")
             # We run uvicorn as a subprocess. We don't pipe stdout so the uvicorn logs output directly to terminal.
-            p = subprocess.Popen(s["command"])
+            p = subprocess.Popen(s["command"], env=os.environ.copy())
             processes.append(p)
             # Short sleep to prevent port collision race conditions
             time.sleep(0.5)

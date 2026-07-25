@@ -1,5 +1,6 @@
 from mysql_helper import get_db_conn as get_mysql_conn
 from sms_helper import normalize_phone, send_actual_sms
+from email_helper import send_otp_email
 import json
 import os
 import random
@@ -23,58 +24,58 @@ def get_db_conn():
 
 # --- AUTHENTICATION & OTP SCHEMAS ---
 class SendOtpPayload(BaseModel):
-    phone: str
-    email: Optional[str] = None
+    email: str
+    phone: Optional[str] = None
     mode: str  # "login" or "register"
     name: Optional[str] = None
 
 class VerifyOtpPayload(BaseModel):
-    phone: str
+    email: str
     otp: str
     mode: str  # "login" or "register"
-    email: Optional[str] = None
+    phone: Optional[str] = None
     name: Optional[str] = None
 
-# In-memory OTP store: mapping phone -> otp_code
+# In-memory OTP store: mapping email -> otp_code
 otp_store: Dict[str, str] = {}
 
 @app.post("/auth/send-otp")
 def send_otp(payload: SendOtpPayload):
-    if not payload.phone:
-        raise HTTPException(status_code=400, detail="Phone number is required")
+    if not payload.email:
+        raise HTTPException(status_code=400, detail="Email is required")
         
-    phone = normalize_phone(payload.phone)
+    email = payload.email.strip().lower()
     
     # Generate 6-digit OTP
     otp_code = f"{random.randint(100000, 999999)}"
-    otp_store[phone] = otp_code
+    otp_store[email] = otp_code
     
-    # Send actual SMS
-    send_actual_sms(phone, otp_code)
+    # Send actual email
+    send_otp_email(email, otp_code)
     
     return {"message": "OTP sent successfully", "otp": otp_code}
 
 @app.post("/auth/verify-otp")
 def verify_otp(payload: VerifyOtpPayload):
-    if not payload.phone or not payload.otp:
-        raise HTTPException(status_code=400, detail="Phone number and OTP are required")
+    if not payload.email or not payload.otp:
+        raise HTTPException(status_code=400, detail="Email and OTP are required")
         
-    phone = normalize_phone(payload.phone)
-    stored_otp = otp_store.get(phone)
+    email = payload.email.strip().lower()
+    stored_otp = otp_store.get(email)
     if not stored_otp or stored_otp != payload.otp:
         raise HTTPException(status_code=400, detail="Invalid or expired OTP")
         
     # Clear OTP after successful verification
-    if phone in otp_store:
-        del otp_store[phone]
+    if email in otp_store:
+        del otp_store[email]
         
     user_name = payload.name or "Admin User"
-    user_email = payload.email or "admin@yatra.ai"
+    phone = normalize_phone(payload.phone) if payload.phone else ""
     
     return {
         "status": "success",
         "user": {
-            "email": user_email,
+            "email": email,
             "phone": phone,
             "role": "yatra-team",
             "name": user_name

@@ -68,25 +68,21 @@ export default function LandingPortal({ onSelectRole }) {
     setOtpSent(false);
     setOtp('');
     setName('');
-    setEmail('');
-    // Prefill default demo phone number for easier check
+    setPhone('');
+    // Prefill default demo email for easier check
     if (mode === 'login') {
-      if (activeSlide === 0) setPhone('+91 99999 22222');
-      else if (activeSlide === 1) setPhone('+91 99999 11111');
-      else setPhone('+91 99999 00000');
+      if (activeSlide === 0) setEmail('ceo@yatratravels.com');
+      else if (activeSlide === 1) setEmail('yugal@example.com');
+      else setEmail('admin@yatra.ai');
     } else {
-      setPhone('');
+      setEmail('');
     }
     setShowModal(true);
   };
 
   const handleSendOtp = async (e) => {
     e.preventDefault();
-    if (!phone) {
-      setError('Please enter a valid phone number.');
-      return;
-    }
-    if (modalMode === 'register' && !email) {
+    if (!email) {
       setError('Please enter a valid email address.');
       return;
     }
@@ -95,13 +91,13 @@ export default function LandingPortal({ onSelectRole }) {
     try {
       const role = getActiveRole();
       const res = await api.auth.sendOtp(role, {
-        email: modalMode === 'register' ? email : undefined,
-        phone,
+        email,
+        phone: phone || undefined,
         mode: modalMode,
         name: modalMode === 'register' ? name : undefined
       });
       setOtpSent(true);
-      setOtpNotification(`A verification code has been dispatched to ${phone}. For local testing, please check the backend terminal console log.`);
+      setOtpNotification(`A verification code has been dispatched to ${email}. For local testing, please check the backend terminal console log.`);
     } catch (err) {
       setError(err.message || 'Failed to send OTP. Please try again.');
     } finally {
@@ -120,10 +116,10 @@ export default function LandingPortal({ onSelectRole }) {
     try {
       const role = getActiveRole();
       const res = await api.auth.verifyOtp(role, {
-        phone,
+        email,
         otp,
         mode: modalMode,
-        email: modalMode === 'register' ? email : undefined,
+        phone: phone || undefined,
         name: modalMode === 'register' ? name : undefined
       });
       if (res.status === 'success') {
@@ -536,13 +532,13 @@ export default function LandingPortal({ onSelectRole }) {
 
                 {modalMode === 'login' ? (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    <label style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', color: 'rgba(255,255,255,0.6)' }}>Phone Number</label>
+                    <label style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', color: 'rgba(255,255,255,0.6)' }}>Email Address</label>
                     <input 
-                      type="tel" 
+                      type="email" 
                       required
-                      placeholder="e.g. +91 99999 11111"
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
+                      placeholder="e.g. yugal@example.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
                       style={{
                         background: 'rgba(255,255,255,0.05)',
                         border: '1px solid rgba(255,255,255,0.1)',
@@ -577,10 +573,9 @@ export default function LandingPortal({ onSelectRole }) {
                     </div>
 
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                      <label style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', color: 'rgba(255,255,255,0.6)' }}>Phone Number</label>
+                      <label style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', color: 'rgba(255,255,255,0.6)' }}>Phone Number (Optional)</label>
                       <input 
                         type="tel" 
-                        required
                         placeholder="e.g. +91 99999 11111"
                         value={phone}
                         onChange={(e) => setPhone(e.target.value)}
