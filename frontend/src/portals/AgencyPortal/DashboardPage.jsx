@@ -60,15 +60,18 @@ export default function DashboardPage({ onNavigate }) {
 
   // Top Stats Cards mapping
   const s = summary?.stats || {};
+  const safeNum = (val) => parseFloat(val) || 0;
+  const toLakh = (val) => (safeNum(val) / 100000).toFixed(1);
+
   const stats = [
-    { label: 'Total Revenue', value: `₹${(s.total_revenue / 100000).toFixed(1)}L`, change: '↑ 18%', color: 'blue' },
-    { label: 'Total Expenses', value: `₹${(s.total_expenses / 100000).toFixed(1)}L`, change: s.expense_trend || '↓ 5%', color: 'red' },
-    { label: 'Active Tours', value: s.active_tours?.toString() || '0', change: '+3 this week', color: 'green' },
-    { label: 'Net Profit', value: `₹${(s.profit / 100000).toFixed(1)}L`, change: '↑ 34%', color: 'teal' },
-    { label: 'Total Vehicles', value: s.total_vehicles?.toString() || '0', change: '80% utilization', color: 'indigo' },
-    { label: 'Total Drivers', value: s.total_drivers?.toString() || '0', change: '4 on leave', color: 'orange' },
-    { label: 'Pending Payments', value: `₹${(s.pending_payments / 100000).toFixed(1)}L`, change: '5 invoices due', color: 'red' },
-    { label: 'Upcoming Trips', value: s.upcoming_tours?.toString() || '0', change: 'Next 30 days', color: 'blue' }
+    { label: 'Total Revenue', value: `₹${toLakh(s.total_revenue)}L`, change: s.total_revenue > 0 ? '↑ From completed tours' : 'No tours completed yet', color: 'blue' },
+    { label: 'Total Expenses', value: `₹${toLakh(s.total_expenses)}L`, change: s.expense_trend || 'No expenses yet', color: 'red' },
+    { label: 'Active Tours', value: safeNum(s.active_tours).toString(), change: s.active_tours > 0 ? `${s.active_tours} ongoing` : 'No active tours', color: 'green' },
+    { label: 'Net Profit', value: `₹${toLakh(s.profit)}L`, change: safeNum(s.profit) >= 0 ? '↑ Positive' : '↓ Loss', color: 'teal' },
+    { label: 'Total Vehicles', value: safeNum(s.total_vehicles).toString(), change: s.total_vehicles > 0 ? `${s.total_vehicles} in fleet` : 'Add vehicles', color: 'indigo' },
+    { label: 'Total Drivers', value: safeNum(s.total_drivers).toString(), change: s.total_drivers > 0 ? `${s.total_drivers} registered` : 'Add drivers', color: 'orange' },
+    { label: 'Pending Payments', value: `₹${toLakh(s.pending_payments)}L`, change: s.pending_payments > 0 ? 'Invoices due' : 'All settled', color: 'red' },
+    { label: 'Upcoming Trips', value: safeNum(s.upcoming_tours).toString(), change: s.upcoming_tours > 0 ? 'Next 30 days' : 'No upcoming trips', color: 'blue' }
   ];
 
   // Chart Mappings
@@ -159,11 +162,11 @@ export default function DashboardPage({ onNavigate }) {
         </div>
         <div style={{ position: 'relative', zIndex: 1, display: 'flex', gap: '32px' }}>
           <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: '22px', fontWeight: 800, fontFamily: "'Poppins', sans-serif" }}>₹{(s.total_revenue / 100000).toFixed(1)}L</div>
+            <div style={{ fontSize: '22px', fontWeight: 800, fontFamily: "'Poppins', sans-serif" }}>₹{toLakh(s.total_revenue)}L</div>
             <div style={{ fontSize: '11px', opacity: 0.7, marginTop: '2px' }}>Revenue</div>
           </div>
           <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: '22px', fontWeight: 800, fontFamily: "'Poppins', sans-serif" }}>{s.active_tours || 0}</div>
+            <div style={{ fontSize: '22px', fontWeight: 800, fontFamily: "'Poppins', sans-serif" }}>{safeNum(s.active_tours)}</div>
             <div style={{ fontSize: '11px', opacity: 0.7, marginTop: '2px' }}>Active Tours</div>
           </div>
         </div>

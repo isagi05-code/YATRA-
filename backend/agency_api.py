@@ -208,7 +208,7 @@ class TourCreate(BaseModel):
     timeline_status: str = "Booking Created"
 
 class ExpenseCreate(BaseModel):
-    trip_id: int
+    trip_id: Optional[int] = None
     amount: float
     gst: float
     vendor: str
@@ -781,12 +781,13 @@ def get_expenses(category: Optional[str] = None, status: Optional[str] = None, s
     conn = get_db_conn()
     cursor = conn.cursor()
 
+    # Get expenses linked to this agency's tours OR standalone (no trip_id)
     query = """
         SELECT e.* FROM expenses e
-        INNER JOIN tours t ON e.trip_id = t.trip_id
-        WHERE t.agency_id = ?
+        LEFT JOIN tours t ON e.trip_id = t.trip_id
+        WHERE (t.agency_id = ? OR (e.trip_id IS NULL AND e.agency_id = ?))
     """
-    params = [agency_id]
+    params = [agency_id, agency_id]
 
     if category:
         query += " AND e.category = ?"
@@ -799,6 +800,7 @@ def get_expenses(category: Optional[str] = None, status: Optional[str] = None, s
         params.append(f"%{search}%")
         params.append(f"%{search}%")
 
+    query += " ORDER BY e.date DESC, e.expense_id DESC"
     cursor.execute(query, params)
     expenses = [dict(row) for row in cursor.fetchall()]
     conn.close()
@@ -809,11 +811,13 @@ def create_expense(expense: ExpenseCreate, agency_id: Optional[str] = None):
     agency_id = require_agency_id(agency_id)
     conn = get_db_conn()
     cursor = conn.cursor()
-    verify_tour_belongs_to_agency(cursor, expense.trip_id, agency_id)
+    # Verify tour ownership only if trip_id is provided
+    if expense.trip_id is not None:
+        verify_tour_belongs_to_agency(cursor, expense.trip_id, agency_id)
     cursor.execute("""
-    INSERT INTO expenses (trip_id, amount, gst, vendor, category, date, time, description, payment_mode, approved_by, status, receipt_image, ocr_extracted_data)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-    (expense.trip_id, expense.amount, expense.gst, expense.vendor, expense.category, expense.date, expense.time, expense.description, expense.payment_mode, expense.approved_by, expense.status, expense.receipt_image, expense.ocr_extracted_data))
+    INSERT INTO expenses (trip_id, agency_id, amount, gst, vendor, category, date, time, description, payment_mode, approved_by, status, receipt_image, ocr_extracted_data)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+    (expense.trip_id, agency_id, expense.amount, expense.gst, expense.vendor, expense.category, expense.date, expense.time, expense.description, expense.payment_mode, expense.approved_by, expense.status, expense.receipt_image, expense.ocr_extracted_data))
     expense_id = cursor.lastrowid
     conn.commit()
     conn.close()
@@ -826,9 +830,9 @@ def get_expense(expense_id: int, agency_id: Optional[str] = None):
     cursor = conn.cursor()
     cursor.execute("""
         SELECT e.* FROM expenses e
-        INNER JOIN tours t ON e.trip_id = t.trip_id
-        WHERE e.expense_id = ? AND t.agency_id = ?
-    """, (expense_id, agency_id))
+        LEFT JOIN tours t ON e.trip_id = t.trip_id
+        WHERE e.expense_id = ? AND (t.agency_id = ? OR (e.trip_id IS NULL AND e.agency_id = ?))
+    """, (expense_id, agency_id, agency_id))
     row = cursor.fetchone()
     conn.close()
     if not row:
@@ -842,8 +846,11 @@ def update_expense_status(expense_id: int, status: str, approved_by: str, agency
     cursor = conn.cursor()
     cursor.execute("""
         UPDATE expenses SET status = ?, approved_by = ?
-        WHERE expense_id = ? AND trip_id IN (SELECT trip_id FROM tours WHERE agency_id = ?)
-    """, (status, approved_by, expense_id, agency_id))
+        WHERE expense_id = ? AND (
+            trip_id IN (SELECT trip_id FROM tours WHERE agency_id = ?)
+            OR (trip_id IS NULL AND agency_id = ?)
+        )
+    """, (status, approved_by, expense_id, agency_id, agency_id))
     if cursor.rowcount == 0:
         conn.close()
         raise HTTPException(status_code=404, detail="Expense not found")
@@ -857,9 +864,11 @@ def delete_expense(expense_id: int, agency_id: Optional[str] = None):
     conn = get_db_conn()
     cursor = conn.cursor()
     cursor.execute("""
-        DELETE FROM expenses WHERE expense_id = ?
-        AND trip_id IN (SELECT trip_id FROM tours WHERE agency_id = ?)
-    """, (expense_id, agency_id))
+        DELETE FROM expenses WHERE expense_id = ? AND (
+            trip_id IN (SELECT trip_id FROM tours WHERE agency_id = ?)
+            OR (trip_id IS NULL AND agency_id = ?)
+        )
+    """, (expense_id, agency_id, agency_id))
     if cursor.rowcount == 0:
         conn.close()
         raise HTTPException(status_code=404, detail="Expense not found")
@@ -902,31 +911,39 @@ def extract_ocr_receipt(receipt_image: str):
 
 # 5. Vehicles Endpoints
 @app.get("/vehicles")
-def get_vehicles():
+def get_vehicles(agency_id: Optional[str] = None):
+    agency_id = require_agency_id(agency_id)
     conn = get_db_conn()
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM vehicles")
+    cursor.execute("SELECT * FROM vehicles WHERE agency_id = ? ORDER BY vehicle_number", (agency_id,))
     vehicles = [dict(row) for row in cursor.fetchall()]
     conn.close()
     return vehicles
 
 @app.post("/vehicles")
-def create_vehicle(veh: VehicleCreate):
+def create_vehicle(veh: VehicleCreate, agency_id: Optional[str] = None):
+    agency_id = require_agency_id(agency_id)
     conn = get_db_conn()
     cursor = conn.cursor()
+    # Check duplicate vehicle number for this agency
+    cursor.execute("SELECT vehicle_number FROM vehicles WHERE vehicle_number = ? AND agency_id = ?", (veh.vehicle_number, agency_id))
+    if cursor.fetchone():
+        conn.close()
+        raise HTTPException(status_code=400, detail="Vehicle number already registered for this agency")
     cursor.execute("""
-    INSERT INTO vehicles (vehicle_number, model, owner, insurance, permit, fitness, puc, fuel_type, mileage, current_location, availability, service_history, expenses, upcoming_maintenance)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-    (veh.vehicle_number, veh.model, veh.owner, veh.insurance, veh.permit, veh.fitness, veh.puc, veh.fuel_type, veh.mileage, veh.current_location, veh.availability, veh.service_history, veh.expenses, veh.upcoming_maintenance))
+    INSERT INTO vehicles (vehicle_number, agency_id, model, owner, insurance, permit, fitness, puc, fuel_type, mileage, current_location, availability, service_history, expenses, upcoming_maintenance)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+    (veh.vehicle_number, agency_id, veh.model, veh.owner, veh.insurance, veh.permit, veh.fitness, veh.puc, veh.fuel_type, veh.mileage, veh.current_location, veh.availability, veh.service_history, veh.expenses, veh.upcoming_maintenance))
     conn.commit()
     conn.close()
     return {"message": "Vehicle registered successfully"}
 
 @app.get("/vehicles/{vehicle_number}")
-def get_vehicle_details(vehicle_number: str):
+def get_vehicle_details(vehicle_number: str, agency_id: Optional[str] = None):
+    agency_id = require_agency_id(agency_id)
     conn = get_db_conn()
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM vehicles WHERE vehicle_number = ?", (vehicle_number,))
+    cursor.execute("SELECT * FROM vehicles WHERE vehicle_number = ? AND agency_id = ?", (vehicle_number, agency_id))
     row = cursor.fetchone()
     conn.close()
     if not row:
@@ -934,10 +951,11 @@ def get_vehicle_details(vehicle_number: str):
     return dict(row)
 
 @app.put("/vehicles/{vehicle_number}")
-def update_vehicle(vehicle_number: str, availability: str, current_location: str):
+def update_vehicle(vehicle_number: str, availability: str, current_location: str, agency_id: Optional[str] = None):
+    agency_id = require_agency_id(agency_id)
     conn = get_db_conn()
     cursor = conn.cursor()
-    cursor.execute("UPDATE vehicles SET availability = ?, current_location = ? WHERE vehicle_number = ?", (availability, current_location, vehicle_number))
+    cursor.execute("UPDATE vehicles SET availability = ?, current_location = ? WHERE vehicle_number = ? AND agency_id = ?", (availability, current_location, vehicle_number, agency_id))
     if cursor.rowcount == 0:
         conn.close()
         raise HTTPException(status_code=404, detail="Vehicle not found")
@@ -946,10 +964,11 @@ def update_vehicle(vehicle_number: str, availability: str, current_location: str
     return {"message": "Vehicle updated successfully"}
 
 @app.delete("/vehicles/{vehicle_number}")
-def delete_vehicle(vehicle_number: str):
+def delete_vehicle(vehicle_number: str, agency_id: Optional[str] = None):
+    agency_id = require_agency_id(agency_id)
     conn = get_db_conn()
     cursor = conn.cursor()
-    cursor.execute("DELETE FROM vehicles WHERE vehicle_number = ?", (vehicle_number,))
+    cursor.execute("DELETE FROM vehicles WHERE vehicle_number = ? AND agency_id = ?", (vehicle_number, agency_id))
     if cursor.rowcount == 0:
         conn.close()
         raise HTTPException(status_code=404, detail="Vehicle not found")
@@ -959,31 +978,47 @@ def delete_vehicle(vehicle_number: str):
 
 # 6. Drivers Endpoints
 @app.get("/drivers")
-def get_drivers():
+def get_drivers(agency_id: Optional[str] = None):
+    agency_id = require_agency_id(agency_id)
     conn = get_db_conn()
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM drivers")
+    cursor.execute("SELECT * FROM drivers WHERE agency_id = ? ORDER BY driver_id", (agency_id,))
     drivers = [dict(row) for row in cursor.fetchall()]
     conn.close()
     return drivers
 
 @app.post("/drivers")
-def create_driver(driver: DriverCreate):
+def create_driver(driver: DriverCreate, agency_id: Optional[str] = None):
+    agency_id = require_agency_id(agency_id)
     conn = get_db_conn()
     cursor = conn.cursor()
     cursor.execute("""
-    INSERT INTO drivers (name, license, aadhar, experience, trips_completed, assigned_tour, current_location, contact, emergency_contact, salary, expense, ratings, documents)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-    (driver.name, driver.license, driver.aadhar, driver.experience, driver.trips_completed, driver.assigned_tour, driver.current_location, driver.contact, driver.emergency_contact, driver.salary, driver.expense, driver.ratings, driver.documents))
+    INSERT INTO drivers (agency_id, name, license, aadhar, experience, trips_completed, assigned_tour, current_location, contact, emergency_contact, salary, expense, ratings, documents)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+    (agency_id, driver.name, driver.license, driver.aadhar, driver.experience, driver.trips_completed, driver.assigned_tour, driver.current_location, driver.contact, driver.emergency_contact, driver.salary, driver.expense, driver.ratings, driver.documents))
     conn.commit()
     conn.close()
     return {"message": "Driver added successfully"}
 
-@app.get("/drivers/{driver_id}")
-def get_driver_details(driver_id: int):
+@app.delete("/drivers/{driver_id}")
+def delete_driver(driver_id: int, agency_id: Optional[str] = None):
+    agency_id = require_agency_id(agency_id)
     conn = get_db_conn()
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM drivers WHERE driver_id = ?", (driver_id,))
+    cursor.execute("DELETE FROM drivers WHERE driver_id = ? AND agency_id = ?", (driver_id, agency_id))
+    if cursor.rowcount == 0:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Driver not found")
+    conn.commit()
+    conn.close()
+    return {"message": "Driver deleted successfully"}
+
+@app.get("/drivers/{driver_id}")
+def get_driver_details(driver_id: int, agency_id: Optional[str] = None):
+    agency_id = require_agency_id(agency_id)
+    conn = get_db_conn()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM drivers WHERE driver_id = ? AND agency_id = ?", (driver_id, agency_id))
     row = cursor.fetchone()
     conn.close()
     if not row:

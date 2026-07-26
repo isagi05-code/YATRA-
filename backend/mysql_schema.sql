@@ -50,7 +50,8 @@ CREATE TABLE IF NOT EXISTS tour_timeline (
 
 CREATE TABLE IF NOT EXISTS expenses (
   expense_id INT AUTO_INCREMENT PRIMARY KEY,
-  trip_id INT,
+  trip_id INT NULL,
+  agency_id VARCHAR(50),
   amount DECIMAL(12,2),
   gst DECIMAL(12,2),
   vendor VARCHAR(255),
@@ -62,8 +63,7 @@ CREATE TABLE IF NOT EXISTS expenses (
   approved_by VARCHAR(255),
   status VARCHAR(100),
   receipt_image VARCHAR(255),
-  ocr_extracted_data TEXT,
-  CONSTRAINT fk_agency_expenses_trip FOREIGN KEY (trip_id) REFERENCES tours(trip_id)
+  ocr_extracted_data TEXT
 ) ENGINE=InnoDB;
 
 CREATE TABLE IF NOT EXISTS vehicles (

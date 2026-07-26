@@ -88,13 +88,13 @@ def seed_agency_db():
     
     # 4. Expenses
     cursor.executemany("""
-    INSERT INTO expenses (trip_id, amount, gst, vendor, category, date, time, description, payment_mode, approved_by, status, receipt_image, ocr_extracted_data)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""", [
-        (2, 4500.0, 810.0, "HP Petrol Pump", "Fuel", "2026-07-02", "14:30:00", "Fuel refill for Rajasthan trip", "Fuel Card", "Agency Head", "Approved", "fuel_receipt_102.png", json.dumps({"vendor": "HP Pump", "total": "₹4,500.00", "tax": "18%", "fuel_qty": "45L"})),
-        (2, 6000.0, 1080.0, "Jaipur Palace Stay", "Stay", "2026-07-01", "21:00:00", "Driver and client stay night 1", "Corporate Credit Card", "Agency Head", "Approved", "stay_receipt_201.png", json.dumps({"vendor": "Jaipur Palace", "total": "₹6,000.00", "tax": "18%"})),
-        (2, 1200.0, 60.0, "Spice Court Diner", "Food", "2026-07-02", "13:00:00", "Lunch for client & driver", "UPI", "Pending Admin", "Pending", "food_receipt_302.png", json.dumps({"vendor": "Spice Court", "total": "₹1,200.00", "tax": "5%"})),
-        (1, 250.0, 0.0, "NH48 Toll Plaza", "Toll", "2026-07-05", "10:15:00", "Toll charge FASTag auto-debit", "FASTag", "System Auto-Approved", "Approved", "toll_receipt_401.png", json.dumps({"vendor": "FASTag", "total": "₹250.00"})),
-        (3, 3000.0, 540.0, "Himalayan Mechanic", "Vehicle Maintenance", "2026-06-18", "11:00:00", "Brake pad replacement", "Cash", "Agency Head", "Approved", "maint_receipt_501.png", json.dumps({"vendor": "Himalayan Mechanic", "total": "₹3,000.00"}))
+    INSERT INTO expenses (trip_id, agency_id, amount, gst, vendor, category, date, time, description, payment_mode, approved_by, status, receipt_image, ocr_extracted_data)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""", [
+        (2, "AGY-1001", 4500.0, 810.0, "HP Petrol Pump", "Fuel", "2026-07-02", "14:30:00", "Fuel refill for Rajasthan trip", "Fuel Card", "Agency Head", "Approved", "fuel_receipt_102.png", json.dumps({"vendor": "HP Pump", "total": "₹4,500.00", "tax": "18%", "fuel_qty": "45L"})),
+        (2, "AGY-1001", 6000.0, 1080.0, "Jaipur Palace Stay", "Stay", "2026-07-01", "21:00:00", "Driver and client stay night 1", "Corporate Credit Card", "Agency Head", "Approved", "stay_receipt_201.png", json.dumps({"vendor": "Jaipur Palace", "total": "₹6,000.00", "tax": "18%"})),
+        (2, "AGY-1001", 1200.0, 60.0, "Spice Court Diner", "Food", "2026-07-02", "13:00:00", "Lunch for client & driver", "UPI", "Pending Admin", "Pending", "food_receipt_302.png", json.dumps({"vendor": "Spice Court", "total": "₹1,200.00", "tax": "5%"})),
+        (1, "AGY-1001", 250.0, 0.0, "NH48 Toll Plaza", "Toll", "2026-07-05", "10:15:00", "Toll charge FASTag auto-debit", "FASTag", "System Auto-Approved", "Approved", "toll_receipt_401.png", json.dumps({"vendor": "FASTag", "total": "₹250.00"})),
+        (3, "AGY-1001", 3000.0, 540.0, "Himalayan Mechanic", "Vehicle Maintenance", "2026-06-18", "11:00:00", "Brake pad replacement", "Cash", "Agency Head", "Approved", "maint_receipt_501.png", json.dumps({"vendor": "Himalayan Mechanic", "total": "₹3,000.00"}))
     ])
     
     # 5. Vehicles
