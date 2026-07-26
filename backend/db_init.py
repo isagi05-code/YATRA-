@@ -99,39 +99,39 @@ def seed_agency_db():
     
     # 5. Vehicles
     cursor.executemany("""
-    INSERT INTO vehicles (vehicle_number, model, owner, insurance, permit, fitness, puc, fuel_type, mileage, current_location, availability, service_history, expenses, upcoming_maintenance)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""", [
-        ("MH-01-DK-4507", "Toyota Innova Crysta", "Yatra Travels Ltd", "Active (Expires: 2027-02-15)", "National Permit (Expires: 2028-06-10)", "Valid (Expires: 2027-01-20)", "Valid (Expires: 2026-12-05)", "Diesel", 12.5, "Mumbai, MH", "Available", json.dumps([{"date": "2026-05-10", "type": "Engine Oil Change", "cost": 4500.0}]), 12000.0, "2026-08-10 (General Service)"),
-        ("MH-02-AB-9876", "Tempo Traveller 17-Seater", "Partner Fleet Rent", "Active (Expires: 2026-11-20)", "State Permit (Expires: 2027-03-12)", "Valid (Expires: 2026-09-15)", "Valid (Expires: 2026-08-30)", "Diesel", 9.8, "Jaipur, RJ", "Assigned", json.dumps([{"date": "2026-04-20", "type": "Tire Replacement", "cost": 15000.0}]), 35000.0, "2026-09-01 (Tire Alignment)"),
-        ("MH-04-PQ-9102", "Suzuki Ertiga", "Yatra Travels Ltd", "Active (Expires: 2027-05-01)", "Local Permit (Expires: 2027-05-01)", "Valid (Expires: 2027-05-01)", "Valid (Expires: 2026-11-10)", "CNG", 18.0, "Delhi, DL", "Available", json.dumps([{"date": "2026-06-18", "type": "Brake Maintenance", "cost": 3000.0}]), 5000.0, "2026-10-15 (CNG Filter Change)")
+    INSERT INTO vehicles (vehicle_number, agency_id, model, owner, insurance, permit, fitness, puc, fuel_type, mileage, current_location, availability, service_history, expenses, upcoming_maintenance)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""", [
+        ("MH-01-DK-4507", "AGY-1001", "Toyota Innova Crysta", "Yatra Travels Ltd", "Active (Expires: 2027-02-15)", "National Permit (Expires: 2028-06-10)", "Valid (Expires: 2027-01-20)", "Valid (Expires: 2026-12-05)", "Diesel", 12.5, "Mumbai, MH", "Available", json.dumps([{"date": "2026-05-10", "type": "Engine Oil Change", "cost": 4500.0}]), 12000.0, "2026-08-10 (General Service)"),
+        ("MH-02-AB-9876", "AGY-1001", "Tempo Traveller 17-Seater", "Partner Fleet Rent", "Active (Expires: 2026-11-20)", "State Permit (Expires: 2027-03-12)", "Valid (Expires: 2026-09-15)", "Valid (Expires: 2026-08-30)", "Diesel", 9.8, "Jaipur, RJ", "Assigned", json.dumps([{"date": "2026-04-20", "type": "Tire Replacement", "cost": 15000.0}]), 35000.0, "2026-09-01 (Tire Alignment)"),
+        ("MH-04-PQ-9102", "AGY-1001", "Suzuki Ertiga", "Yatra Travels Ltd", "Active (Expires: 2027-05-01)", "Local Permit (Expires: 2027-05-01)", "Valid (Expires: 2027-05-01)", "Valid (Expires: 2026-11-10)", "CNG", 18.0, "Delhi, DL", "Available", json.dumps([{"date": "2026-06-18", "type": "Brake Maintenance", "cost": 3000.0}]), 5000.0, "2026-10-15 (CNG Filter Change)")
     ])
     
     # 6. Drivers
     cursor.executemany("""
-    INSERT INTO drivers (name, license, aadhar, experience, trips_completed, assigned_tour, current_location, contact, emergency_contact, salary, expense, ratings, documents)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""", [
-        ("Vikram Singh", "DL-142018009283", "9283-1029-4829", 12, 148, "None", "Mumbai, MH", "+919876543210", "+919876543211", 25000.0, 1800.0, 4.8, json.dumps({"license_copy": "lic_vikram.pdf", "aadhar_copy": "aadhar_vikram.pdf"})),
-        ("Amit Patel", "GJ-012015002931", "1029-4829-9283", 8, 92, "Royal Rajasthan Journey", "Jaipur, RJ", "+919822211100", "+919822211101", 22000.0, 3200.0, 4.6, json.dumps({"license_copy": "lic_amit.pdf", "aadhar_copy": "aadhar_amit.pdf"})),
-        ("Suresh Yadav", "MH-122010009281", "4829-9283-1029", 15, 210, "None", "Delhi, DL", "+919111122233", "+919111122234", 28000.0, 850.0, 4.9, json.dumps({"license_copy": "lic_suresh.pdf", "aadhar_copy": "aadhar_suresh.pdf"}))
+    INSERT INTO drivers (agency_id, name, license, aadhar, experience, trips_completed, assigned_tour, current_location, contact, emergency_contact, salary, expense, ratings, documents)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""", [
+        ("AGY-1001", "Vikram Singh", "DL-142018009283", "9283-1029-4829", 12, 148, "None", "Mumbai, MH", "+919876543210", "+919876543211", 25000.0, 1800.0, 4.8, json.dumps({"license_copy": "lic_vikram.pdf", "aadhar_copy": "aadhar_vikram.pdf"})),
+        ("AGY-1001", "Amit Patel", "GJ-012015002931", "1029-4829-9283", 8, 92, "Royal Rajasthan Journey", "Jaipur, RJ", "+919822211100", "+919822211101", 22000.0, 3200.0, 4.6, json.dumps({"license_copy": "lic_amit.pdf", "aadhar_copy": "aadhar_amit.pdf"})),
+        ("AGY-1001", "Suresh Yadav", "MH-122010009281", "4829-9283-1029", 15, 210, "None", "Delhi, DL", "+919111122233", "+919111122234", 28000.0, 850.0, 4.9, json.dumps({"license_copy": "lic_suresh.pdf", "aadhar_copy": "aadhar_suresh.pdf"}))
     ])
     
     # 7. Customers
     cursor.executemany("""
-    INSERT INTO customers (name, contact, email, booking_history, invoices, payments, upcoming_tours, documents)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)""", [
-        ("Rohan Sharma", "+91 99999 88888", "rohan.sharma@example.com", json.dumps([{"trip_id": 1, "status": "Upcoming"}]), json.dumps([]), json.dumps([]), json.dumps([{"trip_id": 1, "destination": "Mumbai to Goa Safari"}]), json.dumps({"passport": "PP-ROHAN.pdf", "emergency_contacts": {"name": "S. Sharma", "contact": "+91 99999 88887"}, "preferences": "Vegetarian food only, Window seat"})),
-        ("Priyah Patel", "+91 98888 77777", "priyah.patel@example.com", json.dumps([{"trip_id": 2, "status": "Active"}]), json.dumps([]), json.dumps([]), json.dumps([]), json.dumps({"passport": "PP-PRIYAH.pdf", "emergency_contacts": {"name": "K. Patel", "contact": "+91 98888 77776"}, "preferences": "English guide, Non-smoking rooms"})),
-        ("Kabir Mehta", "+91 97777 66666", "kabir.mehta@example.com", json.dumps([{"trip_id": 3, "status": "Completed"}]), json.dumps([{"invoice_id": 1003, "amount": 18000.0, "status": "Paid"}]), json.dumps([{"payment_id": "PAY-9102", "amount": 18000.0}]), json.dumps([]), json.dumps({"passport": "PP-KABIR.pdf", "preferences": "CNG vehicle preferred"}))
+    INSERT INTO customers (agency_id, name, contact, email, booking_history, invoices, payments, upcoming_tours, documents)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""", [
+        ("AGY-1001", "Rohan Sharma", "+91 99999 88888", "rohan.sharma@example.com", json.dumps([{"trip_id": 1, "status": "Upcoming"}]), json.dumps([]), json.dumps([]), json.dumps([{"trip_id": 1, "destination": "Mumbai to Goa Safari"}]), json.dumps({"passport": "PP-ROHAN.pdf", "emergency_contacts": {"name": "S. Sharma", "contact": "+91 99999 88887"}, "preferences": "Vegetarian food only, Window seat"})),
+        ("AGY-1001", "Priyah Patel", "+91 98888 77777", "priyah.patel@example.com", json.dumps([{"trip_id": 2, "status": "Active"}]), json.dumps([]), json.dumps([]), json.dumps([]), json.dumps({"passport": "PP-PRIYAH.pdf", "emergency_contacts": {"name": "K. Patel", "contact": "+91 98888 77776"}, "preferences": "English guide, Non-smoking rooms"})),
+        ("AGY-1001", "Kabir Mehta", "+91 97777 66666", "kabir.mehta@example.com", json.dumps([{"trip_id": 3, "status": "Completed"}]), json.dumps([{"invoice_id": 1003, "amount": 18000.0, "status": "Paid"}]), json.dumps([{"payment_id": "PAY-9102", "amount": 18000.0}]), json.dumps([]), json.dumps({"passport": "PP-KABIR.pdf", "preferences": "CNG vehicle preferred"}))
     ])
 
     # 8. Notifications
     cursor.executemany("""
-    INSERT INTO notifications (type, title, message, date, `read`)
-    VALUES (?, ?, ?, ?, ?)""", [
-        ("Upcoming Trip", "Trip #1 to Goa starts in 5 days", "Please double check the assignment status.", "2026-07-05", 0),
-        ("Pending Expense", "UPI Expense #3 pending approval", "Requires review from Agency Manager.", "2026-07-02", 0),
-        ("Vehicle Maintenance", "MH-02-AB-9876 upcoming service due", "Service date: 2026-09-01.", "2026-07-04", 0),
-        ("Insurance Expiry", "MH-02-AB-9876 insurance renewal due", "Expiry on 2026-11-20.", "2026-07-01", 1)
+    INSERT INTO notifications (agency_id, type, title, message, date, `read`)
+    VALUES (?, ?, ?, ?, ?, ?)""", [
+        ("AGY-1001", "Upcoming Trip", "Trip #1 to Goa starts in 5 days", "Please double check the assignment status.", "2026-07-05", 0),
+        ("AGY-1001", "Pending Expense", "UPI Expense #3 pending approval", "Requires review from Agency Manager.", "2026-07-02", 0),
+        ("AGY-1001", "Vehicle Maintenance", "MH-02-AB-9876 upcoming service due", "Service date: 2026-09-01.", "2026-07-04", 0),
+        ("AGY-1001", "Insurance Expiry", "MH-02-AB-9876 insurance renewal due", "Expiry on 2026-11-20.", "2026-07-01", 1)
     ])
     
     # 9. Settings

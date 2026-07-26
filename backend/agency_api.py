@@ -22,6 +22,23 @@ app.add_middleware(
 def get_db_conn():
     return get_mysql_conn("yatra_agency")
 
+def require_agency_id(agency_id: Optional[str]) -> str:
+    if not agency_id:
+        raise HTTPException(status_code=400, detail="agency_id is required")
+    return agency_id
+
+def verify_tour_belongs_to_agency(cursor, trip_id: int, agency_id: str):
+    cursor.execute("SELECT agency_id FROM tours WHERE trip_id = ?", (trip_id,))
+    row = cursor.fetchone()
+    if not row or row["agency_id"] != agency_id:
+        raise HTTPException(status_code=404, detail="Tour not found for this agency")
+    return row
+
+def month_labels_from_rows(rows, value_key="total"):
+    labels = [r["month_label"] for r in rows]
+    data = [round(float(r[value_key] or 0) / 100000, 2) for r in rows]
+    return labels, data
+
 # --- AUTHENTICATION & OTP SCHEMAS ---
 class SendOtpPayload(BaseModel):
     email: str
@@ -257,49 +274,90 @@ class SettingsUpdate(BaseModel):
 
 # 1. Summary Cards Endpoint
 @app.get("/dashboard/summary")
-def get_dashboard_summary():
+def get_dashboard_summary(agency_id: Optional[str] = None):
+    agency_id = require_agency_id(agency_id)
     conn = get_db_conn()
     cursor = conn.cursor()
-    
-    # Revenue & Expenses & Profit
-    cursor.execute("SELECT SUM(amount) FROM expenses WHERE status = 'Approved'")
-    approved_expenses = cursor.fetchone()[0] or 0.0
-    
-    # Fetch settings currency / stats values as a baseline
-    cursor.execute("SELECT COUNT(*) FROM tours WHERE status = 'Active'")
+
+    cursor.execute("SELECT COUNT(*) FROM tours WHERE agency_id = ? AND status = 'Active'", (agency_id,))
     active_tours = cursor.fetchone()[0] or 0
-    
-    cursor.execute("SELECT COUNT(*) FROM tours WHERE status = 'Completed'")
+
+    cursor.execute("SELECT COUNT(*) FROM tours WHERE agency_id = ? AND status = 'Completed'", (agency_id,))
     completed_tours = cursor.fetchone()[0] or 0
-    
-    cursor.execute("SELECT COUNT(*) FROM vehicles")
+
+    cursor.execute("SELECT COUNT(*) FROM vehicles WHERE agency_id = ?", (agency_id,))
     total_vehicles = cursor.fetchone()[0] or 0
-    
-    cursor.execute("SELECT COUNT(*) FROM drivers")
+
+    cursor.execute("SELECT COUNT(*) FROM drivers WHERE agency_id = ?", (agency_id,))
     total_drivers = cursor.fetchone()[0] or 0
-    
-    cursor.execute("SELECT COUNT(*) FROM tours WHERE status = 'Upcoming'")
+
+    cursor.execute("SELECT COUNT(*) FROM tours WHERE agency_id = ? AND status = 'Upcoming'", (agency_id,))
     upcoming_tours = cursor.fetchone()[0] or 0
-    
-    # Calculate Today's / Monthly Expense from actual values or baseline
-    cursor.execute("SELECT SUM(amount) FROM expenses WHERE date = DATE('now')")
-    todays_expense = cursor.fetchone()[0] or 15000.0  # fallback mock if empty
-    
-    cursor.execute("SELECT SUM(amount) FROM expenses WHERE date LIKE '2026-07%'")
-    monthly_expense = cursor.fetchone()[0] or 161000.0
-    
-    # Fallback/Seed values for display
-    total_revenue = 2460000.0
-    total_expenses = 1610000.0 + approved_expenses
+
+    cursor.execute("""
+        SELECT COALESCE(SUM(budget), 0) FROM tours
+        WHERE agency_id = ? AND status = 'Completed'
+    """, (agency_id,))
+    total_revenue = float(cursor.fetchone()[0] or 0)
+
+    cursor.execute("""
+        SELECT COALESCE(SUM(e.amount), 0) FROM expenses e
+        INNER JOIN tours t ON e.trip_id = t.trip_id
+        WHERE t.agency_id = ?
+    """, (agency_id,))
+    total_expenses = float(cursor.fetchone()[0] or 0)
+
+    cursor.execute("""
+        SELECT COALESCE(SUM(e.amount), 0) FROM expenses e
+        INNER JOIN tours t ON e.trip_id = t.trip_id
+        WHERE t.agency_id = ? AND e.status = 'Approved'
+    """, (agency_id,))
+    approved_expenses = float(cursor.fetchone()[0] or 0)
+
     profit = total_revenue - total_expenses
-    pending_payments = 180000.0
-    
-    # Notifications list
-    cursor.execute("SELECT * FROM notifications ORDER BY id DESC LIMIT 5")
+
+    cursor.execute("""
+        SELECT COALESCE(SUM(t.budget), 0) FROM tours t
+        WHERE t.agency_id = ? AND t.status = 'Completed'
+        AND (t.timeline_status IS NULL OR t.timeline_status != 'Payment Completed')
+    """, (agency_id,))
+    pending_payments = float(cursor.fetchone()[0] or 0)
+
+    cursor.execute("""
+        SELECT COALESCE(SUM(e.amount), 0) FROM expenses e
+        INNER JOIN tours t ON e.trip_id = t.trip_id
+        WHERE t.agency_id = ? AND e.date = CURDATE()
+    """, (agency_id,))
+    todays_expense = float(cursor.fetchone()[0] or 0)
+
+    cursor.execute("""
+        SELECT COALESCE(SUM(e.amount), 0) FROM expenses e
+        INNER JOIN tours t ON e.trip_id = t.trip_id
+        WHERE t.agency_id = ? AND YEAR(e.date) = YEAR(CURDATE()) AND MONTH(e.date) = MONTH(CURDATE())
+    """, (agency_id,))
+    monthly_expense = float(cursor.fetchone()[0] or 0)
+
+    cursor.execute("""
+        SELECT COALESCE(SUM(e.amount), 0) FROM expenses e
+        INNER JOIN tours t ON e.trip_id = t.trip_id
+        WHERE t.agency_id = ? AND YEAR(e.date) = YEAR(DATE_SUB(CURDATE(), INTERVAL 1 MONTH))
+        AND MONTH(e.date) = MONTH(DATE_SUB(CURDATE(), INTERVAL 1 MONTH))
+    """, (agency_id,))
+    last_month_expense = float(cursor.fetchone()[0] or 0)
+
+    if last_month_expense > 0:
+        pct_change = ((monthly_expense - last_month_expense) / last_month_expense) * 100
+        expense_trend = f"{'↑' if pct_change >= 0 else '↓'} {abs(pct_change):.0f}% this month"
+    elif monthly_expense > 0:
+        expense_trend = "↑ 100% this month"
+    else:
+        expense_trend = "No expenses yet"
+
+    cursor.execute("SELECT * FROM notifications WHERE agency_id = ? ORDER BY id DESC LIMIT 5", (agency_id,))
     notifications = [dict(row) for row in cursor.fetchall()]
-    
+
     conn.close()
-    
+
     return {
         "stats": {
             "total_revenue": total_revenue,
@@ -313,82 +371,173 @@ def get_dashboard_summary():
             "upcoming_tours": upcoming_tours,
             "todays_expense": todays_expense,
             "monthly_expense": monthly_expense,
-            "expense_trend": "↓ 5% this month"
+            "expense_trend": expense_trend,
+            "approved_expenses": approved_expenses,
         },
         "recent_notifications": notifications
     }
 
 # 2. Charts Endpoint
 @app.get("/dashboard/graphs")
-def get_dashboard_graphs():
+def get_dashboard_graphs(agency_id: Optional[str] = None):
+    agency_id = require_agency_id(agency_id)
+    conn = get_db_conn()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT DATE_FORMAT(e.date, '%b') AS month_label, COALESCE(SUM(e.amount), 0) AS total
+        FROM expenses e
+        INNER JOIN tours t ON e.trip_id = t.trip_id
+        WHERE t.agency_id = ? AND e.date >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH)
+        GROUP BY YEAR(e.date), MONTH(e.date)
+        ORDER BY YEAR(e.date), MONTH(e.date)
+    """, (agency_id,))
+    monthly_rows = [dict(r) for r in cursor.fetchall()]
+    me_labels, me_data = month_labels_from_rows(monthly_rows)
+
+    cursor.execute("""
+        SELECT DATE_FORMAT(t.end_date, '%b') AS month_label,
+               COALESCE(SUM(t.budget), 0) AS revenue,
+               COALESCE(SUM(e.amount), 0) AS expense
+        FROM tours t
+        LEFT JOIN expenses e ON e.trip_id = t.trip_id
+        WHERE t.agency_id = ? AND t.end_date >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH)
+        GROUP BY YEAR(t.end_date), MONTH(t.end_date)
+        ORDER BY YEAR(t.end_date), MONTH(t.end_date)
+    """, (agency_id,))
+    rev_rows = [dict(r) for r in cursor.fetchall()]
+    rve_labels = [r["month_label"] for r in rev_rows]
+    rve_revenue = [round(float(r["revenue"] or 0) / 100000, 2) for r in rev_rows]
+    rve_expense = [round(float(r["expense"] or 0) / 100000, 2) for r in rev_rows]
+
+    cursor.execute("""
+        SELECT v.vehicle_number,
+               COUNT(CASE WHEN t.status IN ('Active', 'Completed') THEN 1 END) AS days_active
+        FROM vehicles v
+        LEFT JOIN tours t ON t.vehicle = v.vehicle_number AND t.agency_id = v.agency_id
+        WHERE v.agency_id = ?
+        GROUP BY v.vehicle_number
+    """, (agency_id,))
+    veh_rows = [dict(r) for r in cursor.fetchall()]
+
+    cursor.execute("""
+        SELECT name, ratings FROM drivers WHERE agency_id = ? ORDER BY ratings DESC LIMIT 5
+    """, (agency_id,))
+    drv_rows = [dict(r) for r in cursor.fetchall()]
+
+    cursor.execute("""
+        SELECT e.category, COALESCE(SUM(e.amount), 0) AS total
+        FROM expenses e
+        INNER JOIN tours t ON e.trip_id = t.trip_id
+        WHERE t.agency_id = ?
+        GROUP BY e.category
+        ORDER BY total DESC
+    """, (agency_id,))
+    cat_rows = [dict(r) for r in cursor.fetchall()]
+    cat_total = sum(float(r["total"] or 0) for r in cat_rows) or 1
+    cat_labels = [r["category"] for r in cat_rows]
+    cat_pcts = [round(float(r["total"] or 0) / cat_total * 100, 1) for r in cat_rows]
+
+    cursor.execute("SELECT COUNT(*) FROM tours WHERE agency_id = ? AND status = 'Completed'", (agency_id,))
+    tours_completed = cursor.fetchone()[0] or 0
+    cursor.execute("SELECT COUNT(*) FROM tours WHERE agency_id = ? AND status = 'Upcoming'", (agency_id,))
+    tours_upcoming = cursor.fetchone()[0] or 0
+    cursor.execute("SELECT COUNT(*) FROM tours WHERE agency_id = ? AND status = 'Active'", (agency_id,))
+    tours_active = cursor.fetchone()[0] or 0
+
+    cursor.execute("""
+        SELECT CONCAT('Q', QUARTER(t.end_date)) AS quarter_label,
+               COALESCE(SUM(t.budget), 0) - COALESCE(SUM(e.amount), 0) AS profit
+        FROM tours t
+        LEFT JOIN expenses e ON e.trip_id = t.trip_id
+        WHERE t.agency_id = ? AND t.status = 'Completed' AND YEAR(t.end_date) = YEAR(CURDATE())
+        GROUP BY QUARTER(t.end_date)
+        ORDER BY QUARTER(t.end_date)
+    """, (agency_id,))
+    profit_rows = [dict(r) for r in cursor.fetchall()]
+
+    cursor.execute("""
+        SELECT COALESCE(SUM(e.amount), 0) AS total
+        FROM expenses e
+        INNER JOIN tours t ON e.trip_id = t.trip_id
+        WHERE t.agency_id = ? AND e.category = 'Fuel'
+        AND e.date >= DATE_SUB(CURDATE(), INTERVAL 28 DAY)
+    """, (agency_id,))
+    fuel_total = float(cursor.fetchone()[0] or 0)
+    fuel_weekly = [round(fuel_total / 4 / 1000, 1)] * 4 if fuel_total else [0, 0, 0, 0]
+
+    conn.close()
+
     return {
-        "monthly_expense": {
-            "labels": ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul"],
-            "data": [1.2, 1.4, 1.1, 1.6, 1.5, 1.3, 1.61]  # In Lakhs
-        },
+        "monthly_expense": {"labels": me_labels or [], "data": me_data or []},
         "revenue_vs_expense": {
-            "labels": ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul"],
-            "revenue": [1.8, 2.1, 1.9, 2.4, 2.8, 2.6, 3.1],
-            "expense": [1.2, 1.4, 1.1, 1.6, 1.5, 1.3, 1.6]
+            "labels": rve_labels or [],
+            "revenue": rve_revenue or [],
+            "expense": rve_expense or []
         },
         "vehicle_usage": {
-            "labels": ["MH-01-DK-4507", "MH-02-AB-9876", "MH-04-PQ-9102"],
-            "days_active": [24, 18, 12]
+            "labels": [r["vehicle_number"] for r in veh_rows],
+            "days_active": [int(r["days_active"] or 0) for r in veh_rows]
         },
         "driver_performance": {
-            "labels": ["Vikram", "Amit", "Suresh"],
-            "ratings": [4.8, 4.6, 4.9]
+            "labels": [r["name"] for r in drv_rows],
+            "ratings": [float(r["ratings"] or 0) for r in drv_rows]
         },
         "fuel_consumption": {
             "labels": ["Week 1", "Week 2", "Week 3", "Week 4"],
-            "liters": [450, 520, 480, 610]
+            "liters": fuel_weekly
         },
         "category_wise_expense": {
-            "labels": ["Stay", "Fuel", "Food", "Toll", "Maintenance", "Driver", "Misc"],
-            "percentages": [35, 30, 17, 8, 5, 3, 2]
+            "labels": cat_labels or [],
+            "percentages": cat_pcts or []
         },
         "tours_status": {
-            "completed": 48,
-            "upcoming": 8,
-            "active": 12
+            "completed": tours_completed,
+            "upcoming": tours_upcoming,
+            "active": tours_active
         },
         "profit_trend": {
-            "labels": ["Q1", "Q2", "Q3", "Q4"],
-            "profit": [2.1, 2.8, 3.2, 4.1]
+            "labels": [r["quarter_label"] for r in profit_rows],
+            "profit": [round(float(r["profit"] or 0) / 100000, 2) for r in profit_rows]
         }
     }
 
 # 3. Tours Endpoints
 @app.get("/tours")
-def get_tours(status: Optional[str] = None):
+def get_tours(status: Optional[str] = None, agency_id: Optional[str] = None):
+    agency_id = require_agency_id(agency_id)
     conn = get_db_conn()
     cursor = conn.cursor()
+    query = "SELECT * FROM tours WHERE agency_id = ?"
+    params = [agency_id]
     if status:
-        cursor.execute("SELECT * FROM tours WHERE status = ?", (status,))
-    else:
-        cursor.execute("SELECT * FROM tours")
+        query += " AND status = ?"
+        params.append(status)
+    cursor.execute(query, params)
     tours = [dict(row) for row in cursor.fetchall()]
     conn.close()
     return tours
 
 @app.post("/tours")
-def create_tour(tour: TourCreate):
+def create_tour(tour: TourCreate, agency_id: Optional[str] = None):
+    agency_id = require_agency_id(agency_id)
     conn = get_db_conn()
     cursor = conn.cursor()
     cursor.execute("""
-    INSERT INTO tours (destination, customer, agency, start_date, end_date, status, vehicle, driver, passengers, guide, budget, current_lat, current_lng, timeline_status)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-    (tour.destination, tour.customer, tour.agency, tour.start_date, tour.end_date, tour.status, tour.vehicle, tour.driver, tour.passengers, tour.guide, tour.budget, tour.current_lat, tour.current_lng, tour.timeline_status))
+    INSERT INTO tours (agency_id, destination, customer, agency, start_date, end_date, status, vehicle, driver, passengers, guide, budget, current_lat, current_lng, timeline_status)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+    (agency_id, tour.destination, tour.customer, tour.agency, tour.start_date, tour.end_date, tour.status, tour.vehicle, tour.driver, tour.passengers, tour.guide, tour.budget, tour.current_lat, tour.current_lng, tour.timeline_status))
     trip_id = cursor.lastrowid
     conn.commit()
     conn.close()
     return {"message": "Tour created", "trip_id": trip_id}
 
 @app.get("/tours/{trip_id}")
-def get_tour_details(trip_id: int):
+def get_tour_details(trip_id: int, agency_id: Optional[str] = None):
+    agency_id = require_agency_id(agency_id)
     conn = get_db_conn()
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM tours WHERE trip_id = ?", (trip_id,))
+    cursor.execute("SELECT * FROM tours WHERE trip_id = ? AND agency_id = ?", (trip_id, agency_id))
     tour_row = cursor.fetchone()
     if not tour_row:
         conn.close()
@@ -408,13 +557,15 @@ def get_tour_details(trip_id: int):
     return tour
 
 @app.put("/tours/{trip_id}")
-def update_tour(trip_id: int, status: str, timeline_status: Optional[str] = None):
+def update_tour(trip_id: int, status: str, timeline_status: Optional[str] = None, agency_id: Optional[str] = None):
+    agency_id = require_agency_id(agency_id)
     conn = get_db_conn()
     cursor = conn.cursor()
+    verify_tour_belongs_to_agency(cursor, trip_id, agency_id)
     if timeline_status:
-        cursor.execute("UPDATE tours SET status = ?, timeline_status = ? WHERE trip_id = ?", (status, timeline_status, trip_id))
+        cursor.execute("UPDATE tours SET status = ?, timeline_status = ? WHERE trip_id = ? AND agency_id = ?", (status, timeline_status, trip_id, agency_id))
     else:
-        cursor.execute("UPDATE tours SET status = ? WHERE trip_id = ?", (status, trip_id))
+        cursor.execute("UPDATE tours SET status = ? WHERE trip_id = ? AND agency_id = ?", (status, trip_id, agency_id))
     
     if cursor.rowcount == 0:
         conn.close()
@@ -424,10 +575,11 @@ def update_tour(trip_id: int, status: str, timeline_status: Optional[str] = None
     return {"message": "Tour updated successfully"}
 
 @app.delete("/tours/{trip_id}")
-def delete_tour(trip_id: int):
+def delete_tour(trip_id: int, agency_id: Optional[str] = None):
+    agency_id = require_agency_id(agency_id)
     conn = get_db_conn()
     cursor = conn.cursor()
-    cursor.execute("DELETE FROM tours WHERE trip_id = ?", (trip_id,))
+    cursor.execute("DELETE FROM tours WHERE trip_id = ? AND agency_id = ?", (trip_id, agency_id))
     if cursor.rowcount == 0:
         conn.close()
         raise HTTPException(status_code=404, detail="Tour not found")
@@ -437,10 +589,11 @@ def delete_tour(trip_id: int):
 
 # Journey Tracking Endpoints
 @app.get("/tours/{trip_id}/journey")
-def get_journey_tracking(trip_id: int):
+def get_journey_tracking(trip_id: int, agency_id: Optional[str] = None):
+    agency_id = require_agency_id(agency_id)
     conn = get_db_conn()
     cursor = conn.cursor()
-    cursor.execute("SELECT current_lat, current_lng, destination, vehicle, driver FROM tours WHERE trip_id = ?", (trip_id,))
+    cursor.execute("SELECT current_lat, current_lng, destination, vehicle, driver FROM tours WHERE trip_id = ? AND agency_id = ?", (trip_id, agency_id))
     row = cursor.fetchone()
     if not row:
         conn.close()
@@ -460,10 +613,12 @@ def get_journey_tracking(trip_id: int):
     }
 
 @app.put("/tours/{trip_id}/journey")
-def update_journey_location(trip_id: int, lat: float, lng: float):
+def update_journey_location(trip_id: int, lat: float, lng: float, agency_id: Optional[str] = None):
+    agency_id = require_agency_id(agency_id)
     conn = get_db_conn()
     cursor = conn.cursor()
-    cursor.execute("UPDATE tours SET current_lat = ?, current_lng = ? WHERE trip_id = ?", (lat, lng, trip_id))
+    verify_tour_belongs_to_agency(cursor, trip_id, agency_id)
+    cursor.execute("UPDATE tours SET current_lat = ?, current_lng = ? WHERE trip_id = ? AND agency_id = ?", (lat, lng, trip_id, agency_id))
     if cursor.rowcount == 0:
         conn.close()
         raise HTTPException(status_code=404, detail="Tour not found")
@@ -473,9 +628,11 @@ def update_journey_location(trip_id: int, lat: float, lng: float):
 
 # Day-wise Expense breakdown
 @app.get("/tours/{trip_id}/day-wise-expenses")
-def get_day_wise_expenses(trip_id: int):
+def get_day_wise_expenses(trip_id: int, agency_id: Optional[str] = None):
+    agency_id = require_agency_id(agency_id)
     conn = get_db_conn()
     cursor = conn.cursor()
+    verify_tour_belongs_to_agency(cursor, trip_id, agency_id)
     cursor.execute("SELECT * FROM expenses WHERE trip_id = ?", (trip_id,))
     expenses_list = [dict(row) for row in cursor.fetchall()]
     conn.close()
@@ -519,12 +676,13 @@ def get_day_wise_expenses(trip_id: int):
 
 # Vehicle Assignment
 @app.put("/tours/{trip_id}/vehicle-assignment")
-def assign_vehicle_to_tour(trip_id: int, vehicle_number: str):
+def assign_vehicle_to_tour(trip_id: int, vehicle_number: str, agency_id: Optional[str] = None):
+    agency_id = require_agency_id(agency_id)
     conn = get_db_conn()
     cursor = conn.cursor()
-    
-    # Verify vehicle availability
-    cursor.execute("SELECT availability, model FROM vehicles WHERE vehicle_number = ?", (vehicle_number,))
+    verify_tour_belongs_to_agency(cursor, trip_id, agency_id)
+
+    cursor.execute("SELECT availability, model FROM vehicles WHERE vehicle_number = ? AND agency_id = ?", (vehicle_number, agency_id))
     veh = cursor.fetchone()
     if not veh:
         conn.close()
@@ -539,11 +697,13 @@ def assign_vehicle_to_tour(trip_id: int, vehicle_number: str):
 
 # Driver Assignment
 @app.put("/tours/{trip_id}/driver-assignment")
-def assign_driver_to_tour(trip_id: int, driver_id: int):
+def assign_driver_to_tour(trip_id: int, driver_id: int, agency_id: Optional[str] = None):
+    agency_id = require_agency_id(agency_id)
     conn = get_db_conn()
     cursor = conn.cursor()
-    
-    cursor.execute("SELECT name, assigned_tour FROM drivers WHERE driver_id = ?", (driver_id,))
+    verify_tour_belongs_to_agency(cursor, trip_id, agency_id)
+
+    cursor.execute("SELECT name, assigned_tour FROM drivers WHERE driver_id = ? AND agency_id = ?", (driver_id, agency_id))
     driver_row = cursor.fetchone()
     if not driver_row:
         conn.close()
@@ -558,18 +718,22 @@ def assign_driver_to_tour(trip_id: int, driver_id: int):
 
 # Timeline status management
 @app.get("/tours/{trip_id}/timeline")
-def get_tour_timeline(trip_id: int):
+def get_tour_timeline(trip_id: int, agency_id: Optional[str] = None):
+    agency_id = require_agency_id(agency_id)
     conn = get_db_conn()
     cursor = conn.cursor()
+    verify_tour_belongs_to_agency(cursor, trip_id, agency_id)
     cursor.execute("SELECT * FROM tour_timeline WHERE trip_id = ? ORDER BY id ASC", (trip_id,))
     timeline = [dict(row) for row in cursor.fetchall()]
     conn.close()
     return timeline
 
 @app.post("/tours/{trip_id}/timeline")
-def add_timeline_event(trip_id: int, event_name: str, status: str = "Completed", updated_at: str = "2026-07-05 12:00:00"):
+def add_timeline_event(trip_id: int, event_name: str, status: str = "Completed", updated_at: str = "2026-07-05 12:00:00", agency_id: Optional[str] = None):
+    agency_id = require_agency_id(agency_id)
     conn = get_db_conn()
     cursor = conn.cursor()
+    verify_tour_belongs_to_agency(cursor, trip_id, agency_id)
     cursor.execute("INSERT INTO tour_timeline (trip_id, event_name, status, updated_at) VALUES (?, ?, ?, ?)", (trip_id, event_name, status, updated_at))
     conn.commit()
     conn.close()
@@ -577,10 +741,11 @@ def add_timeline_event(trip_id: int, event_name: str, status: str = "Completed",
 
 # Tour Analytics
 @app.get("/tours/{trip_id}/analytics")
-def get_tour_analytics(trip_id: int):
+def get_tour_analytics(trip_id: int, agency_id: Optional[str] = None):
+    agency_id = require_agency_id(agency_id)
     conn = get_db_conn()
     cursor = conn.cursor()
-    cursor.execute("SELECT budget, destination FROM tours WHERE trip_id = ?", (trip_id,))
+    cursor.execute("SELECT budget, destination FROM tours WHERE trip_id = ? AND agency_id = ?", (trip_id, agency_id))
     tour = cursor.fetchone()
     if not tour:
         conn.close()
@@ -611,33 +776,40 @@ def get_tour_analytics(trip_id: int):
 
 # 4. Expenses Endpoints
 @app.get("/expenses")
-def get_expenses(category: Optional[str] = None, status: Optional[str] = None, search: Optional[str] = None):
+def get_expenses(category: Optional[str] = None, status: Optional[str] = None, search: Optional[str] = None, agency_id: Optional[str] = None):
+    agency_id = require_agency_id(agency_id)
     conn = get_db_conn()
     cursor = conn.cursor()
-    
-    query = "SELECT * FROM expenses WHERE 1=1"
-    params = []
-    
+
+    query = """
+        SELECT e.* FROM expenses e
+        INNER JOIN tours t ON e.trip_id = t.trip_id
+        WHERE t.agency_id = ?
+    """
+    params = [agency_id]
+
     if category:
-        query += " AND category = ?"
+        query += " AND e.category = ?"
         params.append(category)
     if status:
-        query += " AND status = ?"
+        query += " AND e.status = ?"
         params.append(status)
     if search:
-        query += " AND (vendor LIKE ? OR description LIKE ?)"
+        query += " AND (e.vendor LIKE ? OR e.description LIKE ?)"
         params.append(f"%{search}%")
         params.append(f"%{search}%")
-        
+
     cursor.execute(query, params)
     expenses = [dict(row) for row in cursor.fetchall()]
     conn.close()
     return expenses
 
 @app.post("/expenses")
-def create_expense(expense: ExpenseCreate):
+def create_expense(expense: ExpenseCreate, agency_id: Optional[str] = None):
+    agency_id = require_agency_id(agency_id)
     conn = get_db_conn()
     cursor = conn.cursor()
+    verify_tour_belongs_to_agency(cursor, expense.trip_id, agency_id)
     cursor.execute("""
     INSERT INTO expenses (trip_id, amount, gst, vendor, category, date, time, description, payment_mode, approved_by, status, receipt_image, ocr_extracted_data)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
@@ -648,10 +820,15 @@ def create_expense(expense: ExpenseCreate):
     return {"message": "Expense created successfully", "expense_id": expense_id}
 
 @app.get("/expenses/{expense_id}")
-def get_expense(expense_id: int):
+def get_expense(expense_id: int, agency_id: Optional[str] = None):
+    agency_id = require_agency_id(agency_id)
     conn = get_db_conn()
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM expenses WHERE expense_id = ?", (expense_id,))
+    cursor.execute("""
+        SELECT e.* FROM expenses e
+        INNER JOIN tours t ON e.trip_id = t.trip_id
+        WHERE e.expense_id = ? AND t.agency_id = ?
+    """, (expense_id, agency_id))
     row = cursor.fetchone()
     conn.close()
     if not row:
@@ -659,10 +836,14 @@ def get_expense(expense_id: int):
     return dict(row)
 
 @app.put("/expenses/{expense_id}")
-def update_expense_status(expense_id: int, status: str, approved_by: str):
+def update_expense_status(expense_id: int, status: str, approved_by: str, agency_id: Optional[str] = None):
+    agency_id = require_agency_id(agency_id)
     conn = get_db_conn()
     cursor = conn.cursor()
-    cursor.execute("UPDATE expenses SET status = ?, approved_by = ? WHERE expense_id = ?", (status, approved_by, expense_id))
+    cursor.execute("""
+        UPDATE expenses SET status = ?, approved_by = ?
+        WHERE expense_id = ? AND trip_id IN (SELECT trip_id FROM tours WHERE agency_id = ?)
+    """, (status, approved_by, expense_id, agency_id))
     if cursor.rowcount == 0:
         conn.close()
         raise HTTPException(status_code=404, detail="Expense not found")
@@ -671,10 +852,14 @@ def update_expense_status(expense_id: int, status: str, approved_by: str):
     return {"message": "Expense status updated successfully"}
 
 @app.delete("/expenses/{expense_id}")
-def delete_expense(expense_id: int):
+def delete_expense(expense_id: int, agency_id: Optional[str] = None):
+    agency_id = require_agency_id(agency_id)
     conn = get_db_conn()
     cursor = conn.cursor()
-    cursor.execute("DELETE FROM expenses WHERE expense_id = ?", (expense_id,))
+    cursor.execute("""
+        DELETE FROM expenses WHERE expense_id = ?
+        AND trip_id IN (SELECT trip_id FROM tours WHERE agency_id = ?)
+    """, (expense_id, agency_id))
     if cursor.rowcount == 0:
         conn.close()
         raise HTTPException(status_code=404, detail="Expense not found")

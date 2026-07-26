@@ -68,6 +68,7 @@ CREATE TABLE IF NOT EXISTS expenses (
 
 CREATE TABLE IF NOT EXISTS vehicles (
   vehicle_number VARCHAR(50) PRIMARY KEY,
+  agency_id VARCHAR(50),
   model VARCHAR(255),
   owner VARCHAR(255),
   insurance VARCHAR(255),
@@ -85,6 +86,7 @@ CREATE TABLE IF NOT EXISTS vehicles (
 
 CREATE TABLE IF NOT EXISTS drivers (
   driver_id INT AUTO_INCREMENT PRIMARY KEY,
+  agency_id VARCHAR(50),
   name VARCHAR(255),
   license VARCHAR(100),
   aadhar VARCHAR(50),
@@ -102,6 +104,7 @@ CREATE TABLE IF NOT EXISTS drivers (
 
 CREATE TABLE IF NOT EXISTS customers (
   customer_id INT AUTO_INCREMENT PRIMARY KEY,
+  agency_id VARCHAR(50),
   name VARCHAR(255),
   contact VARCHAR(50),
   email VARCHAR(255),
@@ -114,6 +117,7 @@ CREATE TABLE IF NOT EXISTS customers (
 
 CREATE TABLE IF NOT EXISTS notifications (
   id INT AUTO_INCREMENT PRIMARY KEY,
+  agency_id VARCHAR(50),
   type VARCHAR(100),
   title VARCHAR(255),
   message TEXT,
