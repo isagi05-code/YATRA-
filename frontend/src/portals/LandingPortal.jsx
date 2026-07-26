@@ -54,6 +54,7 @@ export default function LandingPortal({ onSelectRole }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [otpNotification, setOtpNotification] = useState('');
+  const [registeredUser, setRegisteredUser] = useState(null);
 
   const getActiveRole = () => {
     if (activeSlide === 0) return 'agency';
@@ -69,6 +70,7 @@ export default function LandingPortal({ onSelectRole }) {
     setOtp('');
     setName('');
     setPhone('');
+    setRegisteredUser(null);
     // Prefill default demo email for easier check
     if (mode === 'login') {
       if (activeSlide === 0) setEmail('ceo@yatratravels.com');
@@ -83,7 +85,7 @@ export default function LandingPortal({ onSelectRole }) {
   const handleSendOtp = async (e) => {
     e.preventDefault();
     if (!email) {
-      setError('Please enter a valid email address.');
+      setError('Please enter a valid Email Address or Registered ID.');
       return;
     }
     setError('');
@@ -97,7 +99,7 @@ export default function LandingPortal({ onSelectRole }) {
         name: modalMode === 'register' ? name : undefined
       });
       setOtpSent(true);
-      setOtpNotification(`A verification code has been dispatched to ${email}. For local testing, please check the backend terminal console log.`);
+      setOtpNotification(`A verification code has been dispatched. For local testing, please check the backend terminal console log.`);
     } catch (err) {
       setError(err.message || 'Failed to send OTP. Please try again.');
     } finally {
@@ -124,8 +126,12 @@ export default function LandingPortal({ onSelectRole }) {
       });
       if (res.status === 'success') {
         localStorage.setItem('yatra_user', JSON.stringify(res.user));
-        setShowModal(false);
-        onSelectRole(role);
+        if (modalMode === 'register') {
+          setRegisteredUser(res.user);
+        } else {
+          setShowModal(false);
+          onSelectRole(role);
+        }
       } else {
         setError('Verification failed. Invalid code.');
       }
@@ -505,8 +511,64 @@ export default function LandingPortal({ onSelectRole }) {
               </div>
             )}
 
-            {/* Forms */}
-            {!otpSent ? (
+            {/* Forms or Success Card */}
+            {registeredUser ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', alignItems: 'center', textAlign: 'center' }}>
+                <div style={{
+                  background: 'rgba(16, 185, 129, 0.15)',
+                  border: '1px solid rgba(16, 185, 129, 0.3)',
+                  borderRadius: '16px',
+                  padding: '20px',
+                  width: '100%',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '10px'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', color: '#10B981', fontWeight: 800, fontSize: '15px' }}>
+                    <Icons.CheckCircle2 size={20} />
+                    <span>Registration Successful!</span>
+                  </div>
+                  <p style={{ fontSize: '12px', color: 'rgba(255, 255, 255, 0.7)' }}>
+                    Your unique registered profile has been created in the database.
+                  </p>
+                  <div style={{
+                    background: 'rgba(0, 0, 0, 0.3)',
+                    borderRadius: '10px',
+                    padding: '12px',
+                    marginTop: '4px',
+                    border: '1px dashed rgba(16, 185, 129, 0.5)'
+                  }}>
+                    <span style={{ fontSize: '11px', color: 'rgba(255, 255, 255, 0.5)', textTransform: 'uppercase', letterSpacing: '1px', display: 'block' }}>Assigned Registered ID</span>
+                    <span style={{ fontSize: '24px', fontWeight: 900, color: '#A7F3D0', letterSpacing: '2px', fontFamily: 'monospace' }}>
+                      {registeredUser.id || registeredUser.user_id || registeredUser.agency_id}
+                    </span>
+                  </div>
+                  <p style={{ fontSize: '11px', color: 'rgba(255, 255, 255, 0.5)', marginTop: '4px' }}>
+                    All your travel data, trips, and expenses will be saved under this ID. You can use this ID or your registered email to log in anytime.
+                  </p>
+                </div>
+
+                <button 
+                  onClick={() => {
+                    setShowModal(false);
+                    onSelectRole(getActiveRole());
+                  }}
+                  style={{
+                    width: '100%',
+                    background: activeSlide === 0 ? 'var(--primary)' : activeSlide === 1 ? 'var(--success)' : 'var(--info)',
+                    color: '#080C14',
+                    border: 'none',
+                    borderRadius: '10px',
+                    padding: '14px',
+                    fontSize: '13px',
+                    fontWeight: 700,
+                    cursor: 'pointer'
+                  }}
+                >
+                  Enter Dashboard Now
+                </button>
+              </div>
+            ) : !otpSent ? (
               <form onSubmit={handleSendOtp} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                 {modalMode === 'register' && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
@@ -532,11 +594,11 @@ export default function LandingPortal({ onSelectRole }) {
 
                 {modalMode === 'login' ? (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    <label style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', color: 'rgba(255,255,255,0.6)' }}>Email Address</label>
+                    <label style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', color: 'rgba(255,255,255,0.6)' }}>Email Address or User ID / Agency ID</label>
                     <input 
-                      type="email" 
+                      type="text" 
                       required
-                      placeholder="e.g. yugal@example.com"
+                      placeholder={activeSlide === 0 ? "e.g. AGY-1001 or ceo@yatratravels.com" : "e.g. TRV-1001 or yugal@example.com"}
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       style={{

@@ -10,13 +10,26 @@ export default function UserPortal({ page, onNavigate }) {
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState(null);
 
+  const getLoggedInUserId = () => {
+    try {
+      const stored = localStorage.getItem('yatra_user');
+      if (stored) {
+        const u = JSON.parse(stored);
+        return u.id || u.user_id || u.email;
+      }
+    } catch (e) {}
+    return 'TRV-1001';
+  };
+
+  const userId = getLoggedInUserId();
+
   const loadData = () => {
     setLoading(true);
     Promise.all([
-      api.traveller.getTrips(),
-      api.traveller.getExpenses(),
-      api.traveller.getSummary(),
-      api.traveller.getProfile()
+      api.traveller.getTrips(undefined, userId),
+      api.traveller.getExpenses(undefined, userId),
+      api.traveller.getSummary(userId),
+      api.traveller.getProfile(userId)
     ])
       .then(([tripsData, expensesData, summaryData, profileData]) => {
         setTrips(tripsData);
@@ -43,6 +56,7 @@ export default function UserPortal({ page, onNavigate }) {
     const title = titles[randomCat] || "General Expense";
 
     const newExp = {
+      user_id: userId,
       title: title,
       amount: randomAmount,
       date: "2026-07-05",

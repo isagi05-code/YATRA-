@@ -14,6 +14,8 @@ if os.path.exists(_env_path):
                 _val = _val.split("#")[0].strip()  # strip inline comments
                 os.environ.setdefault(_key.strip(), _val)
 
+BACKEND_DIR = os.path.dirname(os.path.abspath(__file__))
+
 def run_servers():
     print("Starting all Yatra AI FastAPI backend services...")
     
@@ -31,7 +33,7 @@ def run_servers():
             
     if db_missing:
         print("MySQL databases not found or incomplete. Initializing databases first...")
-        subprocess.run([sys.executable, "db_init.py"])
+        subprocess.run([sys.executable, "db_init.py"], cwd=BACKEND_DIR)
         
     processes = []
     
@@ -46,7 +48,7 @@ def run_servers():
         for s in servers:
             print(f"Launching {s['name']} on http://localhost:{s['command'][5]} ...")
             # We run uvicorn as a subprocess. We don't pipe stdout so the uvicorn logs output directly to terminal.
-            p = subprocess.Popen(s["command"], env=os.environ.copy())
+            p = subprocess.Popen(s["command"], env=os.environ.copy(), cwd=BACKEND_DIR)
             processes.append(p)
             # Short sleep to prevent port collision race conditions
             time.sleep(0.5)

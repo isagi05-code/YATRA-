@@ -55,11 +55,11 @@ def seed_agency_db():
     
     # 1. Tours
     cursor.executemany("""
-    INSERT INTO tours (destination, customer, agency, start_date, end_date, status, vehicle, driver, passengers, guide, budget, current_lat, current_lng, timeline_status)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""", [
-        ("Mumbai to Goa Safari", "Rohan Sharma", "Yatra Travels Ltd", "2026-07-10", "2026-07-15", "Upcoming", "MH-01-DK-4507", "Vikram Singh", 4, "Ananya Sen", 25000.0, 19.0760, 72.8777, "Vehicle Assigned"),
-        ("Royal Rajasthan Journey", "Priyah Patel", "Yatra Travels Ltd", "2026-07-01", "2026-07-08", "Active", "MH-02-AB-9876", "Amit Patel", 6, "Rajesh Kumar", 45000.0, 26.9124, 75.7873, "Journey Started"),
-        ("Manali Hill Escape", "Kabir Mehta", "Yatra Travels Ltd", "2026-06-15", "2026-06-20", "Completed", "MH-04-PQ-9102", "Suresh Yadav", 2, "None", 18000.0, 32.2396, 77.1887, "Payment Completed")
+    INSERT INTO tours (agency_id, destination, customer, agency, start_date, end_date, status, vehicle, driver, passengers, guide, budget, current_lat, current_lng, timeline_status)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""", [
+        ("AGY-1001", "Mumbai to Goa Safari", "Rohan Sharma", "Yatra Travels Ltd", "2026-07-10", "2026-07-15", "Upcoming", "MH-01-DK-4507", "Vikram Singh", 4, "Ananya Sen", 25000.0, 19.0760, 72.8777, "Vehicle Assigned"),
+        ("AGY-1001", "Royal Rajasthan Journey", "Priyah Patel", "Yatra Travels Ltd", "2026-07-01", "2026-07-08", "Active", "MH-02-AB-9876", "Amit Patel", 6, "Rajesh Kumar", 45000.0, 26.9124, 75.7873, "Journey Started"),
+        ("AGY-1001", "Manali Hill Escape", "Kabir Mehta", "Yatra Travels Ltd", "2026-06-15", "2026-06-20", "Completed", "MH-04-PQ-9102", "Suresh Yadav", 2, "None", 18000.0, 32.2396, 77.1887, "Payment Completed")
     ])
     
     # 2. Stops for active tour (trip_id 2)
@@ -154,40 +154,40 @@ def seed_traveller_db():
     cursor = conn.cursor()
     
     cursor.executemany("""
-    INSERT INTO trips (name, route, date, duration, budget, status, driver, vehicle)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)""", [
-        ("Goa Beach Retreat", "Mumbai -> North Goa -> South Goa", "2026-07-18", "5 Days", 15000.0, "Confirmed", "Vikram Singh", "MH-01-DK-4507"),
-        ("Royal Rajasthan Circuit", "Delhi -> Jaipur -> Udaipur -> Jodhpur", "2026-08-10", "8 Days", 28000.0, "Booked", "Amit Patel", "MH-01-LE-4321"),
-        ("Manali Himalaya Adventure", "Delhi -> Manali -> Solang Valley", "2026-06-22", "6 Days", 18400.0, "Completed", "Suresh Yadav", "MH-04-PQ-9102")
+    INSERT INTO trips (user_id, name, route, date, duration, budget, status, driver, vehicle)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""", [
+        ("TRV-1001", "Goa Beach Retreat", "Mumbai -> North Goa -> South Goa", "2026-07-18", "5 Days", 15000.0, "Confirmed", "Vikram Singh", "MH-01-DK-4507"),
+        ("TRV-1001", "Royal Rajasthan Circuit", "Delhi -> Jaipur -> Udaipur -> Jodhpur", "2026-08-10", "8 Days", 28000.0, "Booked", "Amit Patel", "MH-01-LE-4321"),
+        ("TRV-1001", "Manali Himalaya Adventure", "Delhi -> Manali -> Solang Valley", "2026-06-22", "6 Days", 18400.0, "Completed", "Suresh Yadav", "MH-04-PQ-9102")
     ])
     
     cursor.executemany("""
-    INSERT INTO expenses (title, amount, date, category, status)
+    INSERT INTO expenses (user_id, title, amount, date, category, status)
+    VALUES (?, ?, ?, ?, ?, ?)""", [
+        ("TRV-1001", "Lonavala Stay", 4800.0, "2026-05-04", "Hotels", "Paid"),
+        ("TRV-1001", "Surya Restaurant", 1200.0, "2026-06-24", "Food", "Paid"),
+        ("TRV-1001", "FASTag Toll payment", 450.0, "2026-06-22", "Taxi", "Paid"),
+        ("TRV-1001", "Goa Shopping Spree", 2500.0, "2026-07-03", "Shopping", "Paid"),
+        ("TRV-1001", "Cinema Tickets", 600.0, "2026-07-04", "Entertainment", "Paid")
+    ])
+    
+    cursor.executemany("""
+    INSERT INTO bookings (user_id, trip_id, name, status, details)
     VALUES (?, ?, ?, ?, ?)""", [
-        ("Lonavala Stay", 4800.0, "2026-05-04", "Hotels", "Paid"),
-        ("Surya Restaurant", 1200.0, "2026-06-24", "Food", "Paid"),
-        ("FASTag Toll payment", 450.0, "2026-06-22", "Taxi", "Paid"),
-        ("Goa Shopping Spree", 2500.0, "2026-07-03", "Shopping", "Paid"),
-        ("Cinema Tickets", 600.0, "2026-07-04", "Entertainment", "Paid")
+        ("TRV-1001", 1, "Hotel Beach View", "Confirmed", "Deluxe Room, 4 nights"),
+        ("TRV-1001", 1, "Goa Sightseeing Cruise", "Confirmed", "Sunset cruise tickets for 4 passengers")
     ])
     
     cursor.executemany("""
-    INSERT INTO bookings (trip_id, name, status, details)
-    VALUES (?, ?, ?, ?)""", [
-        (1, "Hotel Beach View", "Confirmed", "Deluxe Room, 4 nights"),
-        (1, "Goa Sightseeing Cruise", "Confirmed", "Sunset cruise tickets for 4 passengers")
-    ])
-    
-    cursor.executemany("""
-    INSERT INTO documents (name, type, file_url, upload_date)
-    VALUES (?, ?, ?, ?)""", [
-        ("My Passport", "Passport", "passport_yugal.pdf", "2026-06-01"),
-        ("Goa Hotel Voucher", "Booking Confirmation", "voucher_goa_hotel.pdf", "2026-07-01")
+    INSERT INTO documents (user_id, name, type, file_url, upload_date)
+    VALUES (?, ?, ?, ?, ?)""", [
+        ("TRV-1001", "My Passport", "Passport", "passport_yugal.pdf", "2026-06-01"),
+        ("TRV-1001", "Goa Hotel Voucher", "Booking Confirmation", "voucher_goa_hotel.pdf", "2026-07-01")
     ])
     
     cursor.execute("""
-    INSERT INTO profile (name, email, contact, preferences)
-    VALUES (?, ?, ?, ?)""", ("Yugal Kishor", "yugal@example.com", "+919999911111", "Window seats, Vegetarian, High floor hotels"))
+    INSERT INTO profile (user_id, name, email, contact, preferences)
+    VALUES (?, ?, ?, ?, ?)""", ("TRV-1001", "Yugal Kishor", "yugal@example.com", "+919999911111", "Window seats, Vegetarian, High floor hotels"))
     
     conn.commit()
     conn.close()
@@ -199,19 +199,19 @@ def seed_team_db():
     cursor = conn.cursor()
     
     cursor.executemany("""
-    INSERT INTO agencies (name, owner, contact, email, status, active_tours, revenue, expenses, drivers_count, vehicles_count, subscription_status, documents)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""", [
-        ("Yatra Travels Ltd", "Yatra CEO", "+919999922222", "ceo@yatratravels.com", "Active", 12, 2460000.0, 1610000.0, 24, 18, "Premium (Expires: 2027-01-01)", json.dumps(["pan_card.pdf", "gst_cert.pdf"])),
-        ("Aditya Travels", "Aditya Sen", "+919888833333", "aditya@aditya.com", "Active", 5, 890000.0, 520000.0, 10, 8, "Basic (Expires: 2026-10-15)", json.dumps(["pan_card.pdf"])),
-        ("Speedy Tour & Co", "Mohit Verma", "+919777744444", "mohit@speedy.com", "Pending Verification", 0, 0.0, 0.0, 2, 2, "Trial (Expires: 2026-07-20)", json.dumps(["pan_card.pdf", "gst_cert.pdf", "rc_book.pdf"]))
+    INSERT INTO agencies (agency_id, name, owner, contact, email, status, active_tours, revenue, expenses, drivers_count, vehicles_count, subscription_status, documents)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""", [
+        ("AGY-1001", "Yatra Travels Ltd", "Yatra CEO", "+919999922222", "ceo@yatratravels.com", "Active", 12, 2460000.0, 1610000.0, 24, 18, "Premium (Expires: 2027-01-01)", json.dumps(["pan_card.pdf", "gst_cert.pdf"])),
+        ("AGY-1002", "Aditya Travels", "Aditya Sen", "+919888833333", "aditya@aditya.com", "Active", 5, 890000.0, 520000.0, 10, 8, "Basic (Expires: 2026-10-15)", json.dumps(["pan_card.pdf"])),
+        ("AGY-1003", "Speedy Tour & Co", "Mohit Verma", "+919777744444", "mohit@speedy.com", "Pending Verification", 0, 0.0, 0.0, 2, 2, "Trial (Expires: 2026-07-20)", json.dumps(["pan_card.pdf", "gst_cert.pdf", "rc_book.pdf"]))
     ])
     
     cursor.executemany("""
-    INSERT INTO travellers (name, email, trips_count, expenses_count, bookings_count, feedback_rating, ai_usage_tokens)
-    VALUES (?, ?, ?, ?, ?, ?, ?)""", [
-        ("Yugal Kishor", "yugal@example.com", 3, 5, 2, 4.8, 12050),
-        ("Rohan Sharma", "rohan@example.com", 1, 0, 1, 5.0, 4200),
-        ("Amit Vyas", "amit@example.com", 8, 24, 10, 4.5, 34500)
+    INSERT INTO travellers (user_id, name, email, trips_count, expenses_count, bookings_count, feedback_rating, ai_usage_tokens)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)""", [
+        ("TRV-1001", "Yugal Kishor", "yugal@example.com", 3, 5, 2, 4.8, 12050),
+        ("TRV-1002", "Rohan Sharma", "rohan@example.com", 1, 0, 1, 5.0, 4200),
+        ("TRV-1003", "Amit Vyas", "amit@example.com", 8, 24, 10, 4.5, 34500)
     ])
     
     cursor.executemany("""

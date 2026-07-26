@@ -113,19 +113,37 @@ export default function Sidebar({ portal, activePage, onNavigate, onLogout }) {
 
       {/* User Footer */}
       <div className="sidebar-footer" style={{ padding: '16px 20px', borderTop: '1px solid var(--border-light)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
-          <div className="avatar md" style={{ background: 'linear-gradient(135deg, var(--primary), var(--primary-light))', color: 'white', fontWeight: 700 }}>
-            {portal === 'agency' ? 'RT' : portal === 'user' ? 'PS' : 'YA'}
-          </div>
-          <div style={{ overflow: 'hidden' }}>
-            <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
-              {portal === 'agency' ? 'Rajesh Travels' : portal === 'user' ? 'Priya Sharma' : 'Yatra Admin'}
+        {(() => {
+          let userName = portal === 'agency' ? 'Yatra Travels' : portal === 'user' ? 'Yugal Kishor' : 'Yatra Admin';
+          let userEmail = portal === 'agency' ? 'ceo@yatratravels.com' : portal === 'user' ? 'yugal@example.com' : 'admin@yatra.ai';
+          let userId = portal === 'agency' ? 'AGY-1001' : portal === 'user' ? 'TRV-1001' : 'ADM-1001';
+          try {
+            const stored = localStorage.getItem('yatra_user');
+            if (stored) {
+              const u = JSON.parse(stored);
+              if (u.name) userName = u.name;
+              if (u.email) userEmail = u.email;
+              if (u.id || u.user_id || u.agency_id) userId = u.id || u.user_id || u.agency_id;
+            }
+          } catch (e) {}
+          const initials = userName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+
+          return (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
+              <div className="avatar md" style={{ background: 'linear-gradient(135deg, var(--primary), var(--primary-light))', color: 'white', fontWeight: 700 }}>
+                {initials}
+              </div>
+              <div style={{ overflow: 'hidden', flex: 1 }}>
+                <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
+                  {userName}
+                </div>
+                <div style={{ fontSize: '11px', color: 'var(--primary)', fontWeight: 700, fontFamily: 'monospace' }}>
+                  ID: {userId}
+                </div>
+              </div>
             </div>
-            <div style={{ fontSize: '11px', color: 'var(--text-secondary)', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
-              {portal === 'agency' ? 'agency@yatra.ai' : portal === 'user' ? 'priya@gmail.com' : 'admin@yatra.ai'}
-            </div>
-          </div>
-        </div>
+          );
+        })()}
         <button
           onClick={onLogout}
           className="btn btn-outline"

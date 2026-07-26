@@ -42,20 +42,22 @@ otp_store: Dict[str, str] = {}
 @app.post("/auth/send-otp")
 def send_otp(payload: SendOtpPayload):
     if not payload.email:
-        raise HTTPException(status_code=400, detail="Email is required")
+        raise HTTPException(status_code=400, detail="Email or Agency ID is required")
         
-    email = payload.email.strip().lower()
+    identifier = payload.email.strip()
+    target_email = identifier.lower()
     
     # Verify existence/duplicates
     if payload.mode == "login":
         try:
             team_conn = get_mysql_conn("yatra_team")
             team_cursor = team_conn.cursor()
-            team_cursor.execute("SELECT * FROM agencies WHERE email = ?", (email,))
+            team_cursor.execute("SELECT * FROM agencies WHERE LOWER(email) = ? OR LOWER(agency_id) = ?", (target_email, target_email))
             agency_row = team_cursor.fetchone()
             team_conn.close()
             if not agency_row:
-                raise HTTPException(status_code=400, detail="Email address not registered. Please register first.")
+                raise HTTPException(status_code=400, detail="Agency ID or Email address not registered. Please register first.")
+            target_email = agency_row["email"]
         except HTTPException as he:
             raise he
         except Exception as e:
@@ -64,7 +66,7 @@ def send_otp(payload: SendOtpPayload):
         try:
             team_conn = get_mysql_conn("yatra_team")
             team_cursor = team_conn.cursor()
-            team_cursor.execute("SELECT * FROM agencies WHERE email = ?", (email,))
+            team_cursor.execute("SELECT * FROM agencies WHERE LOWER(email) = ?", (target_email,))
             agency_row = team_cursor.fetchone()
             team_conn.close()
             if agency_row:
@@ -76,29 +78,33 @@ def send_otp(payload: SendOtpPayload):
 
     # Generate 6-digit OTP
     otp_code = f"{random.randint(100000, 999999)}"
-    otp_store[email] = otp_code
+    otp_store[identifier.lower()] = otp_code
+    if target_email.lower() != identifier.lower():
+        otp_store[target_email.lower()] = otp_code
     
     # Send actual email
-    send_otp_email(email, otp_code)
+    send_otp_email(target_email, otp_code)
     
     return {"message": "OTP sent successfully", "otp": otp_code}
 
 @app.post("/auth/verify-otp")
 def verify_otp(payload: VerifyOtpPayload):
     if not payload.email or not payload.otp:
-        raise HTTPException(status_code=400, detail="Email and OTP are required")
+        raise HTTPException(status_code=400, detail="Email/Agency ID and OTP are required")
         
-    email = payload.email.strip().lower()
-    stored_otp = otp_store.get(email)
+    identifier = payload.email.strip().lower()
+    stored_otp = otp_store.get(identifier)
     if not stored_otp or stored_otp != payload.otp:
         raise HTTPException(status_code=400, detail="Invalid or expired OTP")
         
     # Clear OTP after successful verification
-    if email in otp_store:
-        del otp_store[email]
+    if identifier in otp_store:
+        del otp_store[identifier]
         
     user_name = payload.name or "Agency User"
     phone = normalize_phone(payload.phone) if payload.phone else ""
+    agency_id = None
+    actual_email = identifier
     
     # If mode is register, insert/check in team database (admin platform)
     if payload.mode == "register":
@@ -106,38 +112,60 @@ def verify_otp(payload: VerifyOtpPayload):
             team_conn = get_mysql_conn("yatra_team")
             team_cursor = team_conn.cursor()
             # Check if agency with this email exists
-            team_cursor.execute("SELECT * FROM agencies WHERE email = ?", (email,))
+            team_cursor.execute("SELECT * FROM agencies WHERE LOWER(email) = ?", (identifier,))
             agency_row = team_cursor.fetchone()
             if not agency_row:
+                team_cursor.execute("SELECT agency_id FROM agencies WHERE agency_id LIKE 'AGY-%'")
+                rows = team_cursor.fetchall()
+                max_num = 1000
+                for r in rows:
+                    aid_str = r.get("agency_id", "") if isinstance(r, dict) else r[0]
+                    if aid_str and aid_str.startswith("AGY-"):
+                        try:
+                            num = int(aid_str.split("-")[1])
+                            if num > max_num:
+                                max_num = num
+                        except ValueError:
+                            pass
+                agency_id = f"AGY-{max_num + 1}"
+                
                 team_cursor.execute("""
-                INSERT INTO agencies (name, owner, contact, email, status, active_tours, revenue, expenses, drivers_count, vehicles_count, subscription_status, documents)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """, (user_name, user_name, phone, email, "Active", 0, 0.0, 0.0, 0, 0, "Trial (Expires: 2026-08-15)", "[]"))
-                print(f"[AUTH] Registered new agency: {user_name} ({email}, {phone})")
+                INSERT INTO agencies (agency_id, name, owner, contact, email, status, active_tours, revenue, expenses, drivers_count, vehicles_count, subscription_status, documents)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (agency_id, user_name, user_name, phone, identifier, "Active", 0, 0.0, 0.0, 0, 0, "Trial (Expires: 2026-08-15)", "[]"))
+                print(f"[AUTH] Registered new agency: {agency_id} - {user_name} ({identifier}, {phone})")
             else:
+                agency_id = agency_row.get("agency_id") or "AGY-1001"
                 user_name = agency_row["owner"]
                 phone = agency_row["contact"]
             team_conn.close()
         except Exception as e:
             print(f"[AUTH] Error writing register info to team DB: {e}")
     else:
-        # If mode is login, try to lookup agency owner name & phone from team DB by email address
+        # If mode is login, try to lookup agency owner name, phone & agency_id from team DB by email or agency_id
         try:
             team_conn = get_mysql_conn("yatra_team")
             team_cursor = team_conn.cursor()
-            team_cursor.execute("SELECT * FROM agencies WHERE email = ?", (email,))
+            team_cursor.execute("SELECT * FROM agencies WHERE LOWER(email) = ? OR LOWER(agency_id) = ?", (identifier, identifier))
             agency_row = team_cursor.fetchone()
             if agency_row:
+                agency_id = agency_row.get("agency_id") or "AGY-1001"
                 user_name = agency_row["owner"]
                 phone = agency_row["contact"]
+                actual_email = agency_row["email"]
             team_conn.close()
         except Exception as e:
             print(f"[AUTH] Error reading login info from team DB: {e}")
             
+    if not agency_id:
+        agency_id = "AGY-1001"
+
     return {
         "status": "success",
         "user": {
-            "email": email,
+            "id": agency_id,
+            "agency_id": agency_id,
+            "email": actual_email,
             "phone": phone,
             "role": "agency",
             "name": user_name

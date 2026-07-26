@@ -11,6 +11,7 @@ USE yatra_agency;
 
 CREATE TABLE IF NOT EXISTS tours (
   trip_id INT AUTO_INCREMENT PRIMARY KEY,
+  agency_id VARCHAR(50),
   destination VARCHAR(255),
   customer VARCHAR(255),
   agency VARCHAR(255),
@@ -129,6 +130,7 @@ USE yatra_traveller;
 
 CREATE TABLE IF NOT EXISTS trips (
   id INT AUTO_INCREMENT PRIMARY KEY,
+  user_id VARCHAR(50),
   name VARCHAR(255),
   route TEXT,
   `date` DATE,
@@ -141,6 +143,7 @@ CREATE TABLE IF NOT EXISTS trips (
 
 CREATE TABLE IF NOT EXISTS expenses (
   id INT AUTO_INCREMENT PRIMARY KEY,
+  user_id VARCHAR(50),
   title VARCHAR(255),
   amount DECIMAL(12,2),
   `date` DATE,
@@ -150,6 +153,7 @@ CREATE TABLE IF NOT EXISTS expenses (
 
 CREATE TABLE IF NOT EXISTS bookings (
   id INT AUTO_INCREMENT PRIMARY KEY,
+  user_id VARCHAR(50),
   trip_id INT,
   name VARCHAR(255),
   status VARCHAR(100),
@@ -159,6 +163,7 @@ CREATE TABLE IF NOT EXISTS bookings (
 
 CREATE TABLE IF NOT EXISTS documents (
   id INT AUTO_INCREMENT PRIMARY KEY,
+  user_id VARCHAR(50),
   name VARCHAR(255),
   type VARCHAR(100),
   file_url VARCHAR(255),
@@ -167,6 +172,7 @@ CREATE TABLE IF NOT EXISTS documents (
 
 CREATE TABLE IF NOT EXISTS profile (
   id INT AUTO_INCREMENT PRIMARY KEY,
+  user_id VARCHAR(50) UNIQUE,
   name VARCHAR(255),
   email VARCHAR(255),
   contact VARCHAR(50),
@@ -177,6 +183,7 @@ USE yatra_team;
 
 CREATE TABLE IF NOT EXISTS agencies (
   id INT AUTO_INCREMENT PRIMARY KEY,
+  agency_id VARCHAR(50) UNIQUE,
   name VARCHAR(255),
   owner VARCHAR(255),
   contact VARCHAR(50),
@@ -193,6 +200,7 @@ CREATE TABLE IF NOT EXISTS agencies (
 
 CREATE TABLE IF NOT EXISTS travellers (
   id INT AUTO_INCREMENT PRIMARY KEY,
+  user_id VARCHAR(50) UNIQUE,
   name VARCHAR(255),
   email VARCHAR(255),
   trips_count INT,

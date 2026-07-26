@@ -237,8 +237,34 @@ export default function Header({ title, description, portal, onPortalSwitch }) {
           )}
         </div>
 
-        {/* User Profile Avatar */}
+        {/* User Profile Avatar & ID Badge */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          {(() => {
+            try {
+              const uStr = localStorage.getItem('yatra_user');
+              if (uStr) {
+                const u = JSON.parse(uStr);
+                const userCode = u.id || u.user_id || u.agency_id;
+                if (userCode) {
+                  return (
+                    <span style={{
+                      fontSize: '11px',
+                      fontWeight: 800,
+                      background: 'rgba(37, 99, 235, 0.1)',
+                      color: 'var(--primary)',
+                      padding: '4px 8px',
+                      borderRadius: '6px',
+                      fontFamily: 'monospace',
+                      border: '1px solid rgba(37, 99, 235, 0.2)'
+                    }}>
+                      ID: {userCode}
+                    </span>
+                  );
+                }
+              }
+            } catch (e) {}
+            return null;
+          })()}
           <div 
             className="avatar sm" 
             style={{ background: 'linear-gradient(135deg, var(--primary), var(--primary-light))', color: 'white', fontWeight: 700 }}

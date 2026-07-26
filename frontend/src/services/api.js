@@ -88,19 +88,29 @@ export const api = {
 
   // --- TRAVELLER API (Port 8001) ---
   traveller: {
-    getSummary: () => request(`${TRAVELLER_BASE}/dashboard/summary`),
-    getTrips: (status) => request(`${TRAVELLER_BASE}/trips${status ? `?status=${status}` : ""}`),
+    getSummary: (userId) => request(`${TRAVELLER_BASE}/dashboard/summary${userId ? `?user_id=${userId}` : ""}`),
+    getTrips: (status, userId) => {
+      const p = new URLSearchParams();
+      if (status) p.append("status", status);
+      if (userId) p.append("user_id", userId);
+      return request(`${TRAVELLER_BASE}/trips?${p.toString()}`);
+    },
     createTrip: (data) => request(`${TRAVELLER_BASE}/trips`, { method: "POST", body: JSON.stringify(data) }),
     getTrip: (id) => request(`${TRAVELLER_BASE}/trips/${id}`),
-    getExpenses: (cat) => request(`${TRAVELLER_BASE}/expenses${cat ? `?category=${cat}` : ""}`),
+    getExpenses: (cat, userId) => {
+      const p = new URLSearchParams();
+      if (cat) p.append("category", cat);
+      if (userId) p.append("user_id", userId);
+      return request(`${TRAVELLER_BASE}/expenses?${p.toString()}`);
+    },
     createExpense: (data) => request(`${TRAVELLER_BASE}/expenses`, { method: "POST", body: JSON.stringify(data) }),
     deleteExpense: (id) => request(`${TRAVELLER_BASE}/expenses/${id}`, { method: "DELETE" }),
-    getExpensesAnalytics: () => request(`${TRAVELLER_BASE}/expenses/analytics`),
-    getBookings: () => request(`${TRAVELLER_BASE}/bookings`),
+    getExpensesAnalytics: (userId) => request(`${TRAVELLER_BASE}/expenses/analytics${userId ? `?user_id=${userId}` : ""}`),
+    getBookings: (userId) => request(`${TRAVELLER_BASE}/bookings${userId ? `?user_id=${userId}` : ""}`),
     createBooking: (data) => request(`${TRAVELLER_BASE}/bookings`, { method: "POST", body: JSON.stringify(data) }),
-    getDocuments: () => request(`${TRAVELLER_BASE}/documents`),
+    getDocuments: (userId) => request(`${TRAVELLER_BASE}/documents${userId ? `?user_id=${userId}` : ""}`),
     uploadDocument: (data) => request(`${TRAVELLER_BASE}/documents`, { method: "POST", body: JSON.stringify(data) }),
-    getProfile: () => request(`${TRAVELLER_BASE}/profile`),
+    getProfile: (userId) => request(`${TRAVELLER_BASE}/profile${userId ? `?user_id=${userId}` : ""}`),
     updateProfile: (data) => request(`${TRAVELLER_BASE}/profile`, { method: "PUT", body: JSON.stringify(data) }),
     getSettings: () => request(`${TRAVELLER_BASE}/settings`),
   },
