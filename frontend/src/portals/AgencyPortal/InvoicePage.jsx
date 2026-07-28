@@ -4,20 +4,33 @@ import { api } from '../../services/api';
 
 export default function InvoicePage() {
   const [invoices, setInvoices] = useState([]);
-  const [selectedTripId, setSelectedTripId] = useState(2); // default to trip 2 (seeded)
+  const [selectedTripId, setSelectedTripId] = useState(null);
   const [invoice, setInvoice] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [listLoading, setListLoading] = useState(true);
 
   useEffect(() => {
-    // Load list of completed invoices
+    // Load list of completed invoices, then auto-select the first
+    setListLoading(true);
     api.agency.getInvoices()
       .then((data) => {
         setInvoices(data);
+        if (data.length > 0) {
+          setSelectedTripId(data[0].trip_id);
+        } else {
+          setLoading(false);
+        }
+        setListLoading(false);
       })
-      .catch((err) => console.error("Failed to load invoices", err));
+      .catch((err) => {
+        console.error("Failed to load invoices", err);
+        setListLoading(false);
+        setLoading(false);
+      });
   }, []);
 
   useEffect(() => {
+    if (selectedTripId === null) return;
     setLoading(true);
     api.agency.getInvoice(selectedTripId)
       .then((data) => {
@@ -30,11 +43,22 @@ export default function InvoicePage() {
       });
   }, [selectedTripId]);
 
-  if (loading) {
+  if (listLoading) {
     return (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '60vh', flexDirection: 'column', gap: '16px' }}>
         <Icons.Loader className="animate-spin" size={40} style={{ color: 'var(--primary)' }} />
-        <p style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>Loading invoice details...</p>
+        <p style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>Loading invoices...</p>
+      </div>
+    );
+  }
+
+  // No invoices exist in the database yet
+  if (!listLoading && invoices.length === 0) {
+    return (
+      <div style={{ textAlign: 'center', padding: '80px 20px', color: 'var(--text-muted)' }}>
+        <Icons.FileText size={48} style={{ margin: '0 auto 16px', opacity: 0.25, display: 'block' }} />
+        <h3 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '8px' }}>No Invoices Yet</h3>
+        <p style={{ fontSize: '13px' }}>Invoices are generated from completed tours. Create tours and log expenses to get started.</p>
       </div>
     );
   }
@@ -51,15 +75,11 @@ export default function InvoicePage() {
             onChange={(e) => setSelectedTripId(Number(e.target.value))}
             style={{ padding: '6px 12px', border: '1px solid var(--border)', borderRadius: '6px', fontSize: '13px', outline: 'none' }}
           >
-            {invoices.length === 0 ? (
-              <option value="2">Trip #2 (Rajasthan Journey)</option>
-            ) : (
-              invoices.map(inv => (
-                <option key={inv.trip_id} value={inv.trip_id}>
-                  Trip #{inv.trip_id} ({inv.destination})
-                </option>
-              ))
-            )}
+            {invoices.map(inv => (
+              <option key={inv.trip_id} value={inv.trip_id}>
+                Trip #{inv.trip_id} — {inv.destination}
+              </option>
+            ))}
           </select>
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
@@ -195,9 +215,15 @@ export default function InvoicePage() {
           </div>
 
         </div>
+      ) : loading ? (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '40vh', flexDirection: 'column', gap: '16px' }}>
+          <Icons.Loader className="animate-spin" size={32} style={{ color: 'var(--primary)' }} />
+          <p style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>Loading invoice...</p>
+        </div>
       ) : (
         <div style={{ textAlign: 'center', padding: '48px', background: 'white', borderRadius: '16px', border: '1px solid var(--border)' }}>
-          <p>No invoices available.</p>
+          <Icons.FileText size={36} style={{ margin: '0 auto 12px', opacity: 0.3, display: 'block' }} />
+          <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>Select a trip to preview its invoice.</p>
         </div>
       )}
     </div>

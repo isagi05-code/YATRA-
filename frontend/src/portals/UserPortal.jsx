@@ -3,12 +3,112 @@ import * as Icons from 'lucide-react';
 import AiItineraryPage from './AgencyPortal/AiItineraryPage';
 import { api } from '../services/api';
 
+const EXPENSE_CATEGORIES = ['Food', 'Shopping', 'Taxi', 'Hotels', 'Entertainment', 'Activities', 'Misc'];
+
+function AddExpenseModal({ userId, onClose, onSaved }) {
+  const today = new Date().toISOString().split('T')[0];
+  const [form, setForm] = useState({
+    title: '',
+    amount: '',
+    category: 'Food',
+    date: today,
+    status: 'Paid',
+  });
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleChange = (field, value) => setForm(prev => ({ ...prev, [field]: value }));
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!form.title.trim()) { setError('Description is required'); return; }
+    if (!form.amount || parseFloat(form.amount) <= 0) { setError('Valid amount is required'); return; }
+    setSaving(true);
+    setError('');
+    try {
+      await api.traveller.createExpense({
+        user_id: userId,
+        title: form.title.trim(),
+        amount: parseFloat(form.amount),
+        date: form.date,
+        category: form.category,
+        status: 'Paid',
+      });
+      onSaved();
+      onClose();
+    } catch (err) {
+      setError(err.message || 'Failed to add expense');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
+      <div style={{ background: 'white', borderRadius: '16px', width: '100%', maxWidth: '480px', boxShadow: '0 25px 60px rgba(0,0,0,0.2)', overflow: 'hidden' }}>
+        <div style={{ background: 'linear-gradient(135deg, #064e3b, #10B981)', padding: '20px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <h2 style={{ color: 'white', fontSize: '18px', fontWeight: 700, margin: 0 }}>Add Expense</h2>
+            <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '12px', margin: '2px 0 0' }}>Log a personal travel expense</p>
+          </div>
+          <button onClick={onClose} style={{ background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: '8px', padding: '6px 10px', color: 'white', cursor: 'pointer' }}>
+            <Icons.X size={16} />
+          </button>
+        </div>
+        <form onSubmit={handleSubmit} style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          {error && (
+            <div style={{ background: '#FEF2F2', border: '1px solid #FCA5A5', color: '#DC2626', padding: '10px 14px', borderRadius: '8px', fontSize: '13px' }}>{error}</div>
+          )}
+          <div>
+            <label style={{ fontSize: '12px', fontWeight: 600, color: '#374151', display: 'block', marginBottom: '4px' }}>Description *</label>
+            <input type="text" placeholder="e.g. Dinner at hotel, Uber ride..." value={form.title}
+              onChange={e => handleChange('title', e.target.value)}
+              style={{ width: '100%', padding: '8px 10px', border: '1px solid #D1D5DB', borderRadius: '8px', fontSize: '13px', boxSizing: 'border-box' }} />
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+            <div>
+              <label style={{ fontSize: '12px', fontWeight: 600, color: '#374151', display: 'block', marginBottom: '4px' }}>Amount (₹) *</label>
+              <input type="number" min="0" step="0.01" placeholder="0.00" value={form.amount}
+                onChange={e => handleChange('amount', e.target.value)}
+                style={{ width: '100%', padding: '8px 10px', border: '1px solid #D1D5DB', borderRadius: '8px', fontSize: '13px', boxSizing: 'border-box' }} />
+            </div>
+            <div>
+              <label style={{ fontSize: '12px', fontWeight: 600, color: '#374151', display: 'block', marginBottom: '4px' }}>Category</label>
+              <select value={form.category} onChange={e => handleChange('category', e.target.value)}
+                style={{ width: '100%', padding: '8px 10px', border: '1px solid #D1D5DB', borderRadius: '8px', fontSize: '13px', background: 'white', cursor: 'pointer' }}>
+                {EXPENSE_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
+          </div>
+          <div>
+            <label style={{ fontSize: '12px', fontWeight: 600, color: '#374151', display: 'block', marginBottom: '4px' }}>Date</label>
+            <input type="date" value={form.date}
+              onChange={e => handleChange('date', e.target.value)}
+              style={{ width: '100%', padding: '8px 10px', border: '1px solid #D1D5DB', borderRadius: '8px', fontSize: '13px', boxSizing: 'border-box' }} />
+          </div>
+          <div style={{ display: 'flex', gap: '10px', paddingTop: '4px' }}>
+            <button type="button" onClick={onClose}
+              style={{ flex: 1, padding: '10px', border: '1px solid #D1D5DB', borderRadius: '8px', background: 'white', cursor: 'pointer', fontSize: '13px', fontWeight: 600 }}>
+              Cancel
+            </button>
+            <button type="submit" disabled={saving}
+              style={{ flex: 2, padding: '10px', border: 'none', borderRadius: '8px', background: saving ? '#6EE7B7' : '#10B981', color: 'white', cursor: saving ? 'not-allowed' : 'pointer', fontSize: '13px', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+              {saving ? <><Icons.Loader className="animate-spin" size={14} /> Saving...</> : <><Icons.Plus size={14} /> Add Expense</>}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 export default function UserPortal({ page, onNavigate }) {
   const [trips, setTrips] = useState([]);
   const [expenses, setExpenses] = useState([]);
   const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState(null);
+  const [showExpenseModal, setShowExpenseModal] = useState(false);
 
   const getLoggedInUserId = () => {
     try {
@@ -48,28 +148,7 @@ export default function UserPortal({ page, onNavigate }) {
     loadData();
   }, []);
 
-  const handleAddExpense = () => {
-    const randomAmount = Math.floor(Math.random() * 3000) + 100;
-    const categories = ["Food", "Shopping", "Taxi", "Hotels", "Entertainment", "Misc"];
-    const randomCat = categories[Math.floor(Math.random() * categories.length)];
-    const titles = {"Food": "Cafe Coffee Day", "Shopping": "Zara Outlet", "Taxi": "Uber Ride", "Hotels": "Local Resort Stay", "Entertainment": "Movie Ticket", "Misc": "Convenience Charge"};
-    const title = titles[randomCat] || "General Expense";
-
-    const newExp = {
-      user_id: userId,
-      title: title,
-      amount: randomAmount,
-      date: "2026-07-05",
-      category: randomCat,
-      status: "Paid"
-    };
-
-    api.traveller.createExpense(newExp)
-      .then(() => {
-        loadData();
-      })
-      .catch((err) => console.error("Failed to add expense", err));
-  };
+  // No mock data — expense modal now handles real creation
 
   if (loading) {
     return (
@@ -97,29 +176,40 @@ export default function UserPortal({ page, onNavigate }) {
           </button>
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-          {trips.map(trip => (
-            <div key={trip.id} className="card card-padded" style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr 1fr 120px', gap: '16px', alignItems: 'center', background: 'white' }}>
-              <div>
-                <h3 style={{ fontSize: '15px', fontWeight: 700 }}>{trip.name}</h3>
-                <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '2px' }}>{trip.route}</p>
+        {trips.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '80px 20px', color: 'var(--text-muted)' }}>
+            <Icons.Map size={48} style={{ margin: '0 auto 16px', opacity: 0.25, display: 'block' }} />
+            <h3 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '8px' }}>No trips yet</h3>
+            <p style={{ fontSize: '13px', marginBottom: '20px' }}>Use the AI Assistant to plan and book your first trip.</p>
+            <button onClick={() => onNavigate('ai-assistant')} className="btn btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: '#10B981', borderColor: '#10B981' }}>
+              <Icons.Sparkles size={14} /> Plan First Trip
+            </button>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            {trips.map(trip => (
+              <div key={trip.id} className="card card-padded" style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr 1fr 120px', gap: '16px', alignItems: 'center', background: 'white' }}>
+                <div>
+                  <h3 style={{ fontSize: '15px', fontWeight: 700 }}>{trip.name}</h3>
+                  <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '2px' }}>{trip.route}</p>
+                </div>
+                <div>
+                  <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Departure</div>
+                  <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', marginTop: '2px' }}>{trip.date}</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Duration / Budget</div>
+                  <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', marginTop: '2px' }}>{trip.duration} · ₹{trip.budget?.toLocaleString()}</div>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <span className={`badge ${trip.status === 'Completed' ? 'green' : 'orange'}`} style={{ padding: '4px 12px', fontSize: '11px' }}>
+                    {trip.status}
+                  </span>
+                </div>
               </div>
-              <div>
-                <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Departure</div>
-                <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', marginTop: '2px' }}>{trip.date}</div>
-              </div>
-              <div>
-                <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Duration / Budget</div>
-                <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', marginTop: '2px' }}>{trip.duration} · ₹{trip.budget?.toLocaleString()}</div>
-              </div>
-              <div style={{ textAlign: 'right' }}>
-                <span className={`badge ${trip.status === 'Completed' ? 'green' : 'orange'}`} style={{ padding: '4px 12px', fontSize: '11px' }}>
-                  {trip.status}
-                </span>
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
     );
   }
@@ -127,42 +217,60 @@ export default function UserPortal({ page, onNavigate }) {
   if (page === 'expenses') {
     return (
       <div className="fade-in">
+        {showExpenseModal && (
+          <AddExpenseModal
+            userId={userId}
+            onClose={() => setShowExpenseModal(false)}
+            onSaved={loadData}
+          />
+        )}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
           <div>
             <h1 className="page-title" style={{ fontSize: '24px', fontWeight: 700 }}>My Expenses</h1>
             <p className="page-desc" style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Keep track of your travel spending and reimbursement history.</p>
           </div>
-          <button onClick={handleAddExpense} className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#10B981', borderColor: '#10B981' }}>
+          <button onClick={() => setShowExpenseModal(true)} className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#10B981', borderColor: '#10B981' }}>
             <Icons.Plus size={14} /> Add Expense
           </button>
         </div>
 
-        <div className="card" style={{ background: 'white' }}>
-          <div className="table-wrapper">
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>Description</th>
-                  <th>Date</th>
-                  <th>Category</th>
-                  <th>Amount</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {expenses.map(exp => (
-                  <tr key={exp.id}>
-                    <td><strong>{exp.title}</strong></td>
-                    <td style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{exp.date}</td>
-                    <td><span className="badge gray">{exp.category}</span></td>
-                    <td><strong>₹{exp.amount.toLocaleString()}</strong></td>
-                    <td><span className="badge green">{exp.status}</span></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        {expenses.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '80px 20px', color: 'var(--text-muted)' }}>
+            <Icons.Receipt size={48} style={{ margin: '0 auto 16px', opacity: 0.25, display: 'block' }} />
+            <h3 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '8px' }}>No expenses recorded yet</h3>
+            <p style={{ fontSize: '13px', marginBottom: '20px' }}>Start logging your travel expenses to track your spending.</p>
+            <button onClick={() => setShowExpenseModal(true)} className="btn btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: '#10B981', borderColor: '#10B981' }}>
+              <Icons.Plus size={14} /> Log First Expense
+            </button>
           </div>
-        </div>
+        ) : (
+          <div className="card" style={{ background: 'white' }}>
+            <div className="table-wrapper">
+              <table className="table">
+                <thead>
+                  <tr>
+                    <th>Description</th>
+                    <th>Date</th>
+                    <th>Category</th>
+                    <th>Amount</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {expenses.map(exp => (
+                    <tr key={exp.id}>
+                      <td><strong>{exp.title}</strong></td>
+                      <td style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{exp.date}</td>
+                      <td><span className="badge gray">{exp.category}</span></td>
+                      <td><strong>₹{exp.amount.toLocaleString()}</strong></td>
+                      <td><span className="badge green">{exp.status}</span></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -198,7 +306,7 @@ export default function UserPortal({ page, onNavigate }) {
       }}>
         <div style={{ position: 'relative', zIndex: 1 }}>
           <div style={{ fontSize: '13px', opacity: 0.8, marginBottom: '6px' }}>Welcome back! 👋</div>
-          <h1 style={{ fontFamily: "'Poppins', sans-serif", fontSize: '28px', fontWeight: 800, marginBottom: '8px', lineHeight: 1 }}>{profile?.name || 'Priya Sharma'}</h1>
+          <h1 style={{ fontFamily: "'Poppins', sans-serif", fontSize: '28px', fontWeight: 800, marginBottom: '8px', lineHeight: 1 }}>{profile?.name || 'Traveller'}</h1>
           <p style={{ fontSize: '13px', opacity: 0.75 }}>Your next adventure is just around the corner.</p>
           <div style={{ marginTop: '16px', display: 'flex', gap: '12px' }}>
             <button onClick={() => onNavigate('trips')} className="btn btn-xl" style={{ background: 'rgba(255,255,255,0.2)', color: 'white', border: '1px solid rgba(255,255,255,0.3)', fontSize: '13px', padding: '10px 20px', borderRadius: '10px' }}>View My Trips</button>
