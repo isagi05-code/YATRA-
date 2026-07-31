@@ -101,8 +101,7 @@ export default function LandingPortal({ onSelectRole }) {
         name: modalMode === 'register' ? name : undefined
       });
       setOtpSent(true);
-      const codeMsg = res?.otp ? ` [OTP: ${res.otp}]` : '';
-      setOtpNotification(`Verification code sent!${codeMsg} Check your inbox or backend terminal.`);
+      setOtpNotification(`Verification code sent! Check your inbox for the OTP.`);
     } catch (err) {
       setError(err.message || 'Failed to send OTP. Please try again.');
     } finally {
