@@ -9,8 +9,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 
 function AppContent() {
   const [portal, setPortal] = useState('landing');
-  const { logout } = useAuth();
-  
+
   // Navigation sub-page state for each portal
   const [agencyPage, setAgencyPage] = useState('dashboard');
   const [userPage, setUserPage] = useState('dashboard');
@@ -96,7 +95,7 @@ function AppContent() {
         default: return { title: 'Yatra Admin Portal', desc: 'Super administration' };
       }
     }
-    return { title: 'Yatra AI', desc: '' };
+    return { title: 'Yatra', desc: '' };
   };
 
   if (portal === 'landing') {
@@ -107,17 +106,19 @@ function AppContent() {
 
   return (
     <div className="app-layout">
-      <Sidebar 
-        portal={portal} 
-        activePage={getActivePage()} 
-        onNavigate={handleNavigate} 
-        onLogout={handleLogout} 
+      {/* Dynamic Sidebar */}
+      <Sidebar
+        portal={portal}
+        activePage={getActivePage()}
+        onNavigate={handleNavigate}
+        onLogout={handleLogout}
       />
 
       <main className="main-content" style={{ marginLeft: 'var(--sidebar-width)', flex: 1, minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-        <Header 
-          title={headerMeta.title} 
-          description={headerMeta.desc} 
+        {/* Dynamic Header */}
+        <Header
+          title={headerMeta.title}
+          description={headerMeta.desc}
           portal={portal}
           onPortalSwitch={handlePortalSwitch}
         />

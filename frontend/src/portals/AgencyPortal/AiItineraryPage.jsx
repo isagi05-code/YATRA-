@@ -62,7 +62,7 @@ export default function AiItineraryPage() {
             padding: '5px 14px', borderRadius: '999px',
             marginBottom: '20px'
           }}>
-            <Icons.Sparkles size={12} /> Yatra AI · Powered by Advanced Intelligence
+            <Icons.Sparkles size={12} /> Yatra · Powered by Advanced Intelligence
           </div>
           <h1 style={{ fontFamily: "'Poppins', sans-serif", fontSize: '32px', fontWeight: 800, color: 'white', lineHeight: 1.15, marginBottom: '12px', letterSpacing: '-1px' }}>
             Plan Your Perfect Trip with <span style={{ background: 'linear-gradient(90deg, #60A5FA, #A5B4FC, #F0ABFC)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>AI Precision</span>

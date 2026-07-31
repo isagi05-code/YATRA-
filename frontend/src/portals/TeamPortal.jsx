@@ -82,7 +82,7 @@ export default function TeamPortal({ page }) {
             color: '#A5B4FC', fontSize: '12px', fontWeight: 700,
             padding: '5px 14px', borderRadius: '999px', letterSpacing: '0.5px', marginBottom: '16px'
           }}>
-            <Icons.Shield size={12} /> Yatra AI Platform — Super Admin
+            <Icons.Shield size={12} /> Yatra Platform — Super Admin
           </div>
           <h1 style={{ fontFamily: "'Poppins', sans-serif", fontSize: '36px', fontWeight: 900, letterSpacing: '-1.5px', lineHeight: 1 }}>Platform Overview</h1>
           <p style={{ fontSize: '14px', opacity: 0.65, marginTop: '8px' }}>Real-time metrics across all agencies, drivers, and operations.</p>

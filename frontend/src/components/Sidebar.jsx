@@ -49,7 +49,7 @@ export default function Sidebar({ portal, activePage, onNavigate, onLogout }) {
       case 'agency': return 'Agency Portal';
       case 'user': return 'Traveller App';
       case 'yatra-team': return 'Team Admin';
-      default: return 'Yatra AI';
+      default: return 'Yatra';
     }
   };
 
@@ -68,7 +68,7 @@ export default function Sidebar({ portal, activePage, onNavigate, onLogout }) {
         </div>
         <div>
           <div className="sidebar-logo-text" style={{ fontFamily: "'Poppins', sans-serif", fontWeight: 800 }}>
-            Yatra <span style={{ color: 'var(--primary)' }}>AI</span>
+            Yatra
           </div>
           <div className="sidebar-logo-sub" style={{ fontSize: '10px', opacity: 0.6 }}>
             {getPortalName()}
