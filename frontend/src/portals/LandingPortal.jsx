@@ -94,7 +94,7 @@ export default function LandingPortal({ onSelectRole }) {
     setLoading(true);
     try {
       const role = getActiveRole();
-      await api.auth.sendOtp(role, {
+      const res = await api.auth.sendOtp(role, {
         email,
         phone: phone || undefined,
         mode: modalMode,
