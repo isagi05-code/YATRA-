@@ -69,9 +69,21 @@ function AddExpenseModal({ tours, onClose, onSaved }) {
     }
   };
 
+  const inputStyle = {
+    width: '100%',
+    padding: '9px 12px',
+    border: '1px solid #CBD5E1',
+    borderRadius: '8px',
+    fontSize: '13px',
+    color: '#0F172A',
+    background: '#FFFFFF',
+    outline: 'none',
+    boxSizing: 'border-box'
+  };
+
   return (
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
-      <div style={{ background: 'white', borderRadius: '16px', width: '100%', maxWidth: '560px', boxShadow: '0 25px 60px rgba(0,0,0,0.2)', overflow: 'hidden' }}>
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
+      <div style={{ background: 'white', borderRadius: '16px', width: '100%', maxWidth: '560px', boxShadow: '0 25px 60px rgba(0,0,0,0.3)', overflow: 'hidden' }}>
         {/* Header */}
         <div style={{ background: 'linear-gradient(135deg, #1E293B, #2563EB)', padding: '20px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
@@ -84,10 +96,10 @@ function AddExpenseModal({ tours, onClose, onSaved }) {
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '14px', maxHeight: '70vh', overflowY: 'auto' }}>
+        <form onSubmit={handleSubmit} style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '14px', maxHeight: '75vh', overflowY: 'auto' }}>
           {error && (
-            <div style={{ background: '#FEF2F2', border: '1px solid #FCA5A5', color: '#DC2626', padding: '10px 14px', borderRadius: '8px', fontSize: '13px' }}>
-              {error}
+            <div style={{ background: '#FEF2F2', border: '1px solid #FCA5A5', color: '#DC2626', padding: '10px 14px', borderRadius: '8px', fontSize: '13px', fontWeight: 500 }}>
+              ⚠️ {error}
             </div>
           )}
 
@@ -96,14 +108,14 @@ function AddExpenseModal({ tours, onClose, onSaved }) {
             <div>
               <label style={{ fontSize: '12px', fontWeight: 600, color: '#374151', display: 'block', marginBottom: '4px' }}>Category *</label>
               <select value={form.category} onChange={e => handleChange('category', e.target.value)}
-                style={{ width: '100%', padding: '8px 10px', border: '1px solid #D1D5DB', borderRadius: '8px', fontSize: '13px', background: 'white', cursor: 'pointer' }}>
+                style={{ ...inputStyle, cursor: 'pointer' }}>
                 {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
               </select>
             </div>
             <div>
               <label style={{ fontSize: '12px', fontWeight: 600, color: '#374151', display: 'block', marginBottom: '4px' }}>Payment Mode *</label>
               <select value={form.payment_mode} onChange={e => handleChange('payment_mode', e.target.value)}
-                style={{ width: '100%', padding: '8px 10px', border: '1px solid #D1D5DB', borderRadius: '8px', fontSize: '13px', background: 'white', cursor: 'pointer' }}>
+                style={{ ...inputStyle, cursor: 'pointer' }}>
                 {PAYMENT_MODES.map(m => <option key={m} value={m}>{m}</option>)}
               </select>
             </div>
@@ -114,7 +126,7 @@ function AddExpenseModal({ tours, onClose, onSaved }) {
             <label style={{ fontSize: '12px', fontWeight: 600, color: '#374151', display: 'block', marginBottom: '4px' }}>Vendor / Merchant Name *</label>
             <input type="text" placeholder="e.g. HP Petrol Pump, Marriott Hotel" value={form.vendor}
               onChange={e => handleChange('vendor', e.target.value)}
-              style={{ width: '100%', padding: '8px 10px', border: '1px solid #D1D5DB', borderRadius: '8px', fontSize: '13px', boxSizing: 'border-box' }} />
+              style={inputStyle} />
           </div>
 
           {/* Row 2: Amount + GST */}
@@ -123,13 +135,13 @@ function AddExpenseModal({ tours, onClose, onSaved }) {
               <label style={{ fontSize: '12px', fontWeight: 600, color: '#374151', display: 'block', marginBottom: '4px' }}>Amount (₹) *</label>
               <input type="number" min="0" step="0.01" placeholder="0.00" value={form.amount}
                 onChange={e => handleChange('amount', e.target.value)}
-                style={{ width: '100%', padding: '8px 10px', border: '1px solid #D1D5DB', borderRadius: '8px', fontSize: '13px', boxSizing: 'border-box' }} />
+                style={inputStyle} />
             </div>
             <div>
               <label style={{ fontSize: '12px', fontWeight: 600, color: '#374151', display: 'block', marginBottom: '4px' }}>GST (₹) <span style={{ fontWeight: 400, opacity: 0.6 }}>auto 18%</span></label>
               <input type="number" min="0" step="0.01" placeholder="0.00" value={form.gst}
                 onChange={e => handleChange('gst', e.target.value)}
-                style={{ width: '100%', padding: '8px 10px', border: '1px solid #D1D5DB', borderRadius: '8px', fontSize: '13px', boxSizing: 'border-box' }} />
+                style={inputStyle} />
             </div>
           </div>
 
@@ -138,12 +150,12 @@ function AddExpenseModal({ tours, onClose, onSaved }) {
             <div>
               <label style={{ fontSize: '12px', fontWeight: 600, color: '#374151', display: 'block', marginBottom: '4px' }}>Date *</label>
               <input type="date" value={form.date} onChange={e => handleChange('date', e.target.value)}
-                style={{ width: '100%', padding: '8px 10px', border: '1px solid #D1D5DB', borderRadius: '8px', fontSize: '13px', boxSizing: 'border-box' }} />
+                style={inputStyle} />
             </div>
             <div>
               <label style={{ fontSize: '12px', fontWeight: 600, color: '#374151', display: 'block', marginBottom: '4px' }}>Linked Tour <span style={{ fontWeight: 400, opacity: 0.6 }}>(optional)</span></label>
               <select value={form.trip_id} onChange={e => handleChange('trip_id', e.target.value)}
-                style={{ width: '100%', padding: '8px 10px', border: '1px solid #D1D5DB', borderRadius: '8px', fontSize: '13px', background: 'white', cursor: 'pointer' }}>
+                style={{ ...inputStyle, cursor: 'pointer' }}>
                 <option value="">No Tour (General)</option>
                 {tours.map(t => (
                   <option key={t.trip_id} value={t.trip_id}>#{t.trip_id} — {t.destination}</option>
@@ -157,7 +169,7 @@ function AddExpenseModal({ tours, onClose, onSaved }) {
             <label style={{ fontSize: '12px', fontWeight: 600, color: '#374151', display: 'block', marginBottom: '4px' }}>Description</label>
             <textarea rows={2} placeholder="Brief notes about this expense..." value={form.description}
               onChange={e => handleChange('description', e.target.value)}
-              style={{ width: '100%', padding: '8px 10px', border: '1px solid #D1D5DB', borderRadius: '8px', fontSize: '13px', resize: 'vertical', boxSizing: 'border-box' }} />
+              style={{ ...inputStyle, resize: 'vertical' }} />
           </div>
 
           {/* Total preview */}
@@ -173,11 +185,11 @@ function AddExpenseModal({ tours, onClose, onSaved }) {
           {/* Actions */}
           <div style={{ display: 'flex', gap: '10px', paddingTop: '4px' }}>
             <button type="button" onClick={onClose}
-              style={{ flex: 1, padding: '10px', border: '1px solid #D1D5DB', borderRadius: '8px', background: 'white', cursor: 'pointer', fontSize: '13px', fontWeight: 600 }}>
+              style={{ flex: 1, padding: '11px', border: '1px solid #D1D5DB', borderRadius: '8px', background: 'white', color: '#374151', cursor: 'pointer', fontSize: '13px', fontWeight: 600 }}>
               Cancel
             </button>
             <button type="submit" disabled={saving}
-              style={{ flex: 2, padding: '10px', border: 'none', borderRadius: '8px', background: saving ? '#93C5FD' : '#2563EB', color: 'white', cursor: saving ? 'not-allowed' : 'pointer', fontSize: '13px', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+              style={{ flex: 2, padding: '11px', border: 'none', borderRadius: '8px', background: saving ? '#93C5FD' : '#2563EB', color: 'white', cursor: saving ? 'not-allowed' : 'pointer', fontSize: '13px', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
               {saving ? <><Icons.Loader className="animate-spin" size={14} /> Saving...</> : <><Icons.Plus size={14} /> Add Expense</>}
             </button>
           </div>

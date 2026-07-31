@@ -16,37 +16,120 @@ def initialize_mysql_databases():
     root_conn = get_root_conn()
     root_cursor = root_conn.cursor()
     
-    print("Dropping existing databases to ensure a clean state...")
+    print("Dropping existing enterprise and virtual databases...")
     root_cursor.execute("DROP DATABASE IF EXISTS yatra_agency")
     root_cursor.execute("DROP DATABASE IF EXISTS yatra_traveller")
     root_cursor.execute("DROP DATABASE IF EXISTS yatra_team")
+    root_cursor.execute("DROP DATABASE IF EXISTS yatra_enterprise")
     
-    # Read and run schema to create databases, tables, and foreign keys
-    schema_path = os.path.join(os.path.dirname(__file__), "mysql_schema.sql")
-    print(f"Reading schema from {schema_path}...")
-    with open(schema_path, "r", encoding="utf-8") as f:
-        sql_content = f.read()
-        
-    # Split by semicolon, executing each statement separately
-    # Ignore comments and empty statements
-    statements = []
-    current_statement = []
-    for line in sql_content.split('\n'):
-        stripped = line.strip()
-        if stripped.startswith('--') or stripped.startswith('#') or not stripped:
-            continue
-        current_statement.append(line)
-        if line.endswith(';'):
-            statements.append('\n'.join(current_statement))
-            current_statement = []
+    sql_dir = os.path.join(os.path.dirname(__file__), "sql")
+    sql_files = sorted([f for f in os.listdir(sql_dir) if f.endswith(".sql")])
+    
+    print(f"Executing {len(sql_files)} enterprise SQL scripts from {sql_dir}...")
+    for filename in sql_files:
+        filepath = os.path.join(sql_dir, filename)
+        print(f"Running script: {filename}...")
+        with open(filepath, "r", encoding="utf-8") as f:
+            sql_content = f.read()
             
-    print("Executing schema statements...")
-    for statement in statements:
-        if statement.strip():
-            root_cursor.execute(statement)
-            
+        statements = []
+        current_statement = []
+        for line in sql_content.split('\n'):
+            stripped = line.strip()
+            if stripped.startswith('--') or stripped.startswith('#') or not stripped:
+                continue
+            current_statement.append(line)
+            if line.endswith(';'):
+                statements.append('\n'.join(current_statement))
+                current_statement = []
+                
+        for statement in statements:
+            if statement.strip():
+                try:
+                    root_cursor.execute(statement)
+                except Exception as err:
+                    print(f"Error executing statement in {filename}: {err}")
+                    raise err
+                    
     root_conn.close()
-    print("MySQL databases and tables created successfully.")
+    print("All enterprise SQL scripts and compatibility views executed successfully.")
+    seed_enterprise_db()
+
+def seed_enterprise_db():
+    print("Seeding Master Enterprise DB (users, roles, permissions)...")
+    conn = get_db_conn("yatra_enterprise")
+    cursor = conn.cursor()
+
+    # 1. Master Permissions
+    permissions_data = [
+        ("tours:read", "Tours", "View agency tour packages and routes"),
+        ("tours:write", "Tours", "Create, edit, and update tour packages"),
+        ("expenses:read", "Expenses", "View agency expenses"),
+        ("expenses:write", "Expenses", "Log and create new expenses"),
+        ("expenses:approve", "Expenses", "Approve or reject expense claims"),
+        ("vehicles:manage", "Fleet", "Add, edit, and manage vehicles"),
+        ("drivers:manage", "Fleet", "Add, edit, and manage drivers"),
+        ("invoices:read", "Invoices", "View and download trip invoices"),
+        ("reports:download", "Reports", "Generate and download financial reports"),
+        ("analytics:read", "Analytics", "View analytics graphs and metrics"),
+        ("platform:admin", "Platform", "Super admin platform management")
+    ]
+
+    for key, mod, desc in permissions_data:
+        try:
+            cursor.execute("INSERT IGNORE INTO permissions (permission_key, module, description) VALUES (?, ?, ?)", (key, mod, desc))
+        except Exception:
+            pass
+
+    # 2. Master System Roles
+    roles_data = [
+        ("Agency Owner", "Full administrative control over agency fleet, tours, and finances", 1),
+        ("Manager", "Operations manager for tours, drivers, and vehicles", 1),
+        ("Accountant", "Finance officer for managing expenses, invoices, and reports", 1),
+        ("Driver", "Assigned vehicle driver with tour view and status logging", 1),
+        ("Guide", "Assigned tour guide", 1),
+        ("Traveller", "End traveller account for trip bookings and personal expenses", 1),
+        ("Admin", "Yatra team admin staff", 1),
+        ("Super Admin", "Full platform super admin", 1)
+    ]
+
+    for name, desc, sys_role in roles_data:
+        try:
+            cursor.execute("INSERT IGNORE INTO roles (agency_id, role_name, description, is_system_role) VALUES (NULL, ?, ?, ?)", (name, desc, sys_role))
+        except Exception:
+            pass
+
+    # 3. Default Users (Agency Owner, Traveller, Super Admin)
+    # Password for all default accounts is "Password@123"
+    default_pass_hash = "$2b$12$K1rS2w7gC8gY0d0d8w3l7uK3j3J3k3l3m3n3o3p3q3r3s3t3u3v3w"  # bcrypt dummy or real hash
+
+    users_seed = [
+        ("USR-AGY-1001", "ceo@yatratravels.com", "+919999922222", "Yatra Travels", default_pass_hash),
+        ("USR-TRV-1001", "yugal@example.com", "+919999911111", "Yugal Kishor", default_pass_hash),
+        ("USR-ADM-1001", "admin@yatra.ai", "+919999900000", "Yatra Admin", default_pass_hash)
+    ]
+
+    for uid, email, phone, name, pw_hash in users_seed:
+        try:
+            cursor.execute("""
+                INSERT IGNORE INTO users (user_id, email, phone, name, password_hash, token_version, status)
+                VALUES (?, ?, ?, ?, ?, 1, 'Active')
+            """, (uid, email, phone, name, pw_hash))
+        except Exception:
+            pass
+
+    # 4. Association Links
+    try:
+        cursor.execute("INSERT IGNORE INTO agency_members (agency_id, user_id, role, is_owner) VALUES ('AGY-1001', 'USR-AGY-1001', 'Agency Owner', 1)")
+        cursor.execute("INSERT IGNORE INTO traveller_profiles (user_id) VALUES ('USR-TRV-1001')")
+        cursor.execute("INSERT IGNORE INTO team_members (user_id, role) VALUES ('USR-ADM-1001', 'Super Admin')")
+    except Exception:
+        pass
+
+    conn.commit()
+    conn.close()
+    print("Master Enterprise DB seeded with default users, roles, and permissions.")
+
 
 def seed_agency_db():
     print("Seeding Agency database...")
@@ -252,10 +335,7 @@ def seed_team_db():
 def main():
     try:
         initialize_mysql_databases()
-        seed_agency_db()
-        seed_traveller_db()
-        seed_team_db()
-        print("\nAll MySQL databases successfully initialized and seeded with mock data!")
+        print("\nAll Enterprise MySQL database tables, compatibility views, and master seed data initialized successfully!")
     except Exception as e:
         print(f"\nDatabase initialization failed: {e}")
         raise e

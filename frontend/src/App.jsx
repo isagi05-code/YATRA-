@@ -5,9 +5,11 @@ import Header from './components/Header';
 import AgencyPortal from './portals/AgencyPortal';
 import UserPortal from './portals/UserPortal';
 import TeamPortal from './portals/TeamPortal';
+import { AuthProvider, useAuth } from './context/AuthContext';
 
-export default function App() {
+function AppContent() {
   const [portal, setPortal] = useState('landing');
+  const { logout } = useAuth();
   
   // Navigation sub-page state for each portal
   const [agencyPage, setAgencyPage] = useState('dashboard');
@@ -17,25 +19,23 @@ export default function App() {
   // Handle Select Role / Login from Landing Page
   const handleSelectRole = (selectedRole) => {
     setPortal(selectedRole);
-    // Reset pages to default
     setAgencyPage('dashboard');
     setUserPage('dashboard');
     setTeamPage('overview');
   };
 
   const handleLogout = () => {
+    logout();
     setPortal('landing');
   };
 
   const handlePortalSwitch = (targetPortal) => {
     setPortal(targetPortal);
-    // Sync default pages
     if (targetPortal === 'agency') setAgencyPage('dashboard');
     if (targetPortal === 'user') setUserPage('dashboard');
     if (targetPortal === 'yatra-team') setTeamPage('overview');
   };
 
-  // Get active sub-page based on active portal
   const getActivePage = () => {
     switch (portal) {
       case 'agency': return agencyPage;
@@ -45,7 +45,6 @@ export default function App() {
     }
   };
 
-  // Set active sub-page based on active portal
   const handleNavigate = (pageId) => {
     switch (portal) {
       case 'agency':
@@ -62,12 +61,11 @@ export default function App() {
     }
   };
 
-  // Header Title & Subtext mapper
   const getHeaderMeta = () => {
     if (portal === 'agency') {
       switch (agencyPage) {
         case 'dashboard': return { title: 'Agency Dashboard', desc: 'Performances, stats, and summaries' };
-        case 'tours': return { title: 'Tours Pakages', desc: 'Plan and manage routes & itineraries' };
+        case 'tours': return { title: 'Tour Packages', desc: 'Plan and manage routes & itineraries' };
         case 'tour-detail': return { title: 'Tour Detail', desc: 'Live route and checkpoint tracking' };
         case 'expenses': return { title: 'Expenses', desc: 'Review receipt claims and tallies' };
         case 'invoice': return { title: 'Invoice Preview', desc: 'Download and print statement details' };
@@ -109,7 +107,6 @@ export default function App() {
 
   return (
     <div className="app-layout">
-      {/* Dynamic Sidebar */}
       <Sidebar 
         portal={portal} 
         activePage={getActivePage()} 
@@ -117,9 +114,7 @@ export default function App() {
         onLogout={handleLogout} 
       />
 
-      {/* Main Page Area */}
       <main className="main-content" style={{ marginLeft: 'var(--sidebar-width)', flex: 1, minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-        {/* Dynamic Header */}
         <Header 
           title={headerMeta.title} 
           description={headerMeta.desc} 
@@ -127,7 +122,6 @@ export default function App() {
           onPortalSwitch={handlePortalSwitch}
         />
 
-        {/* Portal Router */}
         <div className="page-content" style={{ padding: '24px', flex: 1, background: 'var(--bg)' }}>
           {portal === 'agency' && (
             <AgencyPortal page={agencyPage} onNavigate={handleNavigate} />
@@ -141,5 +135,13 @@ export default function App() {
         </div>
       </main>
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
   );
 }

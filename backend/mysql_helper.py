@@ -52,11 +52,15 @@ class MySQLCursorWrapper:
         # 1. Translate ? placeholders to %s
         query = query.replace('?', '%s')
         
-        # 2. Translate SQLite functions
+        # 2. Escape literal % signs (e.g. in DATE_FORMAT '%b') if params are passed to PyMySQL
+        if params is not None:
+            query = re.sub(r'%(?!s)', r'%%', query)
+        
+        # 3. Translate SQLite functions
         query = re.sub(r"DATE\('now'\)", "CURDATE()", query, flags=re.IGNORECASE)
         query = re.sub(r"datetime\('now'\)", "NOW()", query, flags=re.IGNORECASE)
         
-        # 3. Handle single parameters (non-iterable parameter conversion)
+        # 4. Handle single parameters (non-iterable parameter conversion)
         if params is not None and not isinstance(params, (list, tuple, dict)):
             params = (params,)
             
@@ -64,6 +68,7 @@ class MySQLCursorWrapper:
 
     def executemany(self, query, seq_of_params):
         query = query.replace('?', '%s')
+        query = re.sub(r'%(?!s)', r'%%', query)
         query = re.sub(r"DATE\('now'\)", "CURDATE()", query, flags=re.IGNORECASE)
         query = re.sub(r"datetime\('now'\)", "NOW()", query, flags=re.IGNORECASE)
         return self._cursor.executemany(query, seq_of_params)

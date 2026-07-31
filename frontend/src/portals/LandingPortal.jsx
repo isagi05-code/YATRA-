@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import * as Icons from 'lucide-react';
 import { api } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 
 export default function LandingPortal({ onSelectRole }) {
+  const { login } = useAuth();
   const [activeSlide, setActiveSlide] = useState(0); // 0: Agency, 1: Traveller, 2: Yatra Team
 
   const slides = [
@@ -92,14 +94,14 @@ export default function LandingPortal({ onSelectRole }) {
     setLoading(true);
     try {
       const role = getActiveRole();
-      const res = await api.auth.sendOtp(role, {
+      await api.auth.sendOtp(role, {
         email,
         phone: phone || undefined,
         mode: modalMode,
         name: modalMode === 'register' ? name : undefined
       });
       setOtpSent(true);
-      setOtpNotification(`A verification code has been dispatched. For local testing, please check the backend terminal console log.`);
+      setOtpNotification(`OTP sent to ${email}. Check the backend terminal for the code (dev mode).`);
     } catch (err) {
       setError(err.message || 'Failed to send OTP. Please try again.');
     } finally {
@@ -124,10 +126,13 @@ export default function LandingPortal({ onSelectRole }) {
         phone: phone || undefined,
         name: modalMode === 'register' ? name : undefined
       });
-      if (res.status === 'success') {
-        localStorage.setItem('yatra_user', JSON.stringify(res.user));
+      // New auth API returns { success: true, user, access_token, refresh_token, agency_id, role, portal }
+      if (res.success && res.user) {
+        login(res);  // Store tokens + user in AuthContext + localStorage
         if (modalMode === 'register') {
-          setRegisteredUser(res.user);
+          // After register, auto-navigate to their portal
+          setShowModal(false);
+          onSelectRole(role);
         } else {
           setShowModal(false);
           onSelectRole(role);

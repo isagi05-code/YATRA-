@@ -1,11 +1,20 @@
 const AGENCY_BASE = "http://localhost:8000";
 const TRAVELLER_BASE = "http://localhost:8001";
 const ADMIN_BASE = "http://localhost:8002";
+const AUTH_BASE = "http://localhost:8003";
+
+function getAuthToken() {
+  try {
+    return localStorage.getItem('yatra_access_token') || null;
+  } catch { return null; }
+}
 
 async function request(url, options = {}) {
+  const token = getAuthToken();
   const res = await fetch(url, {
     headers: {
       "Content-Type": "application/json",
+      ...(token ? { "Authorization": `Bearer ${token}` } : {}),
       ...options.headers,
     },
     ...options,
@@ -15,9 +24,8 @@ async function request(url, options = {}) {
     let msg = text;
     try {
       const parsed = JSON.parse(text);
-      if (parsed.detail) {
-        msg = parsed.detail;
-      }
+      if (parsed.detail) msg = parsed.detail;
+      else if (parsed.message) msg = parsed.message;
     } catch (e) {}
     throw new Error(msg || `HTTP Error ${res.status}`);
   }
@@ -27,14 +35,18 @@ async function request(url, options = {}) {
 // --- Helpers to get logged-in IDs ---
 function getAgencyId() {
   try {
-    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    const userStr = localStorage.getItem('yatra_user') || localStorage.getItem('user');
+    if (!userStr) return null;
+    const user = JSON.parse(userStr);
     return user.agency_id || user.id || null;
   } catch { return null; }
 }
 
 function getUserId() {
   try {
-    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    const userStr = localStorage.getItem('yatra_user') || localStorage.getItem('user');
+    if (!userStr) return null;
+    const user = JSON.parse(userStr);
     return user.user_id || user.id || null;
   } catch { return null; }
 }
@@ -194,7 +206,12 @@ export const api = {
     },
     getInvoice: (id, day) => {
       const aid = getAgencyId();
-      return request(`${AGENCY_BASE}/invoices/${id}${day ? `?day=${day}` : ''}${aid ? `${day ? '&' : '?'}agency_id=${aid}` : ''}`);
+      let url = `${AGENCY_BASE}/invoices/${id}`;
+      const params = new URLSearchParams();
+      if (day) params.append("day", day);
+      if (aid) params.append("agency_id", aid);
+      const queryStr = params.toString();
+      return request(`${url}${queryStr ? `?${queryStr}` : ''}`);
     },
     downloadInvoice: (id) => {
       const aid = getAgencyId();
@@ -289,15 +306,32 @@ export const api = {
     },
   },
   
-  // --- AUTH SERVICES ---
+  // --- AUTH SERVICES (Port 8003 — dedicated Auth API) ---
   auth: {
-    sendOtp: (portal, data) => {
-      const base = portal === 'agency' ? AGENCY_BASE : portal === 'user' ? TRAVELLER_BASE : ADMIN_BASE;
-      return request(`${base}/auth/send-otp`, { method: "POST", body: JSON.stringify(data) });
+    sendOtp: (portal, { email, phone, mode, name }) => {
+      const portalMap = { agency: 'agency', user: 'traveller', 'yatra-team': 'team' };
+      return request(`${AUTH_BASE}/auth/send-otp`, {
+        method: "POST",
+        body: JSON.stringify({ identifier: email || phone, portal: portalMap[portal] || portal, mode, name })
+      });
     },
-    verifyOtp: (portal, data) => {
-      const base = portal === 'agency' ? AGENCY_BASE : portal === 'user' ? TRAVELLER_BASE : ADMIN_BASE;
-      return request(`${base}/auth/verify-otp`, { method: "POST", body: JSON.stringify(data) });
-    }
+    verifyOtp: (portal, { email, phone, otp, mode, name }) => {
+      const portalMap = { agency: 'agency', user: 'traveller', 'yatra-team': 'team' };
+      return request(`${AUTH_BASE}/auth/verify-otp`, {
+        method: "POST",
+        body: JSON.stringify({ identifier: email || phone, portal: portalMap[portal] || portal, otp, mode, name, phone })
+      });
+    },
+    login: (portal, { email, phone, password }) => {
+      const portalMap = { agency: 'agency', user: 'traveller', 'yatra-team': 'team' };
+      return request(`${AUTH_BASE}/auth/login`, {
+        method: "POST",
+        body: JSON.stringify({ identifier: email || phone, portal: portalMap[portal] || portal, password })
+      });
+    },
+    setPassword: (data) => request(`${AUTH_BASE}/auth/set-password`, { method: "POST", body: JSON.stringify(data) }),
+    refresh: (token) => request(`${AUTH_BASE}/auth/refresh`, { method: "POST", body: JSON.stringify({ refresh_token: token }) }),
+    logout: (token) => request(`${AUTH_BASE}/auth/logout`, { method: "POST", body: JSON.stringify({ refresh_token: token }) }),
+    getMe: () => request(`${AUTH_BASE}/auth/me`),
   }
 };

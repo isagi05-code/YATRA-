@@ -1,14 +1,30 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import * as Icons from 'lucide-react';
+import { api } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 
 export default function Header({ title, description, portal, onPortalSwitch }) {
+  const { user, agencyId } = useAuth();
   const [showPortalMenu, setShowPortalMenu] = useState(false);
-  const [notifications, setNotifications] = useState([
-    { id: 1, text: "New expense submitted by Ramesh Kumar", time: "5m ago", read: false },
-    { id: 2, text: "Kedarnath Tour reached Gaurikund checkpoint", time: "1h ago", read: false },
-    { id: 3, text: "System maintenance scheduled for tonight", time: "5h ago", read: true }
-  ]);
+  const [notifications, setNotifications] = useState([]);
   const [showNotifMenu, setShowNotifMenu] = useState(false);
+
+  useEffect(() => {
+    if (portal === 'agency') {
+      api.agency.getNotifications()
+        .then((data) => {
+          if (Array.isArray(data)) {
+            setNotifications(data.map(n => ({
+              id: n.id,
+              text: `${n.title}: ${n.message}`,
+              time: n.date || 'Recent',
+              read: Boolean(n.read)
+            })));
+          }
+        })
+        .catch(() => setNotifications([]));
+    }
+  }, [portal, agencyId]);
 
   const getPortalLabel = () => {
     switch (portal) {
@@ -32,7 +48,14 @@ export default function Header({ title, description, portal, onPortalSwitch }) {
 
   const markAllRead = () => {
     setNotifications(notifications.map(n => ({ ...n, read: true })));
+    notifications.forEach(n => {
+      if (!n.read) api.agency.markNotificationRead(n.id).catch(() => {});
+    });
   };
+
+  const userCode = user?.agency_id || user?.user_id || user?.id || agencyId;
+  const userName = user?.name || getPortalLabel();
+  const initials = userName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() || (portal === 'agency' ? 'AG' : 'TR');
 
   return (
     <header className="header" style={{
@@ -93,7 +116,8 @@ export default function Header({ title, description, portal, onPortalSwitch }) {
               border: '1px solid var(--border)',
               fontSize: '12px',
               fontWeight: 600,
-              color: 'var(--text-primary)'
+              color: 'var(--text-primary)',
+              cursor: 'pointer'
             }}
           >
             <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: getPortalIconColor() }}></span>
@@ -123,7 +147,8 @@ export default function Header({ title, description, portal, onPortalSwitch }) {
                     padding: '8px 12px', borderRadius: '6px', fontSize: '12px', textAlign: 'left',
                     color: portal === 'agency' ? 'var(--primary)' : 'var(--text-primary)',
                     background: portal === 'agency' ? 'var(--primary-10)' : 'transparent',
-                    fontWeight: portal === 'agency' ? 600 : 500
+                    fontWeight: portal === 'agency' ? 600 : 500,
+                    cursor: 'pointer', border: 'none'
                   }}
                 >
                   <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#2563EB' }}></span>
@@ -137,7 +162,8 @@ export default function Header({ title, description, portal, onPortalSwitch }) {
                     padding: '8px 12px', borderRadius: '6px', fontSize: '12px', textAlign: 'left',
                     color: portal === 'user' ? 'var(--success)' : 'var(--text-primary)',
                     background: portal === 'user' ? 'var(--success-bg)' : 'transparent',
-                    fontWeight: portal === 'user' ? 600 : 500
+                    fontWeight: portal === 'user' ? 600 : 500,
+                    cursor: 'pointer', border: 'none'
                   }}
                 >
                   <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10B981' }}></span>
@@ -151,7 +177,8 @@ export default function Header({ title, description, portal, onPortalSwitch }) {
                     padding: '8px 12px', borderRadius: '6px', fontSize: '12px', textAlign: 'left',
                     color: portal === 'yatra-team' ? 'var(--info)' : 'var(--text-primary)',
                     background: portal === 'yatra-team' ? 'var(--info-bg)' : 'transparent',
-                    fontWeight: portal === 'yatra-team' ? 600 : 500
+                    fontWeight: portal === 'yatra-team' ? 600 : 500,
+                    cursor: 'pointer', border: 'none'
                   }}
                 >
                   <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#6366F1' }}></span>
@@ -174,7 +201,8 @@ export default function Header({ title, description, portal, onPortalSwitch }) {
               position: 'relative',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center'
+              justifyContent: 'center',
+              cursor: 'pointer'
             }}
           >
             <Icons.Bell size={16} />
@@ -215,23 +243,29 @@ export default function Header({ title, description, portal, onPortalSwitch }) {
               <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontSize: '13px', fontWeight: 700 }}>Notifications</span>
                 {unreadCount > 0 && (
-                  <button onClick={markAllRead} style={{ fontSize: '11px', color: 'var(--primary)', fontWeight: 600 }}>Mark all read</button>
+                  <button onClick={markAllRead} style={{ fontSize: '11px', color: 'var(--primary)', fontWeight: 600, border: 'none', background: 'none', cursor: 'pointer' }}>Mark all read</button>
                 )}
               </div>
               <div style={{ maxHeight: '240px', overflowY: 'auto' }}>
-                {notifications.map(notif => (
-                  <div key={notif.id} style={{
-                    padding: '12px 16px',
-                    borderBottom: '1px solid var(--border-light)',
-                    background: notif.read ? 'white' : 'var(--primary-10)',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '2px'
-                  }}>
-                    <span style={{ fontSize: '12px', color: 'var(--text-primary)', fontWeight: notif.read ? 500 : 600 }}>{notif.text}</span>
-                    <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>{notif.time}</span>
+                {notifications.length === 0 ? (
+                  <div style={{ padding: '16px', fontSize: '12px', color: 'var(--text-muted)', textAlign: 'center' }}>
+                    No notifications
                   </div>
-                ))}
+                ) : (
+                  notifications.map(notif => (
+                    <div key={notif.id} style={{
+                      padding: '12px 16px',
+                      borderBottom: '1px solid var(--border-light)',
+                      background: notif.read ? 'white' : 'var(--primary-10)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '2px'
+                    }}>
+                      <span style={{ fontSize: '12px', color: 'var(--text-primary)', fontWeight: notif.read ? 500 : 600 }}>{notif.text}</span>
+                      <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>{notif.time}</span>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
           )}
@@ -239,63 +273,28 @@ export default function Header({ title, description, portal, onPortalSwitch }) {
 
         {/* User Profile Avatar & ID Badge */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          {(() => {
-            try {
-              const uStr = localStorage.getItem('yatra_user');
-              if (uStr) {
-                const u = JSON.parse(uStr);
-                const userCode = u.id || u.user_id || u.agency_id;
-                if (userCode) {
-                  return (
-                    <span style={{
-                      fontSize: '11px',
-                      fontWeight: 800,
-                      background: 'rgba(37, 99, 235, 0.1)',
-                      color: 'var(--primary)',
-                      padding: '4px 8px',
-                      borderRadius: '6px',
-                      fontFamily: 'monospace',
-                      border: '1px solid rgba(37, 99, 235, 0.2)'
-                    }}>
-                      ID: {userCode}
-                    </span>
-                  );
-                }
-              }
-            } catch (e) {}
-            return null;
-          })()}
+          {userCode && (
+            <span style={{
+              fontSize: '11px',
+              fontWeight: 800,
+              background: 'rgba(37, 99, 235, 0.1)',
+              color: 'var(--primary)',
+              padding: '4px 8px',
+              borderRadius: '6px',
+              fontFamily: 'monospace',
+              border: '1px solid rgba(37, 99, 235, 0.2)'
+            }}>
+              ID: {userCode}
+            </span>
+          )}
           <div 
             className="avatar sm" 
             style={{ background: 'linear-gradient(135deg, var(--primary), var(--primary-light))', color: 'white', fontWeight: 700 }}
-            title={(() => {
-              try {
-                const u = localStorage.getItem('yatra_user');
-                return u ? JSON.parse(u).name : getPortalLabel();
-              } catch {
-                return getPortalLabel();
-              }
-            })()}
+            title={userName}
           >
-            {(() => {
-              try {
-                const uStr = localStorage.getItem('yatra_user');
-                if (uStr) {
-                  const u = JSON.parse(uStr);
-                  if (u && u.name) {
-                    const parts = u.name.split(' ');
-                    if (parts.length > 1) return (parts[0][0] + parts[1][0]).toUpperCase();
-                    return parts[0].substring(0, 2).toUpperCase();
-                  }
-                }
-              } catch (e) {
-                console.error(e);
-              }
-              return portal === 'agency' ? 'AG' : portal === 'user' ? 'TR' : 'AD';
-            })()}
+            {initials}
           </div>
         </div>
-
 
       </div>
     </header>

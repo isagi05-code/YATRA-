@@ -5,12 +5,13 @@ import { api } from '../../services/api';
 // ---------- Add Tour Modal ----------
 function AddTourModal({ onClose, onSaved }) {
   const today = new Date().toISOString().split('T')[0];
+  const defaultEnd = new Date(Date.now() + 3 * 86400000).toISOString().split('T')[0];
   const [form, setForm] = useState({
     destination: '',
     customer: '',
     start_date: today,
-    end_date: '',
-    passengers: '',
+    end_date: defaultEnd,
+    passengers: '2',
     budget: '',
     driver: '',
     vehicle: '',
@@ -23,7 +24,17 @@ function AddTourModal({ onClose, onSaved }) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
-  const handleChange = (field, value) => setForm(prev => ({ ...prev, [field]: value }));
+  const handleChange = (field, value) => {
+    setForm(prev => {
+      const updated = { ...prev, [field]: value };
+      if (field === 'start_date' && (!prev.end_date || prev.end_date < value)) {
+        const d = new Date(value);
+        d.setDate(d.getDate() + 3);
+        updated.end_date = d.toISOString().split('T')[0];
+      }
+      return updated;
+    });
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -60,9 +71,21 @@ function AddTourModal({ onClose, onSaved }) {
     }
   };
 
+  const inputStyle = {
+    width: '100%',
+    padding: '9px 12px',
+    border: '1px solid #CBD5E1',
+    borderRadius: '8px',
+    fontSize: '13px',
+    color: '#0F172A',
+    background: '#FFFFFF',
+    outline: 'none',
+    boxSizing: 'border-box'
+  };
+
   return (
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
-      <div style={{ background: 'white', borderRadius: '16px', width: '100%', maxWidth: '620px', boxShadow: '0 25px 60px rgba(0,0,0,0.2)', overflow: 'hidden' }}>
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
+      <div style={{ background: 'white', borderRadius: '16px', width: '100%', maxWidth: '620px', boxShadow: '0 25px 60px rgba(0,0,0,0.3)', overflow: 'hidden' }}>
         {/* Header */}
         <div style={{ background: 'linear-gradient(135deg, #0F172A, #2563EB)', padding: '20px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
@@ -75,19 +98,19 @@ function AddTourModal({ onClose, onSaved }) {
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '14px', maxHeight: '70vh', overflowY: 'auto' }}>
+        <form onSubmit={handleSubmit} style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '14px', maxHeight: '75vh', overflowY: 'auto' }}>
           {error && (
-            <div style={{ background: '#FEF2F2', border: '1px solid #FCA5A5', color: '#DC2626', padding: '10px 14px', borderRadius: '8px', fontSize: '13px' }}>
-              {error}
+            <div style={{ background: '#FEF2F2', border: '1px solid #FCA5A5', color: '#DC2626', padding: '10px 14px', borderRadius: '8px', fontSize: '13px', fontWeight: 500 }}>
+              ⚠️ {error}
             </div>
           )}
 
           {/* Destination */}
           <div>
             <label style={{ fontSize: '12px', fontWeight: 600, color: '#374151', display: 'block', marginBottom: '4px' }}>Destination *</label>
-            <input type="text" placeholder="e.g. Kerala Backwaters, Rajasthan Circuit" value={form.destination}
+            <input type="text" placeholder="e.g. Manali, Kerala Backwaters, Rajasthan Circuit" value={form.destination}
               onChange={e => handleChange('destination', e.target.value)}
-              style={{ width: '100%', padding: '8px 10px', border: '1px solid #D1D5DB', borderRadius: '8px', fontSize: '13px', boxSizing: 'border-box' }} />
+              style={inputStyle} />
           </div>
 
           {/* Customer + Status */}
@@ -96,15 +119,15 @@ function AddTourModal({ onClose, onSaved }) {
               <label style={{ fontSize: '12px', fontWeight: 600, color: '#374151', display: 'block', marginBottom: '4px' }}>Customer Name *</label>
               <input type="text" placeholder="e.g. Rahul Sharma" value={form.customer}
                 onChange={e => handleChange('customer', e.target.value)}
-                style={{ width: '100%', padding: '8px 10px', border: '1px solid #D1D5DB', borderRadius: '8px', fontSize: '13px', boxSizing: 'border-box' }} />
+                style={inputStyle} />
             </div>
             <div>
               <label style={{ fontSize: '12px', fontWeight: 600, color: '#374151', display: 'block', marginBottom: '4px' }}>Status</label>
               <select value={form.status} onChange={e => handleChange('status', e.target.value)}
-                style={{ width: '100%', padding: '8px 10px', border: '1px solid #D1D5DB', borderRadius: '8px', fontSize: '13px', background: 'white', cursor: 'pointer' }}>
-                <option>Upcoming</option>
-                <option>Active</option>
-                <option>Completed</option>
+                style={{ ...inputStyle, cursor: 'pointer' }}>
+                <option value="Upcoming">Upcoming</option>
+                <option value="Active">Active</option>
+                <option value="Completed">Completed</option>
               </select>
             </div>
           </div>
@@ -115,13 +138,13 @@ function AddTourModal({ onClose, onSaved }) {
               <label style={{ fontSize: '12px', fontWeight: 600, color: '#374151', display: 'block', marginBottom: '4px' }}>Start Date *</label>
               <input type="date" value={form.start_date}
                 onChange={e => handleChange('start_date', e.target.value)}
-                style={{ width: '100%', padding: '8px 10px', border: '1px solid #D1D5DB', borderRadius: '8px', fontSize: '13px', boxSizing: 'border-box' }} />
+                style={inputStyle} />
             </div>
             <div>
               <label style={{ fontSize: '12px', fontWeight: 600, color: '#374151', display: 'block', marginBottom: '4px' }}>End Date *</label>
               <input type="date" value={form.end_date} min={form.start_date}
                 onChange={e => handleChange('end_date', e.target.value)}
-                style={{ width: '100%', padding: '8px 10px', border: '1px solid #D1D5DB', borderRadius: '8px', fontSize: '13px', boxSizing: 'border-box' }} />
+                style={inputStyle} />
             </div>
           </div>
 
@@ -131,13 +154,13 @@ function AddTourModal({ onClose, onSaved }) {
               <label style={{ fontSize: '12px', fontWeight: 600, color: '#374151', display: 'block', marginBottom: '4px' }}>Passengers</label>
               <input type="number" min="1" placeholder="e.g. 8" value={form.passengers}
                 onChange={e => handleChange('passengers', e.target.value)}
-                style={{ width: '100%', padding: '8px 10px', border: '1px solid #D1D5DB', borderRadius: '8px', fontSize: '13px', boxSizing: 'border-box' }} />
+                style={inputStyle} />
             </div>
             <div>
               <label style={{ fontSize: '12px', fontWeight: 600, color: '#374151', display: 'block', marginBottom: '4px' }}>Budget (₹)</label>
               <input type="number" min="0" placeholder="e.g. 45000" value={form.budget}
                 onChange={e => handleChange('budget', e.target.value)}
-                style={{ width: '100%', padding: '8px 10px', border: '1px solid #D1D5DB', borderRadius: '8px', fontSize: '13px', boxSizing: 'border-box' }} />
+                style={inputStyle} />
             </div>
           </div>
 
@@ -147,13 +170,13 @@ function AddTourModal({ onClose, onSaved }) {
               <label style={{ fontSize: '12px', fontWeight: 600, color: '#374151', display: 'block', marginBottom: '4px' }}>Driver Name <span style={{ fontWeight: 400, opacity: 0.6 }}>(optional)</span></label>
               <input type="text" placeholder="e.g. Vikram Singh" value={form.driver}
                 onChange={e => handleChange('driver', e.target.value)}
-                style={{ width: '100%', padding: '8px 10px', border: '1px solid #D1D5DB', borderRadius: '8px', fontSize: '13px', boxSizing: 'border-box' }} />
+                style={inputStyle} />
             </div>
             <div>
               <label style={{ fontSize: '12px', fontWeight: 600, color: '#374151', display: 'block', marginBottom: '4px' }}>Vehicle Number <span style={{ fontWeight: 400, opacity: 0.6 }}>(optional)</span></label>
               <input type="text" placeholder="e.g. MH-01-AB-1234" value={form.vehicle}
                 onChange={e => handleChange('vehicle', e.target.value.toUpperCase())}
-                style={{ width: '100%', padding: '8px 10px', border: '1px solid #D1D5DB', borderRadius: '8px', fontSize: '13px', boxSizing: 'border-box', fontFamily: 'monospace' }} />
+                style={{ ...inputStyle, fontFamily: 'monospace' }} />
             </div>
           </div>
 
@@ -162,17 +185,17 @@ function AddTourModal({ onClose, onSaved }) {
             <label style={{ fontSize: '12px', fontWeight: 600, color: '#374151', display: 'block', marginBottom: '4px' }}>Tour Guide <span style={{ fontWeight: 400, opacity: 0.6 }}>(optional)</span></label>
             <input type="text" placeholder="e.g. Ananya Sen" value={form.guide}
               onChange={e => handleChange('guide', e.target.value)}
-              style={{ width: '100%', padding: '8px 10px', border: '1px solid #D1D5DB', borderRadius: '8px', fontSize: '13px', boxSizing: 'border-box' }} />
+              style={inputStyle} />
           </div>
 
           {/* Actions */}
-          <div style={{ display: 'flex', gap: '10px', paddingTop: '4px' }}>
+          <div style={{ display: 'flex', gap: '10px', paddingTop: '6px' }}>
             <button type="button" onClick={onClose}
-              style={{ flex: 1, padding: '10px', border: '1px solid #D1D5DB', borderRadius: '8px', background: 'white', cursor: 'pointer', fontSize: '13px', fontWeight: 600 }}>
+              style={{ flex: 1, padding: '11px', border: '1px solid #D1D5DB', borderRadius: '8px', background: 'white', color: '#374151', cursor: 'pointer', fontSize: '13px', fontWeight: 600 }}>
               Cancel
             </button>
             <button type="submit" disabled={saving}
-              style={{ flex: 2, padding: '10px', border: 'none', borderRadius: '8px', background: saving ? '#93C5FD' : '#2563EB', color: 'white', cursor: saving ? 'not-allowed' : 'pointer', fontSize: '13px', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+              style={{ flex: 2, padding: '11px', border: 'none', borderRadius: '8px', background: saving ? '#93C5FD' : '#2563EB', color: 'white', cursor: saving ? 'not-allowed' : 'pointer', fontSize: '13px', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
               {saving ? <><Icons.Loader className="animate-spin" size={14} /> Creating...</> : <><Icons.Map size={14} /> Create Tour</>}
             </button>
           </div>

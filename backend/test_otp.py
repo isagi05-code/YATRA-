@@ -30,10 +30,10 @@ result = send_otp_email("yugalchaudharixa@gmail.com", "123456")
 print(f"[TEST] send_otp_email returned: {result}")
 
 # Also hit the live API
-print("\n[TEST] Calling live API at http://localhost:8001/auth/send-otp ...")
-body = json.dumps({"email": "yugalchaudharixa@gmail.com", "mode": "register", "name": "Yugal"}).encode()
+print("\n[TEST] Calling live API at http://localhost:8003/auth/send-otp ...")
+body = json.dumps({"identifier": "test_user_yatra@gmail.com", "portal": "agency", "mode": "register", "name": "Yugal"}).encode()
 req = urllib.request.Request(
-    "http://localhost:8001/auth/send-otp",
+    "http://localhost:8003/auth/send-otp",
     data=body,
     headers={"Content-Type": "application/json"},
     method="POST"
@@ -42,7 +42,27 @@ try:
     with urllib.request.urlopen(req, timeout=10) as resp:
         data = json.loads(resp.read())
         print(f"[TEST] API response: {data}")
-        print(f"\n>>> OTP CODE: {data.get('otp', '(not in response)')} <<<")
+        otp_val = data.get('otp')
+        print(f"\n>>> OTP CODE: {otp_val} <<<")
+        
+        if otp_val:
+            print("\n[TEST] Testing verify-otp with the received OTP...")
+            v_body = json.dumps({
+                "identifier": "test_user_yatra@gmail.com",
+                "otp": otp_val,
+                "portal": "agency",
+                "mode": "register",
+                "name": "Yugal"
+            }).encode()
+            v_req = urllib.request.Request(
+                "http://localhost:8003/auth/verify-otp",
+                data=v_body,
+                headers={"Content-Type": "application/json"},
+                method="POST"
+            )
+            with urllib.request.urlopen(v_req, timeout=10) as v_resp:
+                v_data = json.loads(v_resp.read())
+                print(f"[TEST] verify-otp response: {v_data}")
 except urllib.error.HTTPError as e:
     print(f"[TEST] HTTP Error {e.code}: {e.read().decode()}")
 except Exception as ex:

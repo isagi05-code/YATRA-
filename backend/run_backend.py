@@ -39,9 +39,10 @@ def run_servers():
     
     # Server configs
     servers = [
-        {"name": "Agency Dashboard API", "command": [sys.executable, "-m", "uvicorn", "agency_api:app", "--port", "8000", "--host", "0.0.0.0"]},
-        {"name": "Traveller Dashboard API", "command": [sys.executable, "-m", "uvicorn", "traveller_api:app", "--port", "8001", "--host", "0.0.0.0"]},
-        {"name": "Yatra Team Admin API", "command": [sys.executable, "-m", "uvicorn", "team_api:app", "--port", "8002", "--host", "0.0.0.0"]}
+        {"name": "Agency Dashboard API", "command": [sys.executable, "-m", "uvicorn", "agency_api:app", "--port", "8000", "--host", "0.0.0.0", "--reload"]},
+        {"name": "Traveller Dashboard API", "command": [sys.executable, "-m", "uvicorn", "traveller_api:app", "--port", "8001", "--host", "0.0.0.0", "--reload"]},
+        {"name": "Yatra Team Admin API", "command": [sys.executable, "-m", "uvicorn", "team_api:app", "--port", "8002", "--host", "0.0.0.0", "--reload"]},
+        {"name": "Auth & Authorization API", "command": [sys.executable, "-m", "uvicorn", "auth_api:app", "--port", "8003", "--host", "0.0.0.0", "--reload"]},
     ]
     
     try:

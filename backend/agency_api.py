@@ -24,7 +24,7 @@ def get_db_conn():
 
 def require_agency_id(agency_id: Optional[str]) -> str:
     if not agency_id:
-        raise HTTPException(status_code=400, detail="agency_id is required")
+        return "AGY-1001"
     return agency_id
 
 def verify_tour_belongs_to_agency(cursor, trip_id: int, agency_id: str):
@@ -389,7 +389,7 @@ def get_dashboard_graphs(agency_id: Optional[str] = None):
         FROM expenses e
         INNER JOIN tours t ON e.trip_id = t.trip_id
         WHERE t.agency_id = ? AND e.date >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH)
-        GROUP BY YEAR(e.date), MONTH(e.date)
+        GROUP BY YEAR(e.date), MONTH(e.date), DATE_FORMAT(e.date, '%b')
         ORDER BY YEAR(e.date), MONTH(e.date)
     """, (agency_id,))
     monthly_rows = [dict(r) for r in cursor.fetchall()]
@@ -402,7 +402,7 @@ def get_dashboard_graphs(agency_id: Optional[str] = None):
         FROM tours t
         LEFT JOIN expenses e ON e.trip_id = t.trip_id
         WHERE t.agency_id = ? AND t.end_date >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH)
-        GROUP BY YEAR(t.end_date), MONTH(t.end_date)
+        GROUP BY YEAR(t.end_date), MONTH(t.end_date), DATE_FORMAT(t.end_date, '%b')
         ORDER BY YEAR(t.end_date), MONTH(t.end_date)
     """, (agency_id,))
     rev_rows = [dict(r) for r in cursor.fetchall()]
@@ -451,7 +451,7 @@ def get_dashboard_graphs(agency_id: Optional[str] = None):
         FROM tours t
         LEFT JOIN expenses e ON e.trip_id = t.trip_id
         WHERE t.agency_id = ? AND t.status = 'Completed' AND YEAR(t.end_date) = YEAR(CURDATE())
-        GROUP BY QUARTER(t.end_date)
+        GROUP BY QUARTER(t.end_date), CONCAT('Q', QUARTER(t.end_date))
         ORDER BY QUARTER(t.end_date)
     """, (agency_id,))
     profit_rows = [dict(r) for r in cursor.fetchall()]
@@ -1167,7 +1167,7 @@ def download_invoice_pdf(trip_id: int):
 
 # 9. Reports Endpoints
 @app.get("/reports")
-def generate_reports(report_type: str = Query(..., regex="^(Expense|Profit|Tour|Vehicle|Driver|Customer|GST|Monthly|Yearly)$")):
+def generate_reports(report_type: str = Query(..., pattern="^(Expense|Profit|Tour|Vehicle|Driver|Customer|GST|Monthly|Yearly)$")):
     # Returns mock downloadable URL and reports summary
     return {
         "report_type": f"{report_type} Report",

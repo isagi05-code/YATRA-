@@ -55,9 +55,21 @@ function AddDriverModal({ onClose, onSaved }) {
     }
   };
 
+  const inputStyle = {
+    width: '100%',
+    padding: '9px 12px',
+    border: '1px solid #CBD5E1',
+    borderRadius: '8px',
+    fontSize: '13px',
+    color: '#0F172A',
+    background: '#FFFFFF',
+    outline: 'none',
+    boxSizing: 'border-box'
+  };
+
   return (
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
-      <div style={{ background: 'white', borderRadius: '16px', width: '100%', maxWidth: '560px', boxShadow: '0 25px 60px rgba(0,0,0,0.2)', overflow: 'hidden' }}>
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
+      <div style={{ background: 'white', borderRadius: '16px', width: '100%', maxWidth: '560px', boxShadow: '0 25px 60px rgba(0,0,0,0.3)', overflow: 'hidden' }}>
         {/* Header */}
         <div style={{ background: 'linear-gradient(135deg, #1E293B, #6366F1)', padding: '20px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
@@ -70,10 +82,10 @@ function AddDriverModal({ onClose, onSaved }) {
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '14px', maxHeight: '70vh', overflowY: 'auto' }}>
+        <form onSubmit={handleSubmit} style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '14px', maxHeight: '75vh', overflowY: 'auto' }}>
           {error && (
-            <div style={{ background: '#FEF2F2', border: '1px solid #FCA5A5', color: '#DC2626', padding: '10px 14px', borderRadius: '8px', fontSize: '13px' }}>
-              {error}
+            <div style={{ background: '#FEF2F2', border: '1px solid #FCA5A5', color: '#DC2626', padding: '10px 14px', borderRadius: '8px', fontSize: '13px', fontWeight: 500 }}>
+              ⚠️ {error}
             </div>
           )}
 
@@ -82,7 +94,7 @@ function AddDriverModal({ onClose, onSaved }) {
             <label style={{ fontSize: '12px', fontWeight: 600, color: '#374151', display: 'block', marginBottom: '4px' }}>Full Name *</label>
             <input type="text" placeholder="e.g. Vikram Singh" value={form.name}
               onChange={e => handleChange('name', e.target.value)}
-              style={{ width: '100%', padding: '8px 10px', border: '1px solid #D1D5DB', borderRadius: '8px', fontSize: '13px', boxSizing: 'border-box' }} />
+              style={inputStyle} />
           </div>
 
           {/* License + Aadhar */}
@@ -91,13 +103,13 @@ function AddDriverModal({ onClose, onSaved }) {
               <label style={{ fontSize: '12px', fontWeight: 600, color: '#374151', display: 'block', marginBottom: '4px' }}>License Number *</label>
               <input type="text" placeholder="e.g. DL-142018009283" value={form.license}
                 onChange={e => handleChange('license', e.target.value)}
-                style={{ width: '100%', padding: '8px 10px', border: '1px solid #D1D5DB', borderRadius: '8px', fontSize: '13px', boxSizing: 'border-box' }} />
+                style={inputStyle} />
             </div>
             <div>
               <label style={{ fontSize: '12px', fontWeight: 600, color: '#374151', display: 'block', marginBottom: '4px' }}>Aadhar Number</label>
               <input type="text" placeholder="e.g. 1234-5678-9012" value={form.aadhar}
                 onChange={e => handleChange('aadhar', e.target.value)}
-                style={{ width: '100%', padding: '8px 10px', border: '1px solid #D1D5DB', borderRadius: '8px', fontSize: '13px', boxSizing: 'border-box' }} />
+                style={inputStyle} />
             </div>
           </div>
 
@@ -107,13 +119,13 @@ function AddDriverModal({ onClose, onSaved }) {
               <label style={{ fontSize: '12px', fontWeight: 600, color: '#374151', display: 'block', marginBottom: '4px' }}>Contact Number *</label>
               <input type="tel" placeholder="+91 99999 88888" value={form.contact}
                 onChange={e => handleChange('contact', e.target.value)}
-                style={{ width: '100%', padding: '8px 10px', border: '1px solid #D1D5DB', borderRadius: '8px', fontSize: '13px', boxSizing: 'border-box' }} />
+                style={inputStyle} />
             </div>
             <div>
               <label style={{ fontSize: '12px', fontWeight: 600, color: '#374151', display: 'block', marginBottom: '4px' }}>Emergency Contact</label>
               <input type="tel" placeholder="+91 99999 77777" value={form.emergency_contact}
                 onChange={e => handleChange('emergency_contact', e.target.value)}
-                style={{ width: '100%', padding: '8px 10px', border: '1px solid #D1D5DB', borderRadius: '8px', fontSize: '13px', boxSizing: 'border-box' }} />
+                style={inputStyle} />
             </div>
           </div>
 
@@ -123,13 +135,13 @@ function AddDriverModal({ onClose, onSaved }) {
               <label style={{ fontSize: '12px', fontWeight: 600, color: '#374151', display: 'block', marginBottom: '4px' }}>Experience (years)</label>
               <input type="number" min="0" max="50" placeholder="e.g. 8" value={form.experience}
                 onChange={e => handleChange('experience', e.target.value)}
-                style={{ width: '100%', padding: '8px 10px', border: '1px solid #D1D5DB', borderRadius: '8px', fontSize: '13px', boxSizing: 'border-box' }} />
+                style={inputStyle} />
             </div>
             <div>
               <label style={{ fontSize: '12px', fontWeight: 600, color: '#374151', display: 'block', marginBottom: '4px' }}>Monthly Salary (₹)</label>
               <input type="number" min="0" placeholder="e.g. 22000" value={form.salary}
                 onChange={e => handleChange('salary', e.target.value)}
-                style={{ width: '100%', padding: '8px 10px', border: '1px solid #D1D5DB', borderRadius: '8px', fontSize: '13px', boxSizing: 'border-box' }} />
+                style={inputStyle} />
             </div>
           </div>
 
@@ -138,17 +150,17 @@ function AddDriverModal({ onClose, onSaved }) {
             <label style={{ fontSize: '12px', fontWeight: 600, color: '#374151', display: 'block', marginBottom: '4px' }}>Current Location</label>
             <input type="text" placeholder="e.g. Mumbai, MH" value={form.current_location}
               onChange={e => handleChange('current_location', e.target.value)}
-              style={{ width: '100%', padding: '8px 10px', border: '1px solid #D1D5DB', borderRadius: '8px', fontSize: '13px', boxSizing: 'border-box' }} />
+              style={inputStyle} />
           </div>
 
           {/* Actions */}
           <div style={{ display: 'flex', gap: '10px', paddingTop: '4px' }}>
             <button type="button" onClick={onClose}
-              style={{ flex: 1, padding: '10px', border: '1px solid #D1D5DB', borderRadius: '8px', background: 'white', cursor: 'pointer', fontSize: '13px', fontWeight: 600 }}>
+              style={{ flex: 1, padding: '11px', border: '1px solid #D1D5DB', borderRadius: '8px', background: 'white', color: '#374151', cursor: 'pointer', fontSize: '13px', fontWeight: 600 }}>
               Cancel
             </button>
             <button type="submit" disabled={saving}
-              style={{ flex: 2, padding: '10px', border: 'none', borderRadius: '8px', background: saving ? '#A5B4FC' : '#6366F1', color: 'white', cursor: saving ? 'not-allowed' : 'pointer', fontSize: '13px', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+              style={{ flex: 2, padding: '11px', border: 'none', borderRadius: '8px', background: saving ? '#A5B4FC' : '#6366F1', color: 'white', cursor: saving ? 'not-allowed' : 'pointer', fontSize: '13px', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
               {saving ? <><Icons.Loader className="animate-spin" size={14} /> Saving...</> : <><Icons.UserPlus size={14} /> Register Driver</>}
             </button>
           </div>

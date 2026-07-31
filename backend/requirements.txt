@@ -8,6 +8,11 @@ pydantic>=2.0.0
 # Database
 PyMySQL>=1.1.0
 
+# Authentication & Security
+PyJWT>=2.7.0
+bcrypt>=4.0.0
+passlib>=1.7.4
+
 # HTTP & Utilities
 requests>=2.31.0
 python-dotenv>=1.0.0
