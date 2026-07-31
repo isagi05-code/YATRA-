@@ -169,7 +169,7 @@ export default function LandingPortal({ onSelectRole }) {
             <img src="/yatralogo.jpg" alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
           </div>
           <span style={{ fontSize: '20px', fontWeight: 800, fontFamily: "'Poppins', sans-serif", letterSpacing: '-0.5px' }}>
-            Yatra <span style={{ color: 'var(--primary)' }}>AI</span>
+            Yatra
           </span>
         </div>
 

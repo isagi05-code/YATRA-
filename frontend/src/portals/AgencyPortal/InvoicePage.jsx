@@ -112,7 +112,7 @@ export default function InvoicePage() {
                 <div style={{ width: '32px', height: '32px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', background: 'white' }}>
                   <img src={invoice.agency_logo || "/yatralogo.jpg"} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 </div>
-                <span style={{ fontSize: '18px', fontWeight: 800 }}>Yatra AI</span>
+                <span style={{ fontSize: '18px', fontWeight: 800 }}>Yatra</span>
               </div>
               <div style={{ fontSize: '12px', opacity: 0.7, lineHeight: 1.6 }}>
                 Yatra Travels Pvt. Ltd.<br />
@@ -210,7 +210,7 @@ export default function InvoicePage() {
             </div>
             <div style={{ textAlign: 'right' }}>
               <div style={{ fontSize: '12px', fontWeight: 600 }}>Authorized Signatory</div>
-              <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>Yatra AI Platform</div>
+              <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>Yatra Platform</div>
             </div>
           </div>
 

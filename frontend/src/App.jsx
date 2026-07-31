@@ -8,7 +8,7 @@ import TeamPortal from './portals/TeamPortal';
 
 export default function App() {
   const [portal, setPortal] = useState('landing');
-  
+
   // Navigation sub-page state for each portal
   const [agencyPage, setAgencyPage] = useState('dashboard');
   const [userPage, setUserPage] = useState('dashboard');
@@ -98,7 +98,7 @@ export default function App() {
         default: return { title: 'Yatra Admin Portal', desc: 'Super administration' };
       }
     }
-    return { title: 'Yatra AI', desc: '' };
+    return { title: 'Yatra', desc: '' };
   };
 
   if (portal === 'landing') {
@@ -110,19 +110,19 @@ export default function App() {
   return (
     <div className="app-layout">
       {/* Dynamic Sidebar */}
-      <Sidebar 
-        portal={portal} 
-        activePage={getActivePage()} 
-        onNavigate={handleNavigate} 
-        onLogout={handleLogout} 
+      <Sidebar
+        portal={portal}
+        activePage={getActivePage()}
+        onNavigate={handleNavigate}
+        onLogout={handleLogout}
       />
 
       {/* Main Page Area */}
       <main className="main-content" style={{ marginLeft: 'var(--sidebar-width)', flex: 1, minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
         {/* Dynamic Header */}
-        <Header 
-          title={headerMeta.title} 
-          description={headerMeta.desc} 
+        <Header
+          title={headerMeta.title}
+          description={headerMeta.desc}
           portal={portal}
           onPortalSwitch={handlePortalSwitch}
         />
