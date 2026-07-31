@@ -51,15 +51,17 @@ def send_otp_email(email: str, otp_code: str) -> bool:
             msg.attach(part1)
             msg.attach(part2)
             
+            clean_pass = smtp_pass.replace(" ", "").strip()
+            
             # Use SSL/TLS or StartTLS based on port
             port = int(smtp_port)
             if port == 465:
-                server = smtplib.SMTP_SSL(smtp_host, port, timeout=5)
+                server = smtplib.SMTP_SSL(smtp_host, port, timeout=15)
             else:
-                server = smtplib.SMTP(smtp_host, port, timeout=5)
+                server = smtplib.SMTP(smtp_host, port, timeout=15)
                 server.starttls()
                 
-            server.login(smtp_user, smtp_pass)
+            server.login(smtp_user, clean_pass)
             server.sendmail(smtp_sender, email, msg.as_string())
             server.quit()
             
