@@ -5,7 +5,7 @@ import hashlib
 import bcrypt
 import jwt
 from typing import Optional, Dict, Any, List
-from mysql_helper import get_db_conn as get_mysql_conn
+from core.database import get_db_conn as get_mysql_conn
 
 # --- JWT Configuration ---
 SECRET_KEY = os.getenv("JWT_SECRET_KEY", "yatra_super_secret_jwt_access_key_2026_production")

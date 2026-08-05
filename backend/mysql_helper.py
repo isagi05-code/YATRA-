@@ -2,38 +2,24 @@ import os
 import pymysql
 import re
 import decimal
-
-# Load .env file into environment variables if available
-_env_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env")
-if os.path.exists(_env_path):
-    try:
-        from dotenv import load_dotenv
-        load_dotenv(_env_path)
-    except ImportError:
-        with open(_env_path) as _f:
-            for _line in _f:
-                _line = _line.strip()
-                if "=" in _line and not _line.startswith("#"):
-                    _key, _, _val = _line.partition("=")
-                    _val = _val.split("#")[0].strip()  # strip inline comments
-                    os.environ.setdefault(_key.strip(), _val)
+from core.config import setting
 
 try:
-    _port = int(os.getenv('MYSQL_PORT', 3307))
+    _port = int(setting('MYSQL_PORT', '3307'))
 except ValueError:
     _port = 3307
 
 MYSQL_CONFIG = {
-    'host': os.getenv('MYSQL_HOST', 'localhost'),
+    'host': setting('MYSQL_HOST', 'localhost'),
     'port': _port,
-    'user': os.getenv('MYSQL_USER', 'root'),
-    'password': os.getenv('MYSQL_PASSWORD', '1234'),
+    'user': setting('MYSQL_USER', 'root'),
+    'password': setting('MYSQL_PASSWORD', '1234'),
     'charset': 'utf8mb4',
     'autocommit': True
 }
 
 # Handle SSL if configured
-_mysql_ssl = os.getenv('MYSQL_SSL', 'false').lower()
+_mysql_ssl = setting('MYSQL_SSL', 'false').lower()
 if _mysql_ssl in ('true', '1', 'yes'):
     MYSQL_CONFIG['ssl'] = {}
 

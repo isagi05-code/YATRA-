@@ -1,6 +1,5 @@
-from mysql_helper import get_db_conn as get_mysql_conn
-from sms_helper import normalize_phone, send_actual_sms
-from email_helper import send_otp_email
+from core.database import get_db_conn as get_mysql_conn
+from services.notifications import normalize_phone, send_actual_sms, send_otp_email
 import json
 import os
 import random

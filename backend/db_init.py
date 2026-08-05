@@ -2,7 +2,7 @@ import os
 import pymysql
 import json
 import re
-from mysql_helper import MYSQL_CONFIG, get_db_conn, MySQLConnectionWrapper
+from core.database import MYSQL_CONFIG, get_db_conn, MySQLConnectionWrapper
 
 def get_root_conn():
     config = MYSQL_CONFIG.copy()

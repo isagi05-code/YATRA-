@@ -14,15 +14,14 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel, EmailStr, validator
 
-from mysql_helper import get_db_conn as get_mysql_conn
+from core.database import get_db_conn as get_mysql_conn
 from auth_utils import (
     hash_password, verify_password,
     create_access_token, create_refresh_token,
     decode_access_token, decode_refresh_token,
     generate_and_save_otp, verify_and_consume_otp
 )
-from email_helper import send_otp_email
-from sms_helper import normalize_phone
+from services.notifications import send_otp_email, normalize_phone
 
 app = FastAPI(title="Yatra Auth API", version="2.0.0", description="Centralized Authentication & Authorization for Yatra ERP")
 

@@ -2,19 +2,10 @@ import subprocess
 import sys
 import time
 import os
+from core.config import BACKEND_DIR, load_environment
 
-# Load .env file into environment variables (so SMTP config etc. is available)
-_env_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env")
-if os.path.exists(_env_path):
-    with open(_env_path) as _f:
-        for _line in _f:
-            _line = _line.strip()
-            if "=" in _line and not _line.startswith("#"):
-                _key, _, _val = _line.partition("=")
-                _val = _val.split("#")[0].strip()  # strip inline comments
-                os.environ.setdefault(_key.strip(), _val)
-
-BACKEND_DIR = os.path.dirname(os.path.abspath(__file__))
+load_environment()
+BACKEND_DIR = str(BACKEND_DIR)
 
 def run_servers():
     print("Starting all Yatra AI FastAPI backend services...")
