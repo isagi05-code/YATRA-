@@ -104,9 +104,12 @@ def seed_enterprise_db():
     default_pass_hash = "$2b$12$K1rS2w7gC8gY0d0d8w3l7uK3j3J3k3l3m3n3o3p3q3r3s3t3u3v3w"  # bcrypt dummy or real hash
 
     users_seed = [
-        ("USR-AGY-1001", "ceo@yatratravels.com", "+919999922222", "Yatra Travels", default_pass_hash),
-        ("USR-TRV-1001", "yugal@example.com", "+919999911111", "Yugal Kishor", default_pass_hash),
-        ("USR-ADM-1001", "admin@yatra.ai", "+919999900000", "Yatra Admin", default_pass_hash)
+        ("USR-AGY-1001", "urva546@gmail.com", "+919999922222", "Urva Desai (Agency Owner)", default_pass_hash),
+        ("USR-TRV-1001", "urva546@gmail.com", "+919999911111", "Urva Desai (Traveller)", default_pass_hash),
+        ("USR-ADM-1001", "urva546@gmail.com", "+919999900000", "Urva Desai (Admin)", default_pass_hash),
+        ("USR-AGY-1002", "ceo@yatratravels.com", "+919999922223", "Yatra Travels", default_pass_hash),
+        ("USR-TRV-1002", "yugal@example.com", "+919999911112", "Yugal Kishor", default_pass_hash),
+        ("USR-ADM-1002", "admin@yatra.ai", "+919999900001", "Yatra Admin", default_pass_hash)
     ]
 
     for uid, email, phone, name, pw_hash in users_seed:
