@@ -14,8 +14,9 @@ The **`urva` branch** refactors and elevates the YATRA travel management platfor
 1. **Frontend Modularization:** Refactored large single-file Agency Portal views (`DashboardPage`, `ToursPage`, `AnalyticsPage`, `ReportsPage`, `AiItineraryPage`) into sub-components, helper utilities, and isolated chart configuration modules.
 2. **Custom UI System (`@components/ui`):** Introduced a reusable UI component primitive library (`Button`, `Card`, `Input`, `Badge`, `Modal`, `Table`) styled via custom CSS tokens (`ui.css`), replacing inline styles and ad-hoc utility classes.
 3. **Backend Core & Services Layer:** Established structured packages (`backend/core/`, `backend/services/`, `backend/schemas/`, `backend/repositories/`, `backend/routers/`) and enhanced MySQL database connection pooling and query translation in `mysql_helper.py`.
-4. **DevOps & Scripting Tools:** Created standard executable shell scripts (`scripts/init-db.sh`, `scripts/run-backend.sh`, `scripts/run-frontend.sh`) for single-command developer setup.
-5. **Architectural Documentation:** Added `docs/project-structure.md` and complete Mermaid diagrams detailing service ports, data models, and routing topologies.
+4. **OTP Email Configuration:** Replaced defunct sender/recipient emails across backend services, environment configurations (`.env`), database seeds (`db_init.py`), and prefilled landing portal forms (`LandingPortal.jsx`) with `urva546@gmail.com`.
+5. **DevOps & Scripting Tools:** Created standard executable shell scripts (`scripts/init-db.sh`, `scripts/run-backend.sh`, `scripts/run-frontend.sh`) for single-command developer setup.
+6. **Architectural Documentation:** Added `docs/project-structure.md` and complete Mermaid diagrams detailing service ports, data models, and routing topologies.
 
 ---
 
