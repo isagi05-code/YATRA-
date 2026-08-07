@@ -17,26 +17,26 @@ def run_tests():
     
     tests = [
         # Agency
-        ("http://localhost:8000/dashboard/summary", "Agency Dashboard Summary"),
-        ("http://localhost:8000/dashboard/graphs", "Agency Dashboard Charts"),
-        ("http://localhost:8000/tours", "Agency Tours list"),
-        ("http://localhost:8000/expenses", "Agency Expenses list"),
-        ("http://localhost:8000/vehicles", "Agency Fleet list"),
-        ("http://localhost:8000/drivers", "Agency Drivers list"),
-        ("http://localhost:8000/customers", "Agency Customers list"),
+        ("http://127.0.0.1:8000/dashboard/summary", "Agency Dashboard Summary"),
+        ("http://127.0.0.1:8000/dashboard/graphs", "Agency Dashboard Charts"),
+        ("http://127.0.0.1:8000/tours", "Agency Tours list"),
+        ("http://127.0.0.1:8000/expenses", "Agency Expenses list"),
+        ("http://127.0.0.1:8000/vehicles", "Agency Fleet list"),
+        ("http://127.0.0.1:8000/drivers", "Agency Drivers list"),
+        ("http://127.0.0.1:8000/customers", "Agency Customers list"),
         
         # Traveller
-        ("http://localhost:8001/dashboard/summary", "Traveller Dashboard Summary"),
-        ("http://localhost:8001/trips", "Traveller Trips list"),
-        ("http://localhost:8001/expenses", "Traveller Expenses"),
-        ("http://localhost:8001/expenses/analytics", "Traveller Expenses Charts"),
+        ("http://127.0.0.1:8001/dashboard/summary", "Traveller Dashboard Summary"),
+        ("http://127.0.0.1:8001/trips", "Traveller Trips list"),
+        ("http://127.0.0.1:8001/expenses", "Traveller Expenses"),
+        ("http://127.0.0.1:8001/expenses/analytics", "Traveller Expenses Charts"),
         
         # Yatra Team
-        ("http://localhost:8002/dashboard/summary", "Yatra Team Admin Summary"),
-        ("http://localhost:8002/agencies", "Yatra Team Agency List"),
-        ("http://localhost:8002/travellers", "Yatra Team Traveller List"),
-        ("http://localhost:8002/health", "Yatra Team Health Status"),
-        ("http://localhost:8002/ai-usage", "Yatra Team AI Token usage logs")
+        ("http://127.0.0.1:8002/dashboard/summary", "Yatra Team Admin Summary"),
+        ("http://127.0.0.1:8002/agencies", "Yatra Team Agency List"),
+        ("http://127.0.0.1:8002/travellers", "Yatra Team Traveller List"),
+        ("http://127.0.0.1:8002/health", "Yatra Team Health Status"),
+        ("http://127.0.0.1:8002/ai-usage", "Yatra Team AI Token usage logs")
     ]
     
     success = True

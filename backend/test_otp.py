@@ -30,10 +30,10 @@ result = send_otp_email("urva546@gmail.com", "123456")
 print(f"[TEST] send_otp_email returned: {result}")
 
 # Also hit the live API
-print("\n[TEST] Calling live API at http://localhost:8003/auth/send-otp ...")
+print("\n[TEST] Calling live API at http://127.0.0.1:8003/auth/send-otp ...")
 body = json.dumps({"identifier": "urva546@gmail.com", "portal": "agency", "mode": "register", "name": "Urva"}).encode()
 req = urllib.request.Request(
-    "http://localhost:8003/auth/send-otp",
+    "http://127.0.0.1:8003/auth/send-otp",
     data=body,
     headers={"Content-Type": "application/json"},
     method="POST"
@@ -55,7 +55,7 @@ try:
                 "name": "Urva"
             }).encode()
             v_req = urllib.request.Request(
-                "http://localhost:8003/auth/verify-otp",
+                "http://127.0.0.1:8003/auth/verify-otp",
                 data=v_body,
                 headers={"Content-Type": "application/json"},
                 method="POST"

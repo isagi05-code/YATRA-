@@ -149,7 +149,7 @@ def verify_and_consume_otp(identifier: str, otp_code: str) -> bool:
             conn.close()
             return False
             
-        otp_id = row["id"] if isinstance(row, dict) else row[0]
+        otp_id = row["id"] if hasattr(row, "__getitem__") else row[0]
         # Invalidate after successful verification
         cursor.execute("UPDATE otps SET is_used = 1 WHERE id = ?", (otp_id,))
         conn.close()

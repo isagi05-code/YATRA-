@@ -95,19 +95,20 @@ def generate_agency_id() -> str:
     return f"AGY-{random.randint(2000, 9999)}"
 
 def get_user_by_identifier(identifier: str) -> Optional[dict]:
-    """Look up user by email OR phone."""
+    """Look up user by email, phone, user_id OR agency_id."""
     clean = identifier.strip().lower()
+    raw_id = identifier.strip()
     try:
         conn = get_mysql_conn("yatra_enterprise")
         cursor = conn.cursor()
         cursor.execute("""
             SELECT user_id, email, phone, name, password_hash, user_type, status, token_version, agency_id
-            FROM users WHERE (LOWER(email) = ? OR phone = ?) AND is_deleted = 0
-        """, (clean, identifier.strip()))
+            FROM users WHERE (LOWER(email) = ? OR phone = ? OR LOWER(user_id) = ? OR LOWER(agency_id) = ?) AND is_deleted = 0
+        """, (clean, raw_id, clean, clean))
         row = cursor.fetchone()
         conn.close()
         if row:
-            return dict(zip(row.keys(), [row[k] for k in row.keys()]))
+            return {k: row[k] for k in row.keys()}
     except Exception as e:
         print(f"[AUTH] Error fetching user: {e}")
     return None
