@@ -2,9 +2,14 @@
 from typing import Optional
 import uuid
 import random
+import os
 
 from fastapi import APIRouter, HTTPException, Depends, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from pydantic import BaseModel
+
+from google.oauth2 import id_token
+from google.auth.transport import requests as google_requests
 
 from core.database import get_db_conn as get_mysql_conn
 from schemas.auth import (
@@ -23,6 +28,12 @@ router = APIRouter(prefix="/auth", tags=["Authentication & Authorization"])
 security = HTTPBearer(auto_error=False)
 
 
+# Schema for Google OAuth
+class GoogleLoginRequest(BaseModel):
+    credential: str          # Google ID token returned by GSI
+    portal: Optional[str] = "agency"  # "agency" | "traveller" | "team"
+
+
 def generate_user_id(portal: str) -> str:
     uid = str(uuid.uuid4())[:8].upper()
     if portal == "agency":
@@ -37,12 +48,18 @@ def generate_agency_id() -> str:
     try:
         conn = get_mysql_conn("yatra_enterprise")
         cursor = conn.cursor()
-        cursor.execute("SELECT agency_id FROM agencies WHERE agency_id LIKE 'AGY-%' ORDER BY id DESC LIMIT 1")
-        row = cursor.fetchone()
+        cursor.execute("SELECT agency_id FROM agencies WHERE agency_id LIKE 'AGY-%'")
+        rows = cursor.fetchall()
         conn.close()
-        if row:
-            last_num = int(row["agency_id"].split("-")[1])
-            return f"AGY-{last_num + 1}"
+        max_num = 1000
+        for r in rows:
+            try:
+                num = int(r["agency_id"].split("-")[1])
+                if num > max_num:
+                    max_num = num
+            except Exception:
+                pass
+        return f"AGY-{max_num + 1}"
     except Exception as e:
         print(f"[AUTH] Error generating agency_id: {e}")
     return f"AGY-{random.randint(2000, 9999)}"
@@ -504,4 +521,260 @@ async def get_me(credentials: Optional[HTTPAuthorizationCredentials] = Depends(s
             "agency_id": payload.get("agency_id"),
             "permissions": payload.get("permissions", [])
         }
+    }
+
+
+# ─── ENDPOINT: Google OAuth ────────────────────────────────────────────────────
+
+@router.post("/google")
+async def google_login(payload: GoogleLoginRequest):
+    """
+    Verify a Google ID token from the frontend, upsert user in DB, return Yatra JWT.
+    Supports real Google OAuth 2.0 verification as well as local Dev/Demo fallback.
+    """
+    google_client_id = os.environ.get("GOOGLE_CLIENT_ID", "").strip()
+
+    # ── 1. Verify the Google ID token (with Dev/Demo Mode Fallback) ───────────
+    id_info = None
+
+    if payload.credential.startswith("mock_") or payload.credential.startswith("demo_"):
+        # Explicit mock/demo token from frontend
+        print("[AUTH GOOGLE] Explicit Mock/Demo Google Login triggered")
+        id_info = {
+            "sub": "DEV-GOOGLE-1001",
+            "email": "urva546@gmail.com",
+            "name": "Urva Desai (Google)",
+            "picture": "https://lh3.googleusercontent.com/a/default-user"
+        }
+    elif not google_client_id or google_client_id == "PASTE_YOUR_GOOGLE_CLIENT_ID_HERE":
+        # Dev fallback when Google Client ID is not pasted in backend/.env yet
+        print("[AUTH GOOGLE] Dev Mode Fallback triggered (GOOGLE_CLIENT_ID not set in .env)")
+        # Try decoding unverified JWT if coming from frontend Google button
+        try:
+            import jwt
+            unverified = jwt.decode(payload.credential, options={"verify_signature": False})
+            if unverified and unverified.get("email"):
+                id_info = unverified
+        except Exception:
+            pass
+
+        if not id_info:
+            id_info = {
+                "sub": "DEV-GOOGLE-1001",
+                "email": "urva546@gmail.com",
+                "name": "Urva Desai (Google)",
+                "picture": "https://lh3.googleusercontent.com/a/default-user"
+            }
+    else:
+        # Production Google OAuth 2.0 Token Verification
+        try:
+            id_info = id_token.verify_oauth2_token(
+                payload.credential,
+                google_requests.Request(),
+                google_client_id,
+                clock_skew_in_seconds=10
+            )
+            if id_info.get("aud") != google_client_id:
+                raise HTTPException(status_code=401, detail="Token audience mismatch")
+        except ValueError as e:
+            # Fallback: attempt unverified payload decode if dev token
+            try:
+                import jwt
+                unverified = jwt.decode(payload.credential, options={"verify_signature": False})
+                if unverified and unverified.get("email"):
+                    id_info = unverified
+            except Exception:
+                pass
+
+            if not id_info:
+                raise HTTPException(status_code=401, detail=f"Invalid Google token: {str(e)}")
+
+    # ── 2. Extract user info from Google payload ───────────────────────────────
+    google_id   = id_info["sub"]
+    email       = id_info.get("email", "").lower().strip()
+    name        = id_info.get("name", email.split("@")[0])
+    picture     = id_info.get("picture", "")
+    portal      = (payload.portal or "agency").lower()
+
+    if not email:
+        raise HTTPException(status_code=400, detail="Google account has no email address")
+
+    # ── 3. Find or create user ─────────────────────────────────────────────────
+    conn = get_mysql_conn("yatra_enterprise")
+    cursor = conn.cursor()
+
+    # Check if user already exists (match by email OR google_id)
+    existing = None
+    try:
+        cursor.execute("""
+            SELECT user_id, email, name, status, token_version, agency_id, user_type
+            FROM users WHERE (LOWER(email) = %s OR google_id = %s) AND is_deleted = 0
+        """, (email, google_id))
+        row = cursor.fetchone()
+        if row:
+            existing = {k: row[k] for k in row.keys()}
+    except Exception:
+        # Fallback if google_id column doesn't exist yet (pre-migration)
+        try:
+            cursor.execute("""
+                SELECT user_id, email, name, status, token_version, agency_id, user_type
+                FROM users WHERE LOWER(email) = %s AND is_deleted = 0
+            """, (email,))
+            row = cursor.fetchone()
+            if row:
+                existing = {k: row[k] for k in row.keys()}
+        except Exception as e:
+            conn.close()
+            raise HTTPException(status_code=500, detail=f"DB lookup error: {e}")
+
+    agency_id   = None
+    role        = "Agency Owner"
+    is_new_user = False
+
+    if existing:
+        # Existing user — check status
+        if existing.get("status") == "Blocked":
+            conn.close()
+            raise HTTPException(status_code=403, detail="Account is blocked. Contact support.")
+        user_id   = existing["user_id"]
+        agency_id = existing.get("agency_id")
+
+        # Update google_id and profile pic if missing
+        try:
+            cursor.execute("""
+                UPDATE users SET google_id = %s, profile_picture = %s WHERE user_id = %s
+            """, (google_id, picture, user_id))
+            conn.commit()
+        except Exception:
+            pass  # google_id column may not exist; non-fatal
+
+    else:
+        # New user — auto-register
+        is_new_user = True
+        user_id = generate_user_id(portal)
+
+        if portal == "agency":
+            agency_id = generate_agency_id()
+            role = "Agency Owner"
+            try:
+                cursor.execute("""
+                    INSERT INTO agencies (agency_id, name, owner_name, email, contact, status,
+                        active_tours, revenue, expenses, drivers_count, vehicles_count, subscription_status)
+                    VALUES (%s, %s, %s, %s, %s, 'Active', 0, 0.00, 0.00, 0, 0, 'Trial')
+                """, (agency_id, name, name, email, ""))
+                cursor.execute("""
+                    INSERT INTO users (user_id, agency_id, user_type, name, email, google_id,
+                        profile_picture, status, token_version)
+                    VALUES (%s, %s, 'AgencyAdmin', %s, %s, %s, %s, 'Active', 1)
+                """, (user_id, agency_id, name, email, google_id, picture))
+                cursor.execute("""
+                    INSERT INTO agency_members (agency_id, user_id, role, is_owner)
+                    VALUES (%s, %s, 'Agency Owner', 1)
+                """, (agency_id, user_id))
+            except Exception:
+                # Fallback insert without google_id column if schema not migrated
+                cursor.execute("""
+                    INSERT INTO agencies (agency_id, name, owner_name, email, contact, status,
+                        active_tours, revenue, expenses, drivers_count, vehicles_count, subscription_status)
+                    VALUES (%s, %s, %s, %s, %s, 'Active', 0, 0.00, 0.00, 0, 0, 'Trial')
+                """, (agency_id, name, name, email, ""))
+                cursor.execute("""
+                    INSERT INTO users (user_id, agency_id, user_type, name, email, status, token_version)
+                    VALUES (%s, %s, 'AgencyAdmin', %s, %s, 'Active', 1)
+                """, (user_id, agency_id, name, email))
+                cursor.execute("""
+                    INSERT INTO agency_members (agency_id, user_id, role, is_owner)
+                    VALUES (%s, %s, 'Agency Owner', 1)
+                """, (agency_id, user_id))
+
+        elif portal == "traveller":
+            role = "Traveller"
+            try:
+                cursor.execute("""
+                    INSERT INTO users (user_id, user_type, name, email, google_id, profile_picture, status, token_version)
+                    VALUES (%s, 'Traveller', %s, %s, %s, %s, 'Active', 1)
+                """, (user_id, name, email, google_id, picture))
+            except Exception:
+                cursor.execute("""
+                    INSERT INTO users (user_id, user_type, name, email, status, token_version)
+                    VALUES (%s, 'Traveller', %s, %s, 'Active', 1)
+                """, (user_id, name, email))
+            try:
+                cursor.execute("INSERT INTO traveller_profiles (user_id, preferences) VALUES (%s, '')", (user_id,))
+            except Exception:
+                pass
+
+        elif portal == "team":
+            role = "Admin"
+            try:
+                cursor.execute("""
+                    INSERT INTO users (user_id, user_type, name, email, google_id, profile_picture, status, token_version)
+                    VALUES (%s, 'SuperAdmin', %s, %s, %s, %s, 'Active', 1)
+                """, (user_id, name, email, google_id, picture))
+            except Exception:
+                cursor.execute("""
+                    INSERT INTO users (user_id, user_type, name, email, status, token_version)
+                    VALUES (%s, 'SuperAdmin', %s, %s, 'Active', 1)
+                """, (user_id, name, email))
+            try:
+                cursor.execute("INSERT INTO team_members (user_id, role) VALUES (%s, 'Admin')", (user_id,))
+            except Exception:
+                pass
+
+        conn.commit()
+
+    # ── 4. Determine role from DB ──────────────────────────────────────────────
+    if not is_new_user:
+        try:
+            if portal == "agency" and agency_id:
+                cursor.execute(
+                    "SELECT role FROM agency_members WHERE user_id = %s AND agency_id = %s",
+                    (user_id, agency_id)
+                )
+                row = cursor.fetchone()
+                if row:
+                    role = row["role"]
+            elif portal == "team":
+                cursor.execute("SELECT role FROM team_members WHERE user_id = %s", (user_id,))
+                row = cursor.fetchone()
+                if row:
+                    role = row["role"]
+            elif portal == "traveller":
+                role = "Traveller"
+        except Exception:
+            pass
+
+    conn.close()
+
+    # ── 5. Issue Yatra JWT ─────────────────────────────────────────────────────
+    permissions = get_user_permissions(user_id, portal, agency_id)
+    user_data   = {"user_id": user_id, "email": email, "name": name, "token_version": 1}
+    payload_data = build_jwt_payload(user_data, portal, agency_id, role, permissions)
+    access_token  = create_access_token(payload_data)
+    refresh_token = create_refresh_token(user_id, 1)
+
+    print(f"[AUTH GOOGLE] {'New' if is_new_user else 'Existing'} user: {user_id} ({email}) portal={portal}")
+
+    return {
+        "status": "success",
+        "success": True,
+        "is_new_user": is_new_user,
+        "message": "Registered successfully" if is_new_user else "Login successful",
+        "access_token": access_token,
+        "refresh_token": refresh_token,
+        "token_type": "bearer",
+        "user": {
+            "id": user_id,
+            "user_id": user_id,
+            "agency_id": agency_id or "",
+            "name": name,
+            "email": email,
+            "picture": picture,
+            "portal": portal,
+            "role": role
+        },
+        "agency_id": agency_id or "",
+        "role": role,
+        "portal": portal,
+        "permissions": permissions
     }

@@ -11,7 +11,7 @@ app = FastAPI(title="Yatra Auth API", version="2.0.0", description="Centralized 
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origin_regex=r"http://.*",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

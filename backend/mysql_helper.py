@@ -65,13 +65,13 @@ class MySQLCursorWrapper:
 
     def execute(self, query, params=None):
         if params is not None:
-            # Escape literal % signs to %% first before replacing ? with %s
-            query = query.replace('%', '%%')
-            query = query.replace('?', '%s')
+            if '?' in query:
+                query = query.replace('%', '%%').replace('?', '%s')
             if not isinstance(params, (list, tuple, dict)):
                 params = (params,)
         else:
-            query = query.replace('?', '%s')
+            if '?' in query:
+                query = query.replace('?', '%s')
         
         # Translate SQLite date functions
         query = re.sub(r"DATE\('now'\)", "CURDATE()", query, flags=re.IGNORECASE)
@@ -80,11 +80,8 @@ class MySQLCursorWrapper:
         return self._cursor.execute(query, params)
 
     def executemany(self, query, seq_of_params):
-        if seq_of_params:
-            query = query.replace('%', '%%')
-            query = query.replace('?', '%s')
-        else:
-            query = query.replace('?', '%s')
+        if '?' in query:
+            query = query.replace('%', '%%').replace('?', '%s')
         query = re.sub(r"DATE\('now'\)", "CURDATE()", query, flags=re.IGNORECASE)
         query = re.sub(r"datetime\('now'\)", "NOW()", query, flags=re.IGNORECASE)
         return self._cursor.executemany(query, seq_of_params)
