@@ -75,9 +75,7 @@ export default function LandingPortal({ onSelectRole }) {
     setRegisteredUser(null);
     // Prefill default demo email for easier check
     if (mode === 'login') {
-      if (activeSlide === 0) setEmail('ceo@yatratravels.com');
-      else if (activeSlide === 1) setEmail('yugal@example.com');
-      else setEmail('admin@yatra.ai');
+      setEmail('urva546@gmail.com');
     } else {
       setEmail('');
     }
@@ -603,7 +601,7 @@ export default function LandingPortal({ onSelectRole }) {
                     <input 
                       type="text" 
                       required
-                      placeholder={activeSlide === 0 ? "e.g. AGY-1001 or ceo@yatratravels.com" : "e.g. TRV-1001 or yugal@example.com"}
+                      placeholder={activeSlide === 0 ? "e.g. AGY-1001 or urva546@gmail.com" : "e.g. TRV-1001 or urva546@gmail.com"}
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       style={{
@@ -624,7 +622,7 @@ export default function LandingPortal({ onSelectRole }) {
                       <input 
                         type="email" 
                         required
-                        placeholder="e.g. yugal@example.com"
+                        placeholder="e.g. urva546@gmail.com"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         style={{

@@ -14,15 +14,14 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel, EmailStr, validator
 
-from mysql_helper import get_db_conn as get_mysql_conn
+from core.database import get_db_conn as get_mysql_conn
 from auth_utils import (
     hash_password, verify_password,
     create_access_token, create_refresh_token,
     decode_access_token, decode_refresh_token,
     generate_and_save_otp, verify_and_consume_otp
 )
-from email_helper import send_otp_email
-from sms_helper import normalize_phone
+from services.notifications import send_otp_email, normalize_phone
 
 app = FastAPI(title="Yatra Auth API", version="2.0.0", description="Centralized Authentication & Authorization for Yatra ERP")
 
@@ -96,19 +95,20 @@ def generate_agency_id() -> str:
     return f"AGY-{random.randint(2000, 9999)}"
 
 def get_user_by_identifier(identifier: str) -> Optional[dict]:
-    """Look up user by email OR phone."""
+    """Look up user by email, phone, user_id OR agency_id."""
     clean = identifier.strip().lower()
+    raw_id = identifier.strip()
     try:
         conn = get_mysql_conn("yatra_enterprise")
         cursor = conn.cursor()
         cursor.execute("""
             SELECT user_id, email, phone, name, password_hash, user_type, status, token_version, agency_id
-            FROM users WHERE (LOWER(email) = ? OR phone = ?) AND is_deleted = 0
-        """, (clean, identifier.strip()))
+            FROM users WHERE (LOWER(email) = ? OR phone = ? OR LOWER(user_id) = ? OR LOWER(agency_id) = ?) AND is_deleted = 0
+        """, (clean, raw_id, clean, clean))
         row = cursor.fetchone()
         conn.close()
         if row:
-            return dict(zip(row.keys(), [row[k] for k in row.keys()]))
+            return {k: row[k] for k in row.keys()}
     except Exception as e:
         print(f"[AUTH] Error fetching user: {e}")
     return None

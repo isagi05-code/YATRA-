@@ -1,8 +1,8 @@
 import requests
 import json
 
-TRAVELLER_BASE = "http://localhost:8001"
-AGENCY_BASE = "http://localhost:8000"
+TRAVELLER_BASE = "http://127.0.0.1:8001"
+AGENCY_BASE = "http://127.0.0.1:8000"
 
 def test_traveller_flow():
     print("\n--- Testing Traveller Registration & Login ---")

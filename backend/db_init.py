@@ -2,7 +2,47 @@ import os
 import pymysql
 import json
 import re
-from mysql_helper import MYSQL_CONFIG, get_db_conn, MySQLConnectionWrapper
+from core.database import MYSQL_CONFIG, get_db_conn, MySQLConnectionWrapper
+
+SQLITE_SCHEMAS = {
+    "yatra_enterprise": [
+        "CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id TEXT UNIQUE, agency_id TEXT, user_type TEXT, name TEXT, email TEXT, phone TEXT, password_hash TEXT, status TEXT DEFAULT 'Active', token_version INTEGER DEFAULT 1, is_deleted INTEGER DEFAULT 0)",
+        "CREATE TABLE IF NOT EXISTS agencies (id INTEGER PRIMARY KEY AUTOINCREMENT, agency_id TEXT UNIQUE, name TEXT, owner_name TEXT, email TEXT, contact TEXT, status TEXT DEFAULT 'Active', active_tours INTEGER DEFAULT 0, revenue REAL DEFAULT 0, expenses REAL DEFAULT 0, drivers_count INTEGER DEFAULT 0, vehicles_count INTEGER DEFAULT 0, subscription_status TEXT DEFAULT 'Trial')",
+        "CREATE TABLE IF NOT EXISTS agency_members (id INTEGER PRIMARY KEY AUTOINCREMENT, agency_id TEXT, user_id TEXT, role TEXT, is_owner INTEGER DEFAULT 0)",
+        "CREATE TABLE IF NOT EXISTS traveller_profiles (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id TEXT UNIQUE, preferences TEXT)",
+        "CREATE TABLE IF NOT EXISTS team_members (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id TEXT, role TEXT)",
+        "CREATE TABLE IF NOT EXISTS roles (id INTEGER PRIMARY KEY AUTOINCREMENT, agency_id TEXT, role_name TEXT, description TEXT, is_system_role INTEGER DEFAULT 1)",
+        "CREATE TABLE IF NOT EXISTS permissions (id INTEGER PRIMARY KEY AUTOINCREMENT, permission_key TEXT UNIQUE, module TEXT, description TEXT)",
+        "CREATE TABLE IF NOT EXISTS otps (id INTEGER PRIMARY KEY AUTOINCREMENT, identifier TEXT, otp_code TEXT, portal TEXT, mode TEXT, expires_at TEXT, is_used INTEGER DEFAULT 0)",
+        "CREATE TABLE IF NOT EXISTS refresh_tokens (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id TEXT, token_hash TEXT, expires_at TEXT, revoked INTEGER DEFAULT 0)"
+    ],
+    "yatra_agency": [
+        "CREATE TABLE IF NOT EXISTS tours (trip_id INTEGER PRIMARY KEY AUTOINCREMENT, agency_id TEXT, destination TEXT, customer TEXT, agency TEXT, start_date DATE, end_date DATE, status TEXT, vehicle TEXT, driver TEXT, passengers INTEGER, guide TEXT, budget REAL, current_lat REAL, current_lng REAL, timeline_status TEXT)",
+        "CREATE TABLE IF NOT EXISTS tour_stops (id INTEGER PRIMARY KEY AUTOINCREMENT, trip_id INTEGER, type TEXT, name TEXT, lat REAL, lng REAL, completed INTEGER DEFAULT 0)",
+        "CREATE TABLE IF NOT EXISTS tour_timeline (id INTEGER PRIMARY KEY AUTOINCREMENT, trip_id INTEGER, event_name TEXT, status TEXT, updated_at DATETIME)",
+        "CREATE TABLE IF NOT EXISTS expenses (expense_id INTEGER PRIMARY KEY AUTOINCREMENT, trip_id INTEGER, agency_id TEXT, amount REAL, gst REAL, vendor TEXT, category TEXT, date DATE, time TIME, description TEXT, payment_mode TEXT, approved_by TEXT, status TEXT, receipt_image TEXT, ocr_extracted_data TEXT)",
+        "CREATE TABLE IF NOT EXISTS vehicles (vehicle_number TEXT PRIMARY KEY, agency_id TEXT, model TEXT, owner TEXT, insurance TEXT, permit TEXT, fitness TEXT, puc TEXT, fuel_type TEXT, mileage REAL, current_location TEXT, availability TEXT, service_history TEXT, expenses REAL, upcoming_maintenance TEXT)",
+        "CREATE TABLE IF NOT EXISTS drivers (driver_id INTEGER PRIMARY KEY AUTOINCREMENT, agency_id TEXT, name TEXT, license TEXT, aadhar TEXT, experience INTEGER, trips_completed INTEGER, assigned_tour TEXT, current_location TEXT, contact TEXT, emergency_contact TEXT, salary REAL, expense REAL, ratings REAL, documents TEXT)",
+        "CREATE TABLE IF NOT EXISTS customers (customer_id INTEGER PRIMARY KEY AUTOINCREMENT, agency_id TEXT, name TEXT, contact TEXT, email TEXT, booking_history TEXT, invoices TEXT, payments TEXT, upcoming_tours TEXT, documents TEXT)",
+        "CREATE TABLE IF NOT EXISTS notifications (id INTEGER PRIMARY KEY AUTOINCREMENT, agency_id TEXT, type TEXT, title TEXT, message TEXT, date DATE, read INTEGER DEFAULT 0)",
+        "CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT)"
+    ],
+    "yatra_traveller": [
+        "CREATE TABLE IF NOT EXISTS trips (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id TEXT, name TEXT, route TEXT, date DATE, duration TEXT, budget REAL, status TEXT, driver TEXT, vehicle TEXT)",
+        "CREATE TABLE IF NOT EXISTS expenses (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id TEXT, title TEXT, amount REAL, date DATE, category TEXT, status TEXT)",
+        "CREATE TABLE IF NOT EXISTS bookings (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id TEXT, trip_id INTEGER, name TEXT, status TEXT, details TEXT)",
+        "CREATE TABLE IF NOT EXISTS documents (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id TEXT, name TEXT, type TEXT, file_url TEXT, upload_date DATE)",
+        "CREATE TABLE IF NOT EXISTS profile (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id TEXT UNIQUE, name TEXT, email TEXT, contact TEXT, preferences TEXT)"
+    ],
+    "yatra_team": [
+        "CREATE TABLE IF NOT EXISTS agencies (id INTEGER PRIMARY KEY AUTOINCREMENT, agency_id TEXT UNIQUE, name TEXT, owner TEXT, contact TEXT, email TEXT, status TEXT, active_tours INTEGER, revenue REAL, expenses REAL, drivers_count INTEGER, vehicles_count INTEGER, subscription_status TEXT, documents TEXT)",
+        "CREATE TABLE IF NOT EXISTS travellers (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id TEXT UNIQUE, name TEXT, email TEXT, trips_count INTEGER, expenses_count INTEGER, bookings_count INTEGER, feedback_rating REAL, ai_usage_tokens INTEGER)",
+        "CREATE TABLE IF NOT EXISTS payments (id INTEGER PRIMARY KEY AUTOINCREMENT, agency_id TEXT, amount REAL, date DATE, status TEXT, description TEXT)",
+        "CREATE TABLE IF NOT EXISTS subscriptions (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, cost REAL, type TEXT, features TEXT)",
+        "CREATE TABLE IF NOT EXISTS support_tickets (id INTEGER PRIMARY KEY AUTOINCREMENT, agency_id INTEGER, traveller_id INTEGER, subject TEXT, description TEXT, status TEXT, priority TEXT, date DATE)",
+        "CREATE TABLE IF NOT EXISTS logs (id INTEGER PRIMARY KEY AUTOINCREMENT, timestamp DATETIME, level TEXT, message TEXT)"
+    ]
+}
 
 def get_root_conn():
     config = MYSQL_CONFIG.copy()
@@ -12,48 +52,64 @@ def get_root_conn():
     return MySQLConnectionWrapper(conn)
 
 def initialize_mysql_databases():
-    print("Connecting to MySQL server...")
-    root_conn = get_root_conn()
-    root_cursor = root_conn.cursor()
-    
-    print("Dropping existing enterprise and virtual databases...")
-    root_cursor.execute("DROP DATABASE IF EXISTS yatra_agency")
-    root_cursor.execute("DROP DATABASE IF EXISTS yatra_traveller")
-    root_cursor.execute("DROP DATABASE IF EXISTS yatra_team")
-    root_cursor.execute("DROP DATABASE IF EXISTS yatra_enterprise")
-    
-    sql_dir = os.path.join(os.path.dirname(__file__), "sql")
-    sql_files = sorted([f for f in os.listdir(sql_dir) if f.endswith(".sql")])
-    
-    print(f"Executing {len(sql_files)} enterprise SQL scripts from {sql_dir}...")
-    for filename in sql_files:
-        filepath = os.path.join(sql_dir, filename)
-        print(f"Running script: {filename}...")
-        with open(filepath, "r", encoding="utf-8") as f:
-            sql_content = f.read()
-            
-        statements = []
-        current_statement = []
-        for line in sql_content.split('\n'):
-            stripped = line.strip()
-            if stripped.startswith('--') or stripped.startswith('#') or not stripped:
-                continue
-            current_statement.append(line)
-            if line.endswith(';'):
-                statements.append('\n'.join(current_statement))
-                current_statement = []
+    try:
+        print("Connecting to MySQL server...")
+        root_conn = get_root_conn()
+        root_cursor = root_conn.cursor()
+        
+        print("Dropping existing enterprise and virtual databases...")
+        root_cursor.execute("DROP DATABASE IF EXISTS yatra_agency")
+        root_cursor.execute("DROP DATABASE IF EXISTS yatra_traveller")
+        root_cursor.execute("DROP DATABASE IF EXISTS yatra_team")
+        root_cursor.execute("DROP DATABASE IF EXISTS yatra_enterprise")
+        
+        sql_dir = os.path.join(os.path.dirname(__file__), "sql")
+        sql_files = sorted([f for f in os.listdir(sql_dir) if f.endswith(".sql")])
+        
+        print(f"Executing {len(sql_files)} enterprise SQL scripts from {sql_dir}...")
+        for filename in sql_files:
+            filepath = os.path.join(sql_dir, filename)
+            print(f"Running script: {filename}...")
+            with open(filepath, "r", encoding="utf-8") as f:
+                sql_content = f.read()
                 
-        for statement in statements:
-            if statement.strip():
-                try:
-                    root_cursor.execute(statement)
-                except Exception as err:
-                    print(f"Error executing statement in {filename}: {err}")
-                    raise err
+            statements = []
+            current_statement = []
+            for line in sql_content.split('\n'):
+                stripped = line.strip()
+                if stripped.startswith('--') or stripped.startswith('#') or not stripped:
+                    continue
+                current_statement.append(line)
+                if line.endswith(';'):
+                    statements.append('\n'.join(current_statement))
+                    current_statement = []
                     
-    root_conn.close()
-    print("All enterprise SQL scripts and compatibility views executed successfully.")
+            for statement in statements:
+                if statement.strip():
+                    try:
+                        root_cursor.execute(statement)
+                    except Exception as err:
+                        print(f"Error executing statement in {filename}: {err}")
+                        raise err
+                        
+        root_conn.close()
+        print("All enterprise SQL scripts and compatibility views executed successfully.")
+    except Exception as e:
+        print(f"[DB_INIT] MySQL server offline or error ({e}). Initializing SQLite fallback databases...")
+        for db_name, queries in SQLITE_SCHEMAS.items():
+            conn = get_db_conn(db_name)
+            cursor = conn.cursor()
+            for query in queries:
+                try:
+                    cursor.execute(query)
+                except Exception as ex:
+                    print(f"SQLite init error on {db_name}: {ex}")
+            conn.close()
+            
     seed_enterprise_db()
+    seed_agency_db()
+    seed_traveller_db()
+    seed_team_db()
 
 def seed_enterprise_db():
     print("Seeding Master Enterprise DB (users, roles, permissions)...")
@@ -101,12 +157,15 @@ def seed_enterprise_db():
 
     # 3. Default Users (Agency Owner, Traveller, Super Admin)
     # Password for all default accounts is "Password@123"
-    default_pass_hash = "$2b$12$K1rS2w7gC8gY0d0d8w3l7uK3j3J3k3l3m3n3o3p3q3r3s3t3u3v3w"  # bcrypt dummy or real hash
+    default_pass_hash = "$2b$12$Vw1DH/NjeP3nAZA4yL09i.VrDN2taVyJjR6VE8he1h9UwuJnVD0xG"
 
     users_seed = [
-        ("USR-AGY-1001", "ceo@yatratravels.com", "+919999922222", "Yatra Travels", default_pass_hash),
-        ("USR-TRV-1001", "yugal@example.com", "+919999911111", "Yugal Kishor", default_pass_hash),
-        ("USR-ADM-1001", "admin@yatra.ai", "+919999900000", "Yatra Admin", default_pass_hash)
+        ("USR-AGY-1001", "urva546@gmail.com", "+919999922222", "Urva Desai (Agency Owner)", default_pass_hash),
+        ("USR-TRV-1001", "urva546@gmail.com", "+919999911111", "Urva Desai (Traveller)", default_pass_hash),
+        ("USR-ADM-1001", "urva546@gmail.com", "+919999900000", "Urva Desai (Admin)", default_pass_hash),
+        ("USR-AGY-1002", "ceo@yatratravels.com", "+919999922223", "Yatra Travels", default_pass_hash),
+        ("USR-TRV-1002", "yugal@example.com", "+919999911112", "Yugal Kishor", default_pass_hash),
+        ("USR-ADM-1002", "admin@yatra.ai", "+919999900001", "Yatra Admin", default_pass_hash)
     ]
 
     for uid, email, phone, name, pw_hash in users_seed:
@@ -130,7 +189,6 @@ def seed_enterprise_db():
     conn.close()
     print("Master Enterprise DB seeded with default users, roles, and permissions.")
 
-
 def seed_agency_db():
     print("Seeding Agency database...")
     conn = get_db_conn("yatra_agency")
@@ -138,7 +196,7 @@ def seed_agency_db():
     
     # 1. Tours
     cursor.executemany("""
-    INSERT INTO tours (agency_id, destination, customer, agency, start_date, end_date, status, vehicle, driver, passengers, guide, budget, current_lat, current_lng, timeline_status)
+    INSERT IGNORE INTO tours (agency_id, destination, customer, agency, start_date, end_date, status, vehicle, driver, passengers, guide, budget, current_lat, current_lng, timeline_status)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""", [
         ("AGY-1001", "Mumbai to Goa Safari", "Rohan Sharma", "Yatra Travels Ltd", "2026-07-10", "2026-07-15", "Upcoming", "MH-01-DK-4507", "Vikram Singh", 4, "Ananya Sen", 25000.0, 19.0760, 72.8777, "Vehicle Assigned"),
         ("AGY-1001", "Royal Rajasthan Journey", "Priyah Patel", "Yatra Travels Ltd", "2026-07-01", "2026-07-08", "Active", "MH-02-AB-9876", "Amit Patel", 6, "Rajesh Kumar", 45000.0, 26.9124, 75.7873, "Journey Started"),
@@ -147,7 +205,7 @@ def seed_agency_db():
     
     # 2. Stops for active tour (trip_id 2)
     cursor.executemany("""
-    INSERT INTO tour_stops (trip_id, type, name, lat, lng, completed)
+    INSERT IGNORE INTO tour_stops (trip_id, type, name, lat, lng, completed)
     VALUES (?, ?, ?, ?, ?, ?)""", [
         (2, "Hotel", "Jaipur Palace Stay", 26.9150, 75.7890, 1),
         (2, "Restaurant", "Spice Court Diner", 26.9010, 75.7720, 1),
@@ -157,7 +215,7 @@ def seed_agency_db():
     
     # 3. Timeline for active tour (trip_id 2)
     cursor.executemany("""
-    INSERT INTO tour_timeline (trip_id, event_name, status, updated_at)
+    INSERT IGNORE INTO tour_timeline (trip_id, event_name, status, updated_at)
     VALUES (?, ?, ?, ?)""", [
         (2, "Booking Created", "Completed", "2026-06-28 10:00:00"),
         (2, "Vehicle Assigned", "Completed", "2026-06-29 11:30:00"),
@@ -171,7 +229,7 @@ def seed_agency_db():
     
     # 4. Expenses
     cursor.executemany("""
-    INSERT INTO expenses (trip_id, agency_id, amount, gst, vendor, category, date, time, description, payment_mode, approved_by, status, receipt_image, ocr_extracted_data)
+    INSERT IGNORE INTO expenses (trip_id, agency_id, amount, gst, vendor, category, date, time, description, payment_mode, approved_by, status, receipt_image, ocr_extracted_data)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""", [
         (2, "AGY-1001", 4500.0, 810.0, "HP Petrol Pump", "Fuel", "2026-07-02", "14:30:00", "Fuel refill for Rajasthan trip", "Fuel Card", "Agency Head", "Approved", "fuel_receipt_102.png", json.dumps({"vendor": "HP Pump", "total": "₹4,500.00", "tax": "18%", "fuel_qty": "45L"})),
         (2, "AGY-1001", 6000.0, 1080.0, "Jaipur Palace Stay", "Stay", "2026-07-01", "21:00:00", "Driver and client stay night 1", "Corporate Credit Card", "Agency Head", "Approved", "stay_receipt_201.png", json.dumps({"vendor": "Jaipur Palace", "total": "₹6,000.00", "tax": "18%"})),
@@ -182,7 +240,7 @@ def seed_agency_db():
     
     # 5. Vehicles
     cursor.executemany("""
-    INSERT INTO vehicles (vehicle_number, agency_id, model, owner, insurance, permit, fitness, puc, fuel_type, mileage, current_location, availability, service_history, expenses, upcoming_maintenance)
+    INSERT IGNORE INTO vehicles (vehicle_number, agency_id, model, owner, insurance, permit, fitness, puc, fuel_type, mileage, current_location, availability, service_history, expenses, upcoming_maintenance)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""", [
         ("MH-01-DK-4507", "AGY-1001", "Toyota Innova Crysta", "Yatra Travels Ltd", "Active (Expires: 2027-02-15)", "National Permit (Expires: 2028-06-10)", "Valid (Expires: 2027-01-20)", "Valid (Expires: 2026-12-05)", "Diesel", 12.5, "Mumbai, MH", "Available", json.dumps([{"date": "2026-05-10", "type": "Engine Oil Change", "cost": 4500.0}]), 12000.0, "2026-08-10 (General Service)"),
         ("MH-02-AB-9876", "AGY-1001", "Tempo Traveller 17-Seater", "Partner Fleet Rent", "Active (Expires: 2026-11-20)", "State Permit (Expires: 2027-03-12)", "Valid (Expires: 2026-09-15)", "Valid (Expires: 2026-08-30)", "Diesel", 9.8, "Jaipur, RJ", "Assigned", json.dumps([{"date": "2026-04-20", "type": "Tire Replacement", "cost": 15000.0}]), 35000.0, "2026-09-01 (Tire Alignment)"),
@@ -191,7 +249,7 @@ def seed_agency_db():
     
     # 6. Drivers
     cursor.executemany("""
-    INSERT INTO drivers (agency_id, name, license, aadhar, experience, trips_completed, assigned_tour, current_location, contact, emergency_contact, salary, expense, ratings, documents)
+    INSERT IGNORE INTO drivers (agency_id, name, license, aadhar, experience, trips_completed, assigned_tour, current_location, contact, emergency_contact, salary, expense, ratings, documents)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""", [
         ("AGY-1001", "Vikram Singh", "DL-142018009283", "9283-1029-4829", 12, 148, "None", "Mumbai, MH", "+919876543210", "+919876543211", 25000.0, 1800.0, 4.8, json.dumps({"license_copy": "lic_vikram.pdf", "aadhar_copy": "aadhar_vikram.pdf"})),
         ("AGY-1001", "Amit Patel", "GJ-012015002931", "1029-4829-9283", 8, 92, "Royal Rajasthan Journey", "Jaipur, RJ", "+919822211100", "+919822211101", 22000.0, 3200.0, 4.6, json.dumps({"license_copy": "lic_amit.pdf", "aadhar_copy": "aadhar_amit.pdf"})),
@@ -200,7 +258,7 @@ def seed_agency_db():
     
     # 7. Customers
     cursor.executemany("""
-    INSERT INTO customers (agency_id, name, contact, email, booking_history, invoices, payments, upcoming_tours, documents)
+    INSERT IGNORE INTO customers (agency_id, name, contact, email, booking_history, invoices, payments, upcoming_tours, documents)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""", [
         ("AGY-1001", "Rohan Sharma", "+91 99999 88888", "rohan.sharma@example.com", json.dumps([{"trip_id": 1, "status": "Upcoming"}]), json.dumps([]), json.dumps([]), json.dumps([{"trip_id": 1, "destination": "Mumbai to Goa Safari"}]), json.dumps({"passport": "PP-ROHAN.pdf", "emergency_contacts": {"name": "S. Sharma", "contact": "+91 99999 88887"}, "preferences": "Vegetarian food only, Window seat"})),
         ("AGY-1001", "Priyah Patel", "+91 98888 77777", "priyah.patel@example.com", json.dumps([{"trip_id": 2, "status": "Active"}]), json.dumps([]), json.dumps([]), json.dumps([]), json.dumps({"passport": "PP-PRIYAH.pdf", "emergency_contacts": {"name": "K. Patel", "contact": "+91 98888 77776"}, "preferences": "English guide, Non-smoking rooms"})),
@@ -209,7 +267,7 @@ def seed_agency_db():
 
     # 8. Notifications
     cursor.executemany("""
-    INSERT INTO notifications (agency_id, type, title, message, date, `read`)
+    INSERT IGNORE INTO notifications (agency_id, type, title, message, date, `read`)
     VALUES (?, ?, ?, ?, ?, ?)""", [
         ("AGY-1001", "Upcoming Trip", "Trip #1 to Goa starts in 5 days", "Please double check the assignment status.", "2026-07-05", 0),
         ("AGY-1001", "Pending Expense", "UPI Expense #3 pending approval", "Requires review from Agency Manager.", "2026-07-02", 0),
@@ -219,7 +277,7 @@ def seed_agency_db():
     
     # 9. Settings
     cursor.executemany("""
-    INSERT INTO settings (`key`, `value`)
+    INSERT IGNORE INTO settings (`key`, `value`)
     VALUES (?, ?)""", [
         ("agency_name", "Yatra Travels Ltd"),
         ("gstin", "27AAAAA1111A1Z1"),
@@ -237,7 +295,7 @@ def seed_traveller_db():
     cursor = conn.cursor()
     
     cursor.executemany("""
-    INSERT INTO trips (user_id, name, route, date, duration, budget, status, driver, vehicle)
+    INSERT IGNORE INTO trips (user_id, name, route, date, duration, budget, status, driver, vehicle)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""", [
         ("TRV-1001", "Goa Beach Retreat", "Mumbai -> North Goa -> South Goa", "2026-07-18", "5 Days", 15000.0, "Confirmed", "Vikram Singh", "MH-01-DK-4507"),
         ("TRV-1001", "Royal Rajasthan Circuit", "Delhi -> Jaipur -> Udaipur -> Jodhpur", "2026-08-10", "8 Days", 28000.0, "Booked", "Amit Patel", "MH-01-LE-4321"),
@@ -245,7 +303,7 @@ def seed_traveller_db():
     ])
     
     cursor.executemany("""
-    INSERT INTO expenses (user_id, title, amount, date, category, status)
+    INSERT IGNORE INTO expenses (user_id, title, amount, date, category, status)
     VALUES (?, ?, ?, ?, ?, ?)""", [
         ("TRV-1001", "Lonavala Stay", 4800.0, "2026-05-04", "Hotels", "Paid"),
         ("TRV-1001", "Surya Restaurant", 1200.0, "2026-06-24", "Food", "Paid"),
@@ -255,21 +313,21 @@ def seed_traveller_db():
     ])
     
     cursor.executemany("""
-    INSERT INTO bookings (user_id, trip_id, name, status, details)
+    INSERT IGNORE INTO bookings (user_id, trip_id, name, status, details)
     VALUES (?, ?, ?, ?, ?)""", [
         ("TRV-1001", 1, "Hotel Beach View", "Confirmed", "Deluxe Room, 4 nights"),
         ("TRV-1001", 1, "Goa Sightseeing Cruise", "Confirmed", "Sunset cruise tickets for 4 passengers")
     ])
     
     cursor.executemany("""
-    INSERT INTO documents (user_id, name, type, file_url, upload_date)
+    INSERT IGNORE INTO documents (user_id, name, type, file_url, upload_date)
     VALUES (?, ?, ?, ?, ?)""", [
         ("TRV-1001", "My Passport", "Passport", "passport_yugal.pdf", "2026-06-01"),
         ("TRV-1001", "Goa Hotel Voucher", "Booking Confirmation", "voucher_goa_hotel.pdf", "2026-07-01")
     ])
     
     cursor.execute("""
-    INSERT INTO profile (user_id, name, email, contact, preferences)
+    INSERT IGNORE INTO profile (user_id, name, email, contact, preferences)
     VALUES (?, ?, ?, ?, ?)""", ("TRV-1001", "Yugal Kishor", "yugal@example.com", "+919999911111", "Window seats, Vegetarian, High floor hotels"))
     
     conn.commit()
@@ -282,7 +340,7 @@ def seed_team_db():
     cursor = conn.cursor()
     
     cursor.executemany("""
-    INSERT INTO agencies (agency_id, name, owner, contact, email, status, active_tours, revenue, expenses, drivers_count, vehicles_count, subscription_status, documents)
+    INSERT IGNORE INTO agencies (agency_id, name, owner, contact, email, status, active_tours, revenue, expenses, drivers_count, vehicles_count, subscription_status, documents)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""", [
         ("AGY-1001", "Yatra Travels Ltd", "Yatra CEO", "+919999922222", "ceo@yatratravels.com", "Active", 12, 2460000.0, 1610000.0, 24, 18, "Premium (Expires: 2027-01-01)", json.dumps(["pan_card.pdf", "gst_cert.pdf"])),
         ("AGY-1002", "Aditya Travels", "Aditya Sen", "+919888833333", "aditya@aditya.com", "Active", 5, 890000.0, 520000.0, 10, 8, "Basic (Expires: 2026-10-15)", json.dumps(["pan_card.pdf"])),
@@ -290,7 +348,7 @@ def seed_team_db():
     ])
     
     cursor.executemany("""
-    INSERT INTO travellers (user_id, name, email, trips_count, expenses_count, bookings_count, feedback_rating, ai_usage_tokens)
+    INSERT IGNORE INTO travellers (user_id, name, email, trips_count, expenses_count, bookings_count, feedback_rating, ai_usage_tokens)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?)""", [
         ("TRV-1001", "Yugal Kishor", "yugal@example.com", 3, 5, 2, 4.8, 12050),
         ("TRV-1002", "Rohan Sharma", "rohan@example.com", 1, 0, 1, 5.0, 4200),
@@ -298,15 +356,15 @@ def seed_team_db():
     ])
     
     cursor.executemany("""
-    INSERT INTO payments (agency_id, amount, date, status, description)
+    INSERT IGNORE INTO payments (agency_id, amount, date, status, description)
     VALUES (?, ?, ?, ?, ?)""", [
-        (1, 15000.0, "2026-06-01", "Completed", "Premium monthly subscription renewal"),
-        (2, 5000.0, "2026-06-15", "Completed", "Basic monthly subscription renewal"),
-        (1, 15000.0, "2026-07-01", "Completed", "Premium monthly subscription renewal")
+        ("AGY-1001", 15000.0, "2026-06-01", "Completed", "Premium monthly subscription renewal"),
+        ("AGY-1002", 5000.0, "2026-06-15", "Completed", "Basic monthly subscription renewal"),
+        ("AGY-1001", 15000.0, "2026-07-01", "Completed", "Premium monthly subscription renewal")
     ])
     
     cursor.executemany("""
-    INSERT INTO subscriptions (name, cost, type, features)
+    INSERT IGNORE INTO subscriptions (name, cost, type, features)
     VALUES (?, ?, ?, ?)""", [
         ("Basic Tier", 5000.0, "Monthly", "Up to 10 vehicles, 10 drivers, standard reporting"),
         ("Premium Tier", 15000.0, "Monthly", "Unlimited fleet, AI Itinerary generator, OCR automation, custom portal branding"),
@@ -314,14 +372,14 @@ def seed_team_db():
     ])
 
     cursor.executemany("""
-    INSERT INTO support_tickets (agency_id, traveller_id, subject, description, status, priority, date)
+    INSERT IGNORE INTO support_tickets (agency_id, traveller_id, subject, description, status, priority, date)
     VALUES (?, ?, ?, ?, ?, ?, ?)""", [
         (1, None, "OCR Extraction Failed", "Receipt for trip #2 from HP fuel pump had blurry image, OCR couldn't extract vendor.", "Open", "Medium", "2026-07-04"),
         (None, 1, "App logout issue", "Getting automatically logged out from User Portal on page refresh.", "Closed", "Low", "2026-06-28")
     ])
 
     cursor.executemany("""
-    INSERT INTO logs (timestamp, level, message)
+    INSERT IGNORE INTO logs (timestamp, level, message)
     VALUES (?, ?, ?)""", [
         ("2026-07-05 12:00:00", "INFO", "Database seed completed successfully."),
         ("2026-07-05 12:15:30", "WARNING", "SMS Gateway response latency exceeded threshold (3.2s)."),
@@ -335,7 +393,7 @@ def seed_team_db():
 def main():
     try:
         initialize_mysql_databases()
-        print("\nAll Enterprise MySQL database tables, compatibility views, and master seed data initialized successfully!")
+        print("\nAll Enterprise database tables, compatibility views, and master seed data initialized successfully!")
     except Exception as e:
         print(f"\nDatabase initialization failed: {e}")
         raise e

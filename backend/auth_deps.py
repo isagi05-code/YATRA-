@@ -2,7 +2,7 @@ from fastapi import Depends, HTTPException, status, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from typing import Optional, List, Dict, Any
 from auth_utils import decode_access_token
-from mysql_helper import get_db_conn as get_mysql_conn
+from core.database import get_db_conn as get_mysql_conn
 
 security = HTTPBearer(auto_error=False)
 

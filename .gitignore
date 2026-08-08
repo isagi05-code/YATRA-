@@ -1,27 +1,18 @@
-# Python bytecode cache
-**/__pycache__/
-*.pyc
-*.pyo
-*.pyd
-
-# Database files
-backend/data/
-*.db
-*.sqlite
-*.sqlite3
-
-# Node modules and build output
-node_modules/
-frontend/node_modules/
-dist/
-frontend/dist/
-
-# IDE files and OS files
-.idea/
-.vscode/
-Thumbs.db
-Desktop.ini
-
-# Environment variables
+# Local environments and secrets
+.venv/
+backend/.env
 .env
-.env.*
+
+# JavaScript
+frontend/node_modules/
+frontend/dist/
+node_modules/
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Editors and operating systems
+.DS_Store
+.vscode/

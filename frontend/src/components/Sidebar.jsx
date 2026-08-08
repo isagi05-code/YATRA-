@@ -59,89 +59,112 @@ export default function Sidebar({ portal, activePage, onNavigate, onLogout }) {
   const userId = user?.agency_id || user?.user_id || user?.id || agencyId || (portal === 'agency' ? 'AGY-1001' : portal === 'user' ? 'TRV-1001' : 'ADM-1001');
   const initials = userName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() || 'YA';
 
-  return (
-    <aside className="sidebar">
-      {/* Brand Header */}
-      <div className="sidebar-logo">
-        <div className="sidebar-logo-icon" style={{ overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <img src="/yatralogo.jpg" alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+return (
+  <aside className="sidebar">
+
+    {/* Brand */}
+
+    <div className="sidebar-brand">
+
+      <div className="brand-logo">
+        <img
+          src="/yatralogo.jpg"
+          alt="Yatra"
+        />
+      </div>
+
+      <div className="brand-content">
+        <h2>Yatra</h2>
+
+        <span className="portal-chip">
+          {getPortalName()}
+        </span>
+      </div>
+
+    </div>
+
+    {/* Navigation */}
+
+    <nav className="sidebar-nav">
+
+      {navItems.map((item) => {
+
+        const Icon = Icons[item.icon] || Icons.HelpCircle;
+        const active = activePage === item.id;
+
+        return (
+
+          <button
+            key={item.id}
+            onClick={() => onNavigate(item.id)}
+            className={`nav-item ${active ? "active" : ""}`}
+          >
+
+            <div className="nav-icon-wrap">
+
+              <Icon size={19} />
+
+            </div>
+
+            <span className="nav-title">
+              {item.label}
+            </span>
+
+            {item.badge && (
+              <span className={`badge ${item.badgeClass || "blue"}`}>
+                {item.badge}
+              </span>
+            )}
+
+            {active && (
+              <Icons.ChevronRight size={16}/>
+            )}
+
+          </button>
+
+        );
+
+      })}
+
+    </nav>
+
+    {/* Footer */}
+
+    <div className="sidebar-profile">
+
+      <div className="profile-top">
+
+        <div className="avatar xl">
+          {initials}
         </div>
+
         <div>
-          <div className="sidebar-logo-text" style={{ fontFamily: "'Poppins', sans-serif", fontWeight: 800 }}>
-            Yatra
-          </div>
-          <div className="sidebar-logo-sub" style={{ fontSize: '10px', opacity: 0.6 }}>
-            {getPortalName()}
-          </div>
+
+          <h4>{userName}</h4>
+
+          <p>{userId}</p>
+
         </div>
+
       </div>
 
-      {/* Navigation List */}
-      <nav className="sidebar-nav" style={{ flex: 1, padding: '20px 12px' }}>
-        <ul style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-          {navItems.map((item) => {
-            const IconComponent = Icons[item.icon] || Icons.HelpCircle;
-            const isActive = activePage === item.id;
-            return (
-              <li key={item.id}>
-                <button
-                  onClick={() => onNavigate(item.id)}
-                  className={`nav-item ${isActive ? 'active' : ''}`}
-                  style={{
-                    width: '100%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '12px',
-                    padding: '10px 14px',
-                    borderRadius: '10px',
-                    fontSize: '13px',
-                    fontWeight: isActive ? 600 : 500,
-                    color: isActive ? 'var(--primary)' : 'var(--text-secondary)',
-                    background: isActive ? 'var(--primary-10)' : 'transparent',
-                    textAlign: 'left',
-                    transition: 'all 0.2s',
-                    border: 'none',
-                    cursor: 'pointer'
-                  }}
-                >
-                  <IconComponent size={18} style={{ strokeWidth: isActive ? 2.2 : 1.8 }} />
-                  <span style={{ flex: 1 }}>{item.label}</span>
-                  {item.badge && (
-                    <span className={`badge ${item.badgeClass || 'blue'}`} style={{ fontSize: '10px', padding: '2px 8px' }}>
-                      {item.badge}
-                    </span>
-                  )}
-                </button>
-              </li>
-            );
-          })}
-        </ul>
-      </nav>
+      <button
+        className="btn btn-primary sidebar-settings"
+      >
+        <Icons.Settings size={16}/>
+        Settings
+      </button>
 
-      {/* User Footer */}
-      <div className="sidebar-footer" style={{ padding: '16px 20px', borderTop: '1px solid var(--border-light)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
-          <div className="avatar md" style={{ background: 'linear-gradient(135deg, var(--primary), var(--primary-light))', color: 'white', fontWeight: 700 }}>
-            {initials}
-          </div>
-          <div style={{ overflow: 'hidden', flex: 1 }}>
-            <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
-              {userName}
-            </div>
-            <div style={{ fontSize: '11px', color: 'var(--primary)', fontWeight: 700, fontFamily: 'monospace' }}>
-              ID: {userId}
-            </div>
-          </div>
-        </div>
-        <button
-          onClick={onLogout}
-          className="btn btn-outline"
-          style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '8px 12px', fontSize: '12px', borderRadius: '8px', cursor: 'pointer' }}
-        >
-          <Icons.LogOut size={14} />
-          Sign Out
-        </button>
-      </div>
-    </aside>
-  );
+      <button
+        onClick={onLogout}
+        className="btn btn-outline sidebar-logout"
+      >
+        <Icons.LogOut size={16}/>
+        Logout
+      </button>
+
+    </div>
+
+  </aside>
+);
 }
