@@ -1,7 +1,7 @@
 /* ============================================================
    YATRA — Global Design System
-   Minimalist · Professional · Three-Colour Palette
-   YInMn Blue #2E4CBC · Old Lace #FFF3E1 · Red #FA2D1A
+   Minimalist · Professional · Warm Red + Teal Palette
+   Warm Red #EF4444 · Warm White #FFFCF7 · Teal Green #14B8A6
    ============================================================ */
 
 /* ---- Google Fonts ---- */
@@ -10,35 +10,35 @@
 /* ---- CSS Variables ---- */
 :root {
   /* ── Brand palette ── */
-  --primary:        #2E4CBC;   /* YInMn Blue  */
-  --primary-dark:   #233899;
-  --primary-10:     rgba(46,76,188,0.08);
-  --primary-20:     rgba(46,76,188,0.16);
+  --primary:        #EF4444;   /* Warm Red */
+  --primary-dark:   #DC2626;
+  --primary-10:     rgba(239,68,68,0.08);
+  --primary-20:     rgba(239,68,68,0.16);
 
-  --bg:             #FFF3E1;   /* Old Lace    */
-  --bg-secondary:   #FFF9F2;
+  --bg:             #FFFCF7;   /* Warm White */
+  --bg-secondary:   #F7F3EC;
 
   --surface:        #FFFFFF;
-  --surface-hover:  #FDFAF5;
+  --surface-hover:  #FAF7F2;
 
-  --border:         #E8DCC8;
-  --border-light:   #F0E7D8;
+  --border:         #E7E0D5;
+  --border-light:   #F0EBE3;
 
-  --text-primary:   #18243A;
-  --text-secondary: #62708A;
-  --text-muted:     #8B94A2;
+  --text-primary:   #1F2937;
+  --text-secondary: #6B7280;
+  --text-muted:     #9CA3AF;
   --text-inverse:   #FFFFFF;
 
-  --danger:         #FA2D1A;   /* Red – danger only */
-  --danger-bg:      rgba(250,45,26,0.08);
-  --success:        #1F7A5C;
-  --success-bg:     rgba(31,122,92,0.09);
+  --danger:         #EF4444;   /* Warm Red – primary/danger */
+  --danger-bg:      rgba(239,68,68,0.08);
+  --success:        #14B8A6;
+  --success-bg:     rgba(20,184,166,0.09);
   --warning:        #9A6010;
   --warning-bg:     rgba(154,96,16,0.09);
 
   /* ── Sidebar ── */
   --sidebar-width:  252px;
-  --sidebar-bg:     #2E4CBC;
+  --sidebar-bg:     #EF4444;
   --sidebar-border: rgba(255,255,255,0.10);
 
   /* ── Spacing ── */
@@ -228,7 +228,7 @@ input, select, textarea { font-family: inherit; }
 .badge.green  { background: var(--success-bg); color: var(--success); }
 .badge.orange { background: var(--warning-bg); color: var(--warning); }
 .badge.red    { background: var(--danger-bg);  color: var(--danger); }
-.badge.success{ background: rgba(31,122,92,0.15); color: #1F7A5C; }
+.badge.success{ background: rgba(20,184,166,0.15); color: #14B8A6; }
 
 /* Sidebar profile / footer */
 .sidebar-profile {
@@ -462,9 +462,9 @@ input, select, textarea { font-family: inherit; }
 .btn-ghost     { background: transparent; color: var(--text-secondary); border-color: transparent; }
 .btn-ghost:hover { background: var(--bg); color: var(--text-primary); }
 .btn-danger    { background: var(--danger); color: #fff; border-color: var(--danger); }
-.btn-danger:hover { background: #d9220f; }
+.btn-danger:hover { background: #DC2626; }
 .btn-success   { background: var(--success); color: #fff; border-color: var(--success); }
-.btn-success:hover { background: #176b4f; }
+.btn-success:hover { background: #0F9F8F; }
 
 .btn-sm { padding: 5px 10px; font-size: var(--text-xs); }
 .btn-lg { padding: 10px var(--space-6); font-size: var(--text-base); }
