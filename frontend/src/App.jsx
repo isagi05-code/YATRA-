@@ -8,6 +8,7 @@ import TeamPortal from './portals/TeamPortal';
 import { AuthProvider, useAuth } from './context/AuthContext';
 
 function AppContent() {
+  const { logout } = useAuth();
   const [portal, setPortal] = useState('landing');
 
   // Navigation sub-page state for each portal
