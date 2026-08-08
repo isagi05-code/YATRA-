@@ -159,7 +159,7 @@ export default function LandingPortal({ onSelectRole }) {
       color: 'white',
       fontFamily: "'Inter', sans-serif"
     }}>
-      
+
       {/* Header Navigation */}
       <header style={{
         display: 'flex',
@@ -201,10 +201,10 @@ export default function LandingPortal({ onSelectRole }) {
         position: 'relative',
         zIndex: 5
       }}>
-        
+
         {/* Left Side Content & Interactive Login Card */}
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', maxWidth: '580px' }}>
-          
+
           {/* Subheading / Quote */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
             <span style={{ width: '18px', height: '1.5px', background: 'var(--primary)' }}></span>
@@ -239,9 +239,9 @@ export default function LandingPortal({ onSelectRole }) {
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                {activeSlide === 0 ? <Icons.Building2 size={20} color="var(--primary)" /> : 
-                 activeSlide === 1 ? <Icons.Users size={20} color="var(--success)" /> : 
-                 <Icons.Shield size={20} color="var(--info)" />}
+                {activeSlide === 0 ? <Icons.Building2 size={20} color="var(--primary)" /> :
+                  activeSlide === 1 ? <Icons.Users size={20} color="var(--success)" /> :
+                    <Icons.Shield size={20} color="var(--info)" />}
                 <span style={{ fontSize: '13px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                   {slides[activeSlide].id} Portal Gateway
                 </span>
@@ -261,14 +261,14 @@ export default function LandingPortal({ onSelectRole }) {
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '12px', marginTop: '4px' }}>
-              <button 
-                onClick={() => handleOpenAuth('login')} 
-                className="btn btn-primary" 
-                style={{ 
-                  padding: '12px', 
-                  borderRadius: '10px', 
-                  fontSize: '13px', 
-                  fontWeight: 700, 
+              <button
+                onClick={() => handleOpenAuth('login')}
+                className="btn btn-primary"
+                style={{
+                  padding: '12px',
+                  borderRadius: '10px',
+                  fontSize: '13px',
+                  fontWeight: 700,
                   background: activeSlide === 0 ? 'var(--primary)' : activeSlide === 1 ? 'var(--success)' : 'var(--info)',
                   borderColor: activeSlide === 0 ? 'var(--primary)' : activeSlide === 1 ? 'var(--success)' : 'var(--info)',
                   color: '#080C14'
@@ -276,14 +276,14 @@ export default function LandingPortal({ onSelectRole }) {
               >
                 Sign in to Dashboard
               </button>
-              <button 
-                onClick={() => handleOpenAuth('register')} 
-                className="btn btn-outline" 
-                style={{ 
-                  padding: '12px', 
-                  borderRadius: '10px', 
-                  fontSize: '13px', 
-                  fontWeight: 600, 
+              <button
+                onClick={() => handleOpenAuth('register')}
+                className="btn btn-outline"
+                style={{
+                  padding: '12px',
+                  borderRadius: '10px',
+                  fontSize: '13px',
+                  fontWeight: 600,
                   border: '1px solid rgba(255,255,255,0.15)',
                   background: 'transparent',
                   color: 'white'
@@ -306,8 +306,8 @@ export default function LandingPortal({ onSelectRole }) {
           paddingRight: '40px'
         }}>
           {slides[activeSlide].title.split(' ').map((word, wIdx) => (
-            <div 
-              key={wIdx} 
+            <div
+              key={wIdx}
               style={{
                 fontFamily: "'Poppins', sans-serif",
                 fontSize: '90px',
@@ -343,13 +343,13 @@ export default function LandingPortal({ onSelectRole }) {
         {/* Social Icons - Bottom Left */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
           <a href="#" style={{ color: 'rgba(255,255,255,0.5)', transition: 'color 0.3s', display: 'flex' }}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" /></svg>
           </a>
           <a href="#" style={{ color: 'rgba(255,255,255,0.5)', transition: 'color 0.3s', display: 'flex' }}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 4s-.7 2.1-2 3.4c1.6 10-9.4 17.3-18 11.6 2.2.1 4.4-.6 6-2C3 15.5.5 9.6 3 5c2.2 2.6 5.6 4.1 9 4-.9-4.2 4-6.6 7-3.8 1.1 0 3-1.2 3-1.2z"/></svg>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 4s-.7 2.1-2 3.4c1.6 10-9.4 17.3-18 11.6 2.2.1 4.4-.6 6-2C3 15.5.5 9.6 3 5c2.2 2.6 5.6 4.1 9 4-.9-4.2 4-6.6 7-3.8 1.1 0 3-1.2 3-1.2z" /></svg>
           </a>
           <a href="#" style={{ color: 'rgba(255,255,255,0.5)', transition: 'color 0.3s', display: 'flex' }}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5" /><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" /><line x1="17.5" y1="6.5" x2="17.51" y2="6.5" /></svg>
           </a>
         </div>
 
@@ -376,7 +376,7 @@ export default function LandingPortal({ onSelectRole }) {
 
           {/* Nav Arrows */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <button 
+            <button
               onClick={handlePrev}
               style={{ width: '36px', height: '36px', borderRadius: '50%', border: '1px solid rgba(255,255,255,0.15)', background: 'rgba(255,255,255,0.03)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all 0.3s' }}
               onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; }}
@@ -384,7 +384,7 @@ export default function LandingPortal({ onSelectRole }) {
             >
               <Icons.ChevronLeft size={16} />
             </button>
-            <button 
+            <button
               onClick={handleNext}
               style={{ width: '36px', height: '36px', borderRadius: '50%', border: '1px solid rgba(255,255,255,0.15)', background: 'rgba(255,255,255,0.03)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all 0.3s' }}
               onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; }}
@@ -428,7 +428,7 @@ export default function LandingPortal({ onSelectRole }) {
             gap: '24px'
           }}>
             {/* Close Button */}
-            <button 
+            <button
               onClick={() => setShowModal(false)}
               style={{
                 position: 'absolute',
@@ -553,7 +553,7 @@ export default function LandingPortal({ onSelectRole }) {
                   </p>
                 </div>
 
-                <button 
+                <button
                   onClick={() => {
                     setShowModal(false);
                     onSelectRole(getActiveRole());
@@ -578,8 +578,8 @@ export default function LandingPortal({ onSelectRole }) {
                 {modalMode === 'register' && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                     <label style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', color: 'rgba(255,255,255,0.6)' }}>Full Name</label>
-                    <input 
-                      type="text" 
+                    <input
+                      type="text"
                       required
                       placeholder="e.g. Yugal Kishor"
                       value={name}
@@ -600,8 +600,8 @@ export default function LandingPortal({ onSelectRole }) {
                 {modalMode === 'login' ? (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                     <label style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', color: 'rgba(255,255,255,0.6)' }}>Email Address or User ID / Agency ID</label>
-                    <input 
-                      type="text" 
+                    <input
+                      type="text"
                       required
                       placeholder={activeSlide === 0 ? "e.g. AGY-1001 or ceo@yatratravels.com" : "e.g. TRV-1001 or yugal@example.com"}
                       value={email}
@@ -621,8 +621,8 @@ export default function LandingPortal({ onSelectRole }) {
                   <>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                       <label style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', color: 'rgba(255,255,255,0.6)' }}>Email Address</label>
-                      <input 
-                        type="email" 
+                      <input
+                        type="email"
                         required
                         placeholder="e.g. yugal@example.com"
                         value={email}
@@ -641,8 +641,8 @@ export default function LandingPortal({ onSelectRole }) {
 
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                       <label style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', color: 'rgba(255,255,255,0.6)' }}>Phone Number (Optional)</label>
-                      <input 
-                        type="tel" 
+                      <input
+                        type="tel"
                         placeholder="e.g. +91 99999 11111"
                         value={phone}
                         onChange={(e) => setPhone(e.target.value)}
@@ -660,8 +660,8 @@ export default function LandingPortal({ onSelectRole }) {
                   </>
                 )}
 
-                <button 
-                  type="submit" 
+                <button
+                  type="submit"
                   disabled={loading}
                   style={{
                     background: activeSlide === 0 ? 'var(--primary)' : activeSlide === 1 ? 'var(--success)' : 'var(--info)',
@@ -684,8 +684,8 @@ export default function LandingPortal({ onSelectRole }) {
               <form onSubmit={handleVerifyOtp} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'center' }}>
                   <label style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', color: 'rgba(255,255,255,0.6)' }}>Enter Verification Code</label>
-                  <input 
-                    type="text" 
+                  <input
+                    type="text"
                     maxLength={6}
                     required
                     placeholder="******"
@@ -709,8 +709,8 @@ export default function LandingPortal({ onSelectRole }) {
                 </div>
 
                 <div style={{ display: 'flex', gap: '12px' }}>
-                  <button 
-                    type="button" 
+                  <button
+                    type="button"
                     onClick={() => { setOtpSent(false); setOtp(''); }}
                     style={{
                       flex: 1,
@@ -726,7 +726,7 @@ export default function LandingPortal({ onSelectRole }) {
                   >
                     Back
                   </button>
-                  <button 
+                  <button
                     type="submit"
                     disabled={loading}
                     style={{
