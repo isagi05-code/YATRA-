@@ -27,6 +27,21 @@ from services.notifications import send_otp_email, normalize_phone
 router = APIRouter(prefix="/auth", tags=["Authentication & Authorization"])
 security = HTTPBearer(auto_error=False)
 
+# Startup confirmation — visible in uvicorn logs
+_gcid = os.environ.get("GOOGLE_CLIENT_ID", "")
+print(f"[AUTH STARTUP] GOOGLE_CLIENT_ID = {'SET (' + _gcid[:20] + '...)' if _gcid else 'NOT SET — will use dev fallback'}")
+
+
+@router.get("/debug-env")
+async def debug_env():
+    """Dev-only: confirm what env vars the worker process has."""
+    gcid = os.environ.get("GOOGLE_CLIENT_ID", "")
+    return {
+        "GOOGLE_CLIENT_ID_set": bool(gcid),
+        "GOOGLE_CLIENT_ID_preview": gcid[:20] + "..." if gcid else "NOT SET",
+        "mode": "production" if gcid else "dev_fallback"
+    }
+
 
 # Schema for Google OAuth
 class GoogleLoginRequest(BaseModel):
