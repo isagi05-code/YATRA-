@@ -8,6 +8,7 @@ import TeamPortal from './portals/TeamPortal';
 import { AuthProvider, useAuth } from './context/AuthContext';
 
 function AppContent() {
+  const { logout } = useAuth();
   const [portal, setPortal] = useState('landing');
 
   // Navigation sub-page state for each portal
@@ -114,7 +115,7 @@ function AppContent() {
         onLogout={handleLogout}
       />
 
-      <main className="main-content" style={{ marginLeft: 'var(--sidebar-width)', flex: 1, minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+      <main className="main-content">
         {/* Dynamic Header */}
         <Header
           title={headerMeta.title}
@@ -123,7 +124,7 @@ function AppContent() {
           onPortalSwitch={handlePortalSwitch}
         />
 
-        <div className="page-content" style={{ padding: '24px', flex: 1, background: 'var(--bg)' }}>
+        <div className="page-content">
           {portal === 'agency' && (
             <AgencyPortal page={agencyPage} onNavigate={handleNavigate} />
           )}

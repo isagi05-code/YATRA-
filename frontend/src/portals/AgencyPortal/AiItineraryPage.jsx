@@ -1,18 +1,150 @@
-import React, { useState } from 'react';
-import * as Icons from 'lucide-react';
+import { useState } from 'react';
+import { MapPin, RotateCcw, Sparkles, Clock, Lightbulb, Calendar } from 'lucide-react';
 import { api } from '../../services/api';
+import { Button, Card, EmptyState, PageHeader, PageLayout } from '../../components/ui';
 
+/* ── Quick-fill templates ─────────────────────────────────── */
+const TEMPLATES = [
+  { destination: 'Kedarnath', days: 7,  budget: 50000, name: 'Char Dham Yatra',   meta: 'Religious · Uttarakhand', emoji: '🕉️'  },
+  { destination: 'Goa',       days: 5,  budget: 30000, name: 'Goa Beach Retreat', meta: 'Leisure · West India',    emoji: '🌊'  },
+  { destination: 'Rajasthan', days: 8,  budget: 80000, name: 'Royal Rajasthan',   meta: 'Heritage · Rajasthan',   emoji: '🏰'  },
+  { destination: 'Kerala',    days: 6,  budget: 60000, name: 'Kerala Backwaters', meta: 'Nature · South India',   emoji: '🌴'  },
+  { destination: 'Ladakh',    days: 9,  budget: 90000, name: 'Ladakh Adventure',  meta: 'Adventure · J&K',        emoji: '🏔️'  },
+  { destination: 'Varanasi',  days: 4,  budget: 25000, name: 'Ganga Ghats',       meta: 'Spiritual · UP',         emoji: '🪔'  },
+];
+
+/* ── Time-of-day indicator dots ───────────────────────────── */
+const TIME_COLORS = { Morning: '#f59e0b', Afternoon: '#3b82f6', Evening: '#8b5cf6' };
+
+/* ── Single activity row ──────────────────────────────────── */
+function ActivityRow({ activity }) {
+  const dot = TIME_COLORS[activity.time] ?? '#94a3b8';
+  return (
+    <div className="ait-activity">
+      <span className="ait-activity__dot" style={{ background: dot }} />
+      <div className="ait-activity__body">
+        <div className="ait-activity__header">
+          <time className="ait-activity__time">{activity.time}</time>
+          <strong className="ait-activity__name">{activity.name}</strong>
+        </div>
+        {activity.description && (
+          <p className="ait-activity__desc">{activity.description}</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ── One day card ─────────────────────────────────────────── */
+function DayCard({ day, index }) {
+  return (
+    <Card className="ait-day-card" padded={false}>
+      <header className="ait-day-card__header">
+        <div>
+          <span className="ait-day-card__label">Day {day.day ?? index + 1}</span>
+          <h2 className="ait-day-card__title">{day.title ?? `Day ${index + 1}`}</h2>
+        </div>
+        {day.estimated_cost != null && (
+          <span className="ait-day-card__cost">
+            ₹{Number(day.estimated_cost).toLocaleString('en-IN')}
+          </span>
+        )}
+      </header>
+      <div className="ait-day-card__body">
+        {(day.activities ?? []).map((act, i) => (
+          <ActivityRow key={i} activity={act} />
+        ))}
+        {/* Fallback: plain description when activities array is absent */}
+        {!day.activities?.length && day.description && (
+          <p className="ait-day-card__fallback">{day.description}</p>
+        )}
+      </div>
+    </Card>
+  );
+}
+
+/* ── Budget sidebar ───────────────────────────────────────── */
+function BudgetSidebar({ result }) {
+  const total = result.estimated_budget ?? result.total_budget ?? 0;
+  const breakdown = result.budget_breakdown ?? {};
+  const tips = result.tips ? result.tips.split(';').map(t => t.trim()).filter(Boolean) : [];
+
+  return (
+    <aside className="ait-sidebar">
+      {/* Total */}
+      <Card className="ait-budget-card">
+        <small className="ait-budget-card__label">AI budget estimate</small>
+        <p className="ait-budget-card__total">₹{Number(total).toLocaleString('en-IN')}</p>
+        {Object.entries(breakdown).map(([k, v]) => (
+          <div className="ait-budget-card__row" key={k}>
+            <span>{k}</span>
+            <strong>₹{Number(v).toLocaleString('en-IN')}</strong>
+          </div>
+        ))}
+      </Card>
+
+      {/* Meta */}
+      {result.best_time_to_visit && (
+        <Card className="ait-meta-card">
+          <div className="ait-meta-card__item">
+            <Calendar size={14} />
+            <span><b>Best time:</b> {result.best_time_to_visit}</span>
+          </div>
+        </Card>
+      )}
+
+      {/* Tips */}
+      {tips.length > 0 && (
+        <Card className="ait-tips-card">
+          <div className="ait-tips-card__heading">
+            <Lightbulb size={14} />
+            <strong>Travel tips</strong>
+          </div>
+          <ul className="ait-tips-card__list">
+            {tips.map((tip, i) => <li key={i}>{tip}</li>)}
+          </ul>
+        </Card>
+      )}
+    </aside>
+  );
+}
+
+/* ── Loading skeleton ─────────────────────────────────────── */
+function LoadingSkeleton() {
+  return (
+    <div className="ait-skeleton-wrap">
+      {[1, 2, 3].map(n => (
+        <div key={n} className="ait-skeleton-card">
+          <div className="ait-skeleton__header" />
+          <div className="ait-skeleton__line" />
+          <div className="ait-skeleton__line ait-skeleton__line--short" />
+          <div className="ait-skeleton__line" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* ── Main page ────────────────────────────────────────────── */
 export default function AiItineraryPage() {
   const [destination, setDestination] = useState('');
-  const [days, setDays] = useState('7');
-  const [budget, setBudget] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState(null);
-  const [error, setError] = useState('');
+  const [days, setDays]               = useState('7');
+  const [budget, setBudget]           = useState('');
+  const [loading, setLoading]         = useState(false);
+  const [result, setResult]           = useState(null);
+  const [error, setError]             = useState('');
 
-  const handleGenerate = async () => {
+  const fill = (tpl) => {
+    setDestination(tpl.destination);
+    setDays(String(tpl.days));
+    setBudget(String(tpl.budget));
+    setResult(null);
+    setError('');
+  };
+
+  const generate = async () => {
     if (!destination.trim()) {
-      setError('Please enter a destination.');
+      setError('Enter a destination to generate an itinerary.');
       return;
     }
     setError('');
@@ -21,8 +153,8 @@ export default function AiItineraryPage() {
     try {
       const data = await api.agency.generateItinerary(
         destination.trim(),
-        parseInt(days) || 7,
-        parseFloat(budget) || 0
+        Number.parseInt(days) || 7,
+        Number.parseFloat(budget) || 0
       );
       setResult(data);
     } catch (err) {
@@ -32,218 +164,99 @@ export default function AiItineraryPage() {
     }
   };
 
-  const setSuggestedPrompt = (dest, d, b) => {
-    setDestination(dest);
-    setDays(String(d));
-    setBudget(String(b));
-    setResult(null);
-    setError('');
-  };
+  const days_list = result?.itinerary ?? [];
 
   return (
-    <div className="fade-in">
-      {/* AI Hero */}
-      <div className="ai-hero" style={{
-        background: 'linear-gradient(135deg, #0F172A 0%, #1e3a5f 40%, #312e81 100%)',
-        borderRadius: '20px',
-        padding: '36px 40px',
-        marginBottom: '28px',
-        position: 'relative',
-        overflow: 'hidden',
-        color: 'white'
-      }}>
-        <div style={{ position: 'relative', zIndex: 1 }}>
-          <div className="ai-hero-label" style={{
-            display: 'inline-flex', alignItems: 'center', gap: '8px',
-            background: 'rgba(99,102,241,0.2)',
-            border: '1px solid rgba(99,102,241,0.3)',
-            color: '#A5B4FC',
-            fontSize: '12px', fontWeight: 700,
-            padding: '5px 14px', borderRadius: '999px',
-            marginBottom: '20px'
-          }}>
-            <Icons.Sparkles size={12} /> Yatra · Powered by Advanced Intelligence
-          </div>
-          <h1 style={{ fontFamily: "'Poppins', sans-serif", fontSize: '32px', fontWeight: 800, color: 'white', lineHeight: 1.15, marginBottom: '12px', letterSpacing: '-1px' }}>
-            Plan Your Perfect Trip with <span style={{ background: 'linear-gradient(90deg, #60A5FA, #A5B4FC, #F0ABFC)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>AI Precision</span>
-          </h1>
-          <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '14px', lineHeight: 1.6, marginBottom: '28px', maxWidth: '600px' }}>
-            Enter your destination, trip duration, and budget. Our AI will create a complete day-by-day itinerary.
-          </p>
+    <PageLayout>
 
-          {/* Input Fields */}
-          <div className="prompt-box" style={{
-            background: 'rgba(255,255,255,0.07)',
-            border: '1.5px solid rgba(255,255,255,0.15)',
-            borderRadius: '16px',
-            padding: '20px',
-            backdropFilter: 'blur(8px)'
-          }}>
-            {error && (
-              <div style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.4)', color: '#FCA5A5', padding: '10px 14px', borderRadius: '8px', fontSize: '13px', marginBottom: '14px' }}>
-                {error}
-              </div>
-            )}
-
-            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: '12px', marginBottom: '14px' }}>
-              <div>
-                <label style={{ fontSize: '11px', color: 'rgba(255,255,255,0.6)', display: 'block', marginBottom: '6px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Destination *</label>
-                <input
-                  type="text"
-                  value={destination}
-                  onChange={(e) => setDestination(e.target.value)}
-                  placeholder="e.g. Kedarnath, Rajasthan, Goa..."
-                  style={{ width: '100%', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '8px', padding: '9px 12px', color: 'white', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }}
-                />
-              </div>
-              <div>
-                <label style={{ fontSize: '11px', color: 'rgba(255,255,255,0.6)', display: 'block', marginBottom: '6px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Duration (Days)</label>
-                <input
-                  type="number"
-                  min="1" max="30"
-                  value={days}
-                  onChange={(e) => setDays(e.target.value)}
-                  style={{ width: '100%', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '8px', padding: '9px 12px', color: 'white', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }}
-                />
-              </div>
-              <div>
-                <label style={{ fontSize: '11px', color: 'rgba(255,255,255,0.6)', display: 'block', marginBottom: '6px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Budget (₹)</label>
-                <input
-                  type="number"
-                  min="0"
-                  value={budget}
-                  onChange={(e) => setBudget(e.target.value)}
-                  placeholder="e.g. 50000"
-                  style={{ width: '100%', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '8px', padding: '9px 12px', color: 'white', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }}
-                />
-              </div>
-            </div>
-
-            <div className="prompt-actions" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '12px', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
-              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                <span onClick={() => setSuggestedPrompt('Kedarnath', 7, 50000)} className="prompt-chip" style={{ background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.8)', fontSize: '11px', padding: '4px 10px', borderRadius: '999px', cursor: 'pointer' }}>🕉️ Kedarnath</span>
-                <span onClick={() => setSuggestedPrompt('Goa', 5, 30000)} className="prompt-chip" style={{ background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.8)', fontSize: '11px', padding: '4px 10px', borderRadius: '999px', cursor: 'pointer' }}>🏖️ Goa Beach</span>
-                <span onClick={() => setSuggestedPrompt('Rajasthan', 8, 80000)} className="prompt-chip" style={{ background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.8)', fontSize: '11px', padding: '4px 10px', borderRadius: '999px', cursor: 'pointer' }}>🏰 Rajasthan</span>
-              </div>
-              <button
-                onClick={handleGenerate}
-                disabled={loading}
-                className="generate-btn"
-                style={{
-                  background: loading ? 'rgba(99,102,241,0.5)' : 'linear-gradient(135deg, #6366F1, #8B5CF6)',
-                  color: 'white', border: 'none', padding: '10px 20px', borderRadius: '10px',
-                  fontSize: '13px', fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer',
-                  display: 'flex', alignItems: 'center', gap: '6px'
-                }}
-              >
-                {loading ? <Icons.Loader size={14} className="animate-spin" /> : <Icons.Sparkles size={14} />}
-                {loading ? 'Generating...' : 'Generate Itinerary'}
-              </button>
-            </div>
-          </div>
+      {/* ── Hero input ── */}
+      <section className="ait-hero">
+        <PageHeader
+          eyebrow="Yatra Intelligence"
+          title="Build a thoughtful itinerary in moments."
+          description="Enter a destination, trip length, and budget — Yatra AI creates a day-wise travel plan."
+        />
+        <div className="ait-form">
+          {error && <p className="ait-form__error">{error}</p>}
+          <label className="ait-form__field">
+            Destination
+            <input
+              value={destination}
+              onChange={e => setDestination(e.target.value)}
+              placeholder="Kedarnath, Rajasthan, Goa…"
+              onKeyDown={e => e.key === 'Enter' && generate()}
+            />
+          </label>
+          <label className="ait-form__field">
+            Days
+            <input
+              type="number" min="1" max="30"
+              value={days}
+              onChange={e => setDays(e.target.value)}
+            />
+          </label>
+          <label className="ait-form__field">
+            Budget (₹)
+            <input
+              type="number" min="0"
+              value={budget}
+              onChange={e => setBudget(e.target.value)}
+              placeholder="50,000"
+            />
+          </label>
+          <Button icon={Sparkles} onClick={generate} disabled={loading}>
+            {loading ? 'Generating…' : 'Generate itinerary'}
+          </Button>
         </div>
-      </div>
+      </section>
 
-      {/* Template Cards — shown when no result yet */}
+      {/* ── Templates ── */}
       {!result && !loading && (
-        <div className="fade-in">
-          <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '12px' }}>Popular Templates</div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
-            <div onClick={() => setSuggestedPrompt('Kedarnath', 7, 50000)} className="card card-padded" style={{ cursor: 'pointer' }}>
-              <div style={{ fontSize: '24px', marginBottom: '8px' }}>🕉️</div>
-              <h4 style={{ fontSize: '13px', fontWeight: 700 }}>Char Dham Yatra</h4>
-              <p style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '2px' }}>7-10 days · Religious · Uttarakhand</p>
-            </div>
-            <div onClick={() => setSuggestedPrompt('Goa', 5, 30000)} className="card card-padded" style={{ cursor: 'pointer' }}>
-              <div style={{ fontSize: '24px', marginBottom: '8px' }}>🌊</div>
-              <h4 style={{ fontSize: '13px', fontWeight: 700 }}>Goa Beach Retreat</h4>
-              <p style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '2px' }}>4-6 days · Leisure · West India</p>
-            </div>
-            <div onClick={() => setSuggestedPrompt('Rajasthan', 8, 80000)} className="card card-padded" style={{ cursor: 'pointer' }}>
-              <div style={{ fontSize: '24px', marginBottom: '8px' }}>🏰</div>
-              <h4 style={{ fontSize: '13px', fontWeight: 700 }}>Royal Rajasthan</h4>
-              <p style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '2px' }}>7-9 days · Heritage · Rajasthan</p>
-            </div>
+        <>
+          <PageHeader title="Start with a popular route" />
+          <div className="agency-card-grid">
+            {TEMPLATES.map(tpl => (
+              <Card key={tpl.destination} className="agency-template-card" onClick={() => fill(tpl)}>
+                <span>{tpl.emoji}</span>
+                <h2>{tpl.name}</h2>
+                <p>{tpl.meta} · {tpl.days} days</p>
+              </Card>
+            ))}
           </div>
-        </div>
+        </>
       )}
 
-      {/* Real AI Result */}
+      {/* ── Loading ── */}
+      {loading && <LoadingSkeleton />}
+
+      {/* ── Result ── */}
       {result && (
-        <div className="fade-in" style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '20px', marginTop: '20px' }}>
-          {/* Day-wise itinerary */}
-          <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-              <h3 style={{ fontSize: '16px', fontWeight: 700 }}>
-                {result.destination} — {result.days}-Day Itinerary
-              </h3>
-              <button onClick={() => setResult(null)} className="btn btn-outline btn-sm">New Plan</button>
-            </div>
-
-            {(result.itinerary || []).length === 0 ? (
-              <div className="card card-padded" style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
-                <Icons.MapPin size={32} style={{ margin: '0 auto 12px', opacity: 0.3 }} />
-                <p style={{ fontSize: '13px' }}>No itinerary details returned. Try a different destination.</p>
+        <div className="ait-result-grid">
+          {/* Left: day cards */}
+          <section>
+            <div className="ait-result-header">
+              <div>
+                <PageHeader
+                  title={`${result.destination ?? destination} · ${result.days ?? days}-day itinerary`}
+                />
+                {result.summary && <p className="ait-result-summary">{result.summary}</p>}
               </div>
-            ) : (
-              (result.itinerary || []).map((day, idx) => (
-                <div key={idx} className="day-card" style={{ border: '1px solid var(--border)', borderRadius: '12px', background: 'white', overflow: 'hidden', marginBottom: '16px' }}>
-                  <div className="day-header" style={{ padding: '14px 20px', background: 'var(--primary)', color: 'white', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div>
-                      <div style={{ fontSize: '11px', opacity: 0.8 }}>Day {day.day || idx + 1}</div>
-                      <div style={{ fontSize: '14px', fontWeight: 700 }}>{day.title || day.summary || 'Day Plan'}</div>
-                    </div>
-                    {day.estimated_cost != null && (
-                      <span style={{ background: 'rgba(255,255,255,0.2)', padding: '2px 8px', borderRadius: '4px', fontSize: '11px' }}>
-                        ₹{Number(day.estimated_cost).toLocaleString('en-IN')}
-                      </span>
-                    )}
-                  </div>
-                  <div style={{ padding: '16px 20px' }}>
-                    {(day.activities || []).map((act, ai) => (
-                      <div key={ai} style={{ display: 'flex', gap: '12px', marginBottom: '12px' }}>
-                        {act.time && (
-                          <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--primary)', minWidth: '64px' }}>{act.time}</div>
-                        )}
-                        <div>
-                          <div style={{ fontSize: '13px', fontWeight: 600 }}>{act.name || act.title}</div>
-                          {act.description && (
-                            <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>{act.description}</div>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                    {(!day.activities || day.activities.length === 0) && day.description && (
-                      <p style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.6 }}>{day.description}</p>
-                    )}
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-
-          {/* Budget Summary */}
-          <div style={{ position: 'sticky', top: '80px', alignSelf: 'start' }}>
-            <div className="card card-padded" style={{ background: 'linear-gradient(135deg, #0F172A, #1e3a5f)', color: 'white' }}>
-              <div style={{ fontSize: '11px', opacity: 0.6 }}>AI Budget Estimation</div>
-              <h2 style={{ fontSize: '28px', fontWeight: 800, color: '#60A5FA', fontFamily: "'Poppins', sans-serif", margin: '4px 0 16px' }}>
-                ₹{Number(result.estimated_budget || result.total_budget || 0).toLocaleString('en-IN')}
-              </h2>
-              {result.budget_breakdown && Object.entries(result.budget_breakdown).map(([key, val]) => (
-                <div key={key} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '8px' }}>
-                  <span style={{ opacity: 0.7, textTransform: 'capitalize' }}>{key}</span>
-                  <span style={{ fontWeight: 600 }}>₹{Number(val).toLocaleString('en-IN')}</span>
-                </div>
-              ))}
-              {result.notes && (
-                <p style={{ fontSize: '11px', marginTop: '16px', opacity: 0.6, lineHeight: 1.5, borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '12px' }}>
-                  {result.notes}
-                </p>
-              )}
+              <Button variant="outline" icon={RotateCcw} onClick={() => setResult(null)}>
+                New plan
+              </Button>
             </div>
-          </div>
+
+            {days_list.length > 0
+              ? days_list.map((day, i) => <DayCard key={i} day={day} index={i} />)
+              : <EmptyState icon={MapPin} title="No itinerary details returned" message="Try refining the destination or budget." />
+            }
+          </section>
+
+          {/* Right: budget + tips */}
+          <BudgetSidebar result={result} />
         </div>
       )}
-    </div>
+
+    </PageLayout>
   );
 }

@@ -26,14 +26,14 @@ print(f"  SMTP_PASSWORD= {'(set)' if os.getenv('SMTP_PASSWORD') else '(not set)'
 # Also test the email_helper directly
 from email_helper import send_otp_email
 print("\n[TEST] Triggering send_otp_email directly with OTP 123456...")
-result = send_otp_email("yugalchaudharixa@gmail.com", "123456")
+result = send_otp_email("urva546@gmail.com", "123456")
 print(f"[TEST] send_otp_email returned: {result}")
 
 # Also hit the live API
-print("\n[TEST] Calling live API at http://localhost:8003/auth/send-otp ...")
-body = json.dumps({"identifier": "test_user_yatra@gmail.com", "portal": "agency", "mode": "register", "name": "Yugal"}).encode()
+print("\n[TEST] Calling live API at http://127.0.0.1:8003/auth/send-otp ...")
+body = json.dumps({"identifier": "urva546@gmail.com", "portal": "agency", "mode": "register", "name": "Urva"}).encode()
 req = urllib.request.Request(
-    "http://localhost:8003/auth/send-otp",
+    "http://127.0.0.1:8003/auth/send-otp",
     data=body,
     headers={"Content-Type": "application/json"},
     method="POST"
@@ -48,14 +48,14 @@ try:
         if otp_val:
             print("\n[TEST] Testing verify-otp with the received OTP...")
             v_body = json.dumps({
-                "identifier": "test_user_yatra@gmail.com",
+                "identifier": "urva546@gmail.com",
                 "otp": otp_val,
                 "portal": "agency",
                 "mode": "register",
-                "name": "Yugal"
+                "name": "Urva"
             }).encode()
             v_req = urllib.request.Request(
-                "http://localhost:8003/auth/verify-otp",
+                "http://127.0.0.1:8003/auth/verify-otp",
                 data=v_body,
                 headers={"Content-Type": "application/json"},
                 method="POST"

@@ -5,7 +5,7 @@ import hashlib
 import bcrypt
 import jwt
 from typing import Optional, Dict, Any, List
-from mysql_helper import get_db_conn as get_mysql_conn
+from core.database import get_db_conn as get_mysql_conn
 
 # --- JWT Configuration ---
 SECRET_KEY = os.getenv("JWT_SECRET_KEY", "yatra_super_secret_jwt_access_key_2026_production")
@@ -149,7 +149,7 @@ def verify_and_consume_otp(identifier: str, otp_code: str) -> bool:
             conn.close()
             return False
             
-        otp_id = row["id"] if isinstance(row, dict) else row[0]
+        otp_id = row["id"] if hasattr(row, "__getitem__") else row[0]
         # Invalidate after successful verification
         cursor.execute("UPDATE otps SET is_used = 1 WHERE id = ?", (otp_id,))
         conn.close()

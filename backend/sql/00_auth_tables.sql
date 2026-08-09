@@ -17,6 +17,8 @@ CREATE TABLE IF NOT EXISTS users (
   name VARCHAR(255) NOT NULL,
   email VARCHAR(255) NOT NULL UNIQUE,
   phone VARCHAR(50) NULL,
+  google_id VARCHAR(255) NULL,
+  profile_picture VARCHAR(500) NULL,
   password_hash VARCHAR(255) NULL,
   otp_secret VARCHAR(100) NULL,
   token_version INT NOT NULL DEFAULT 1,
@@ -28,6 +30,7 @@ CREATE TABLE IF NOT EXISTS users (
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   INDEX idx_users_email (email),
   INDEX idx_users_phone (phone),
+  INDEX idx_users_google_id (google_id),
   INDEX idx_users_agency_type (agency_id, user_type)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 

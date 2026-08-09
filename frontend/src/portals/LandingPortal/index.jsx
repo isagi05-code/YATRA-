@@ -1,0 +1,126 @@
+import React, { useState } from 'react';
+import * as Icons from 'lucide-react';
+import { LoginModal } from './LoginModal';
+import { HeroSection } from './HeroSection';
+
+export default function LandingPortal({ onSelectRole }) {
+  const [activeSlide, setActiveSlide] = useState(0);
+  const [showModal, setShowModal]     = useState(false);
+
+  const slides = [
+    {
+      id: 'agency',
+      caption: 'Organize, manage, automate',
+      title: 'AGENCY PORTAL',
+      tagline: 'For Travel Agencies & Operators',
+      description: 'The complete software suite for planning tours, managing expenses, tracking drivers, and maintaining fleets with real-time compliance dashboards.',
+      badge: 'Best for Operators',
+      features: ['Tour & Itinerary builder', 'Driver dispatch & tracking', 'Receipt scanner & billing', 'Invoice & report generator']
+    },
+    {
+      id: 'traveller',
+      caption: 'Your personal trip companion',
+      title: 'TRAVELLER APP',
+      tagline: 'For Individual Travellers & Groups',
+      description: 'Your premium personal itinerary vault. Track trip timelines, log travel expenses, view active tours, and generate custom plans using our AI assistant.',
+      badge: 'Best for Tourists',
+      features: ['Interactive trip timeline', 'Expense ledger & charts', 'AI travel planner', 'Tour review system']
+    },
+    {
+      id: 'team',
+      caption: 'Super-admin platform overview',
+      title: 'TEAM ADMIN',
+      tagline: 'For Yatra Internal Control',
+      description: 'Supervisory dashboard designed for platform operations. Check microservice health, review global revenue trends, and manage active travel agencies.',
+      badge: 'Internal Operations',
+      features: ['Microservice health checks', 'Global revenue reporting', 'Agency verification portal', 'Platform-wide telemetry']
+    }
+  ];
+
+  const handleNext = () => setActiveSlide((p) => (p + 1) % slides.length);
+  const handlePrev = () => setActiveSlide((p) => (p - 1 + slides.length) % slides.length);
+
+  const getActiveRole = () => {
+    if (activeSlide === 0) return 'agency';
+    if (activeSlide === 1) return 'user';
+    return 'yatra-team';
+  };
+
+  return (
+    <div style={{
+      minHeight: '100vh',
+      width: '100%',
+      background: 'linear-gradient(rgba(8,12,20,0.45) 0%, rgba(8,12,20,0.85) 100%), url(/ocean_waves_bg.png) center center / cover no-repeat',
+      display: 'flex',
+      flexDirection: 'column',
+      position: 'relative',
+      overflow: 'hidden',
+      color: 'white',
+      fontFamily: "'Inter', sans-serif"
+    }}>
+      {/* Header */}
+      <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '24px 60px', zIndex: 10 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={{ width: '40px', height: '40px', borderRadius: '10px', overflow: 'hidden', border: '1.5px solid var(--primary)', background: 'rgba(255,255,255,0.05)' }}>
+            <img src="/yatralogo.jpg" alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          </div>
+          <span style={{ fontSize: '20px', fontWeight: 800, fontFamily: "'Poppins', sans-serif", letterSpacing: '-0.5px' }}>Yatra</span>
+        </div>
+
+        <nav style={{ display: 'flex', alignItems: 'center', gap: '32px' }}>
+          {['Agency', 'Traveller', 'Team Admin'].map((label, i) => (
+            <button
+              key={label}
+              onClick={() => setActiveSlide(i)}
+              style={{
+                background: 'none', border: 'none',
+                color: activeSlide === i ? 'var(--primary)' : 'rgba(255,255,255,0.6)',
+                fontSize: '13px', fontWeight: 700, letterSpacing: '1px',
+                textTransform: 'uppercase', cursor: 'pointer', transition: 'color 0.3s'
+              }}
+            >
+              {label}
+            </button>
+          ))}
+        </nav>
+
+        {/* Sign-In Button in header */}
+        <button
+          onClick={() => setShowModal(true)}
+          style={{
+            display: 'flex', alignItems: 'center', gap: '8px',
+            padding: '10px 20px', borderRadius: '10px',
+            background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)',
+            color: 'white', fontSize: '13px', fontWeight: 700, cursor: 'pointer',
+            backdropFilter: 'blur(10px)', transition: 'background 0.2s'
+          }}
+          onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.14)'}
+          onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.08)'}
+        >
+          <Icons.LogIn size={16} />
+          Sign In
+        </button>
+      </header>
+
+      {/* Hero Section */}
+      <HeroSection
+        slides={slides}
+        activeSlide={activeSlide}
+        handleNext={handleNext}
+        handlePrev={handlePrev}
+        handleOpenAuth={() => setShowModal(true)}
+        onSelectRole={onSelectRole}
+        getActiveRole={getActiveRole}
+      />
+
+      {/* Google Sign-In Modal */}
+      <LoginModal
+        showModal={showModal}
+        setShowModal={setShowModal}
+        onSelectRole={onSelectRole}
+        getActiveRole={getActiveRole}
+        activeSlide={activeSlide}
+      />
+    </div>
+  );
+}
