@@ -143,6 +143,12 @@ class MySQLConnectionWrapper:
 
 # ─── SQLite Fallback Wrappers ────────────────────────────────────────────────
 
+def _sqlite_curdate():
+    return datetime.date.today().strftime("%Y-%m-%d")
+
+def _sqlite_now():
+    return datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
 def _sqlite_date_format(val, fmt):
     if not val:
         return ""
@@ -156,6 +162,12 @@ def _sqlite_date_format(val, fmt):
             return dt.strftime('%b')
         elif fmt == '%Y-%m':
             return dt.strftime('%Y-%m')
+        elif fmt == '%Y':
+            return dt.strftime('%Y')
+        elif fmt == '%m':
+            return dt.strftime('%m')
+        elif fmt == '%d':
+            return dt.strftime('%d')
         return dt.strftime('%Y-%m-%d')
     except Exception:
         return str(val)
@@ -176,15 +188,39 @@ def _sqlite_month(val):
     except Exception:
         return 0
 
+def _sqlite_quarter(val):
+    if not val:
+        return 1
+    try:
+        val_str = str(val).strip()
+        m = int(val_str[5:7])
+        return (m - 1) // 3 + 1
+    except Exception:
+        return 1
+
+def _sqlite_concat(*args):
+    return "".join(str(a) if a is not None else "" for a in args)
+
+def _transform_sqlite_query(query: str) -> str:
+    query = re.sub(r"CURDATE\(\)", "DATE('now')", query, flags=re.IGNORECASE)
+    query = re.sub(r"NOW\(\)", "DATETIME('now')", query, flags=re.IGNORECASE)
+    query = re.sub(r"INSERT IGNORE INTO", "INSERT OR IGNORE INTO", query, flags=re.IGNORECASE)
+    query = query.replace("%s", "?")
+    # Handle DATE_SUB(date_expr, INTERVAL N DAY/MONTH/YEAR)
+    query = re.sub(
+        r"DATE_SUB\(\s*(CURDATE\(\)|DATE\('now'\)|[^\s,]+)\s*,\s*INTERVAL\s+(\d+)\s+(DAY|MONTH|YEAR)\s*\)",
+        lambda m: f"DATE({m.group(1)}, '-{m.group(2)} {m.group(3).lower()}')",
+        query,
+        flags=re.IGNORECASE
+    )
+    return query
+
 class SQLiteCursorWrapper:
     def __init__(self, cursor):
         self._cursor = cursor
 
     def execute(self, query, params=None):
-        query = re.sub(r"CURDATE\(\)", "DATE('now')", query, flags=re.IGNORECASE)
-        query = re.sub(r"NOW\(\)", "DATETIME('now')", query, flags=re.IGNORECASE)
-        query = re.sub(r"INSERT IGNORE INTO", "INSERT OR IGNORE INTO", query, flags=re.IGNORECASE)
-        query = re.sub(r"DATE_SUB\(CURDATE\(\),\s*INTERVAL\s*6\s*MONTH\)", "DATE('now', '-6 month')", query, flags=re.IGNORECASE)
+        query = _transform_sqlite_query(query)
         
         if params is not None and not isinstance(params, (list, tuple, dict)):
             params = (params,)
@@ -194,9 +230,7 @@ class SQLiteCursorWrapper:
         return self._cursor.execute(query, params)
 
     def executemany(self, query, seq_of_params):
-        query = re.sub(r"CURDATE\(\)", "DATE('now')", query, flags=re.IGNORECASE)
-        query = re.sub(r"NOW\(\)", "DATETIME('now')", query, flags=re.IGNORECASE)
-        query = re.sub(r"INSERT IGNORE INTO", "INSERT OR IGNORE INTO", query, flags=re.IGNORECASE)
+        query = _transform_sqlite_query(query)
         query = query.replace("%s", "?")
         return self._cursor.executemany(query, seq_of_params)
 
@@ -236,9 +270,13 @@ class SQLiteConnectionWrapper:
     def __init__(self, conn):
         self._conn = conn
         self.row_factory = None
+        self._conn.create_function("CURDATE", 0, _sqlite_curdate)
+        self._conn.create_function("NOW", 0, _sqlite_now)
         self._conn.create_function("DATE_FORMAT", 2, _sqlite_date_format)
         self._conn.create_function("YEAR", 1, _sqlite_year)
         self._conn.create_function("MONTH", 1, _sqlite_month)
+        self._conn.create_function("QUARTER", 1, _sqlite_quarter)
+        self._conn.create_function("CONCAT", -1, _sqlite_concat)
 
     def cursor(self):
         return SQLiteCursorWrapper(self._conn.cursor())

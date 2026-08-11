@@ -1,19 +1,15 @@
 """Agency Expenses router — /expenses CRUD + OCR."""
-import os
 from typing import Optional
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from core.database import get_db_conn as get_mysql_conn
 from schemas.agency import ExpenseCreate
+from auth_deps import get_agency_id, AuthUser, require_agency_context
 
 router = APIRouter(prefix="/expenses", tags=["Agency Expenses"])
 
 
 def get_db_conn():
     return get_mysql_conn("yatra_agency")
-
-
-def require_agency_id(agency_id: Optional[str]) -> str:
-    return agency_id or "AGY-1001"
 
 
 def verify_tour_belongs_to_agency(cursor, trip_id: int, agency_id: str):
@@ -25,8 +21,7 @@ def verify_tour_belongs_to_agency(cursor, trip_id: int, agency_id: str):
 
 
 @router.get("")
-def get_expenses(category: Optional[str] = None, status: Optional[str] = None, search: Optional[str] = None, agency_id: Optional[str] = None):
-    agency_id = require_agency_id(agency_id)
+def get_expenses(category: Optional[str] = None, status: Optional[str] = None, search: Optional[str] = None, agency_id: str = Depends(get_agency_id)):
     conn = get_db_conn()
     cursor = conn.cursor()
     query = """
@@ -53,8 +48,7 @@ def get_expenses(category: Optional[str] = None, status: Optional[str] = None, s
 
 
 @router.post("")
-def create_expense(expense: ExpenseCreate, agency_id: Optional[str] = None):
-    agency_id = require_agency_id(agency_id)
+def create_expense(expense: ExpenseCreate, agency_id: str = Depends(get_agency_id)):
     conn = get_db_conn()
     cursor = conn.cursor()
     if expense.trip_id is not None:
@@ -70,7 +64,7 @@ def create_expense(expense: ExpenseCreate, agency_id: Optional[str] = None):
 
 
 @router.post("/ocr")
-def extract_ocr_receipt(receipt_image: str):
+def extract_ocr_receipt(receipt_image: str, agency_id: str = Depends(get_agency_id)):
     vendor = "Shell Fuel Station"
     if "toll" in receipt_image.lower():
         vendor = "NH-8 Toll Booth"
@@ -101,8 +95,7 @@ def extract_ocr_receipt(receipt_image: str):
 
 
 @router.get("/{expense_id}")
-def get_expense(expense_id: int, agency_id: Optional[str] = None):
-    agency_id = require_agency_id(agency_id)
+def get_expense(expense_id: int, agency_id: str = Depends(get_agency_id)):
     conn = get_db_conn()
     cursor = conn.cursor()
     cursor.execute("""
@@ -118,8 +111,17 @@ def get_expense(expense_id: int, agency_id: Optional[str] = None):
 
 
 @router.put("/{expense_id}")
-def update_expense_status(expense_id: int, status: str, approved_by: str, agency_id: Optional[str] = None):
-    agency_id = require_agency_id(agency_id)
+def update_expense_status(
+    expense_id: int,
+    status: str,
+    current_user: AuthUser = Depends(require_agency_context),
+):
+    """
+    approved_by is taken from the verified JWT identity, never from a client-
+    supplied field — this keeps the approval audit trail meaningful.
+    """
+    agency_id = current_user.agency_id
+    approved_by = current_user.name
     conn = get_db_conn()
     cursor = conn.cursor()
     cursor.execute("""
@@ -134,12 +136,11 @@ def update_expense_status(expense_id: int, status: str, approved_by: str, agency
         raise HTTPException(status_code=404, detail="Expense not found")
     conn.commit()
     conn.close()
-    return {"message": "Expense status updated successfully"}
+    return {"message": "Expense status updated successfully", "approved_by": approved_by}
 
 
 @router.delete("/{expense_id}")
-def delete_expense(expense_id: int, agency_id: Optional[str] = None):
-    agency_id = require_agency_id(agency_id)
+def delete_expense(expense_id: int, agency_id: str = Depends(get_agency_id)):
     conn = get_db_conn()
     cursor = conn.cursor()
     cursor.execute("""

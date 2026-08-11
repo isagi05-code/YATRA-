@@ -1,17 +1,13 @@
 """Agency Dashboard router — /dashboard/summary and /dashboard/graphs."""
-from typing import Optional
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from core.database import get_db_conn as get_mysql_conn
+from auth_deps import get_agency_id
 
 router = APIRouter(prefix="/dashboard", tags=["Agency Dashboard"])
 
 
 def get_db_conn():
     return get_mysql_conn("yatra_agency")
-
-
-def require_agency_id(agency_id: Optional[str]) -> str:
-    return agency_id or "AGY-1001"
 
 
 def month_labels_from_rows(rows, value_key="total"):
@@ -21,8 +17,7 @@ def month_labels_from_rows(rows, value_key="total"):
 
 
 @router.get("/summary")
-def get_dashboard_summary(agency_id: Optional[str] = None):
-    agency_id = require_agency_id(agency_id)
+def get_dashboard_summary(agency_id: str = Depends(get_agency_id)):
     conn = get_db_conn()
     cursor = conn.cursor()
 
@@ -122,8 +117,7 @@ def get_dashboard_summary(agency_id: Optional[str] = None):
 
 
 @router.get("/graphs")
-def get_dashboard_graphs(agency_id: Optional[str] = None):
-    agency_id = require_agency_id(agency_id)
+def get_dashboard_graphs(agency_id: str = Depends(get_agency_id)):
     conn = get_db_conn()
     cursor = conn.cursor()
 

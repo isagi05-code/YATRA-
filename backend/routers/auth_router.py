@@ -179,12 +179,23 @@ async def send_otp(payload: SendOtpRequest):
             print(f"[AUTH] Email send failed: {e}")
 
     print(f"[AUTH OTP] {mode.upper()} OTP for '{identifier}' (portal={portal}): {otp_code}")
-    return {
+
+    response = {
         "status": "success",
         "success": True,
         "message": f"OTP sent successfully to {target_email}",
-        "otp": otp_code
     }
+
+    # SECURITY: never return the OTP itself in the response. The OTP is the
+    # proof of email/SMS access — handing it back here defeats the entire
+    # point of OTP verification. The one exception is local development,
+    # where there may be no real SMTP/SMS gateway configured; that path must
+    # be opted into explicitly and never enabled by default.
+    if os.environ.get("APP_ENV", "production").strip().lower() == "development":
+        response["otp"] = otp_code
+        response["dev_note"] = "OTP included because APP_ENV=development. This field is omitted in all other environments."
+
+    return response
 
 
 @router.post("/verify-otp")

@@ -1,9 +1,10 @@
 """Agency Misc router — customers, invoices, reports, notifications, settings, AI itinerary."""
 import os
 from typing import Optional
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Depends
 from core.database import get_db_conn as get_mysql_conn
 from schemas.agency import SettingsUpdate
+from auth_deps import get_agency_id
 
 router = APIRouter(tags=["Agency Misc"])
 
@@ -12,27 +13,23 @@ def get_db_conn():
     return get_mysql_conn("yatra_agency")
 
 
-def require_agency_id(agency_id: Optional[str]) -> str:
-    return agency_id or "AGY-1001"
-
-
 # ── Customers ─────────────────────────────────────────────────────────────────
 
 @router.get("/customers")
-def get_customers():
+def get_customers(agency_id: str = Depends(get_agency_id)):
     conn = get_db_conn()
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM customers")
+    cursor.execute("SELECT * FROM customers WHERE agency_id = ?", (agency_id,))
     customers = [dict(row) for row in cursor.fetchall()]
     conn.close()
     return customers
 
 
 @router.get("/customers/{customer_id}")
-def get_customer_details(customer_id: int):
+def get_customer_details(customer_id: int, agency_id: str = Depends(get_agency_id)):
     conn = get_db_conn()
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM customers WHERE customer_id = ?", (customer_id,))
+    cursor.execute("SELECT * FROM customers WHERE customer_id = ? AND agency_id = ?", (customer_id, agency_id))
     row = cursor.fetchone()
     conn.close()
     if not row:
@@ -43,7 +40,7 @@ def get_customer_details(customer_id: int):
 # ── AI Itinerary ──────────────────────────────────────────────────────────────
 
 @router.post("/ai-itinerary")
-def generate_ai_itinerary(destination: str, days: int, budget: float = 0):
+def generate_ai_itinerary(destination: str, days: int, budget: float = 0, agency_id: str = Depends(get_agency_id)):
     """Generate a real day-wise itinerary using Google Gemini Flash (REST API with fallback)."""
     import json as _json
     import requests as _requests
@@ -51,7 +48,7 @@ def generate_ai_itinerary(destination: str, days: int, budget: float = 0):
     gemini_key = os.environ.get("GEMINI_API_KEY", "").strip()
     preferred_model = os.environ.get("GEMINI_MODEL", "gemini-2.0-flash").strip()
     models_to_try = [preferred_model, "gemini-2.0-flash", "gemini-2.5-flash", "gemini-1.5-flash-latest"]
-    
+
     # Remove duplicates preserving order
     seen = set()
     models_to_try = [m for m in models_to_try if not (m in seen or seen.add(m))]
@@ -113,7 +110,6 @@ Generate exactly {days} day objects in the itinerary array. Keep descriptions pr
                         print(f"[AI ITINERARY] Successfully generated via {model}")
                         return data
                 elif resp.status_code in (404, 400):
-                    # Model name mismatch or deprecated, try next model
                     print(f"[AI ITINERARY] Model {model} returned {resp.status_code}, trying next model...")
                     continue
                 else:
@@ -171,10 +167,10 @@ Generate exactly {days} day objects in the itinerary array. Keep descriptions pr
 # ── Invoices ──────────────────────────────────────────────────────────────────
 
 @router.get("/invoices")
-def get_invoices():
+def get_invoices(agency_id: str = Depends(get_agency_id)):
     conn = get_db_conn()
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM tours WHERE status = 'Completed'")
+    cursor.execute("SELECT * FROM tours WHERE status = 'Completed' AND agency_id = ?", (agency_id,))
     completed_tours = cursor.fetchall()
     invoices = []
     for tour in completed_tours:
@@ -203,10 +199,10 @@ def get_invoices():
 
 
 @router.get("/invoices/{trip_id}")
-def generate_invoice_for_tour(trip_id: int, day: Optional[str] = None):
+def generate_invoice_for_tour(trip_id: int, day: Optional[str] = None, agency_id: str = Depends(get_agency_id)):
     conn = get_db_conn()
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM tours WHERE trip_id = ?", (trip_id,))
+    cursor.execute("SELECT * FROM tours WHERE trip_id = ? AND agency_id = ?", (trip_id, agency_id))
     tour_row = cursor.fetchone()
     if not tour_row:
         conn.close()
@@ -244,7 +240,14 @@ def generate_invoice_for_tour(trip_id: int, day: Optional[str] = None):
 
 
 @router.get("/invoices/download/{trip_id}")
-def download_invoice_pdf(trip_id: int):
+def download_invoice_pdf(trip_id: int, agency_id: str = Depends(get_agency_id)):
+    conn = get_db_conn()
+    cursor = conn.cursor()
+    cursor.execute("SELECT trip_id FROM tours WHERE trip_id = ? AND agency_id = ?", (trip_id, agency_id))
+    row = cursor.fetchone()
+    conn.close()
+    if not row:
+        raise HTTPException(status_code=404, detail="Tour not found")
     return {
         "status": "success",
         "message": f"PDF invoice for trip #{trip_id} compiled successfully.",
@@ -255,7 +258,10 @@ def download_invoice_pdf(trip_id: int):
 # ── Reports ───────────────────────────────────────────────────────────────────
 
 @router.get("/reports")
-def generate_reports(report_type: str = Query(..., pattern="^(Expense|Profit|Tour|Vehicle|Driver|Customer|GST|Monthly|Yearly)$")):
+def generate_reports(
+    report_type: str = Query(..., pattern="^(Expense|Profit|Tour|Vehicle|Driver|Customer|GST|Monthly|Yearly)$"),
+    agency_id: str = Depends(get_agency_id),
+):
     return {
         "report_type": f"{report_type} Report",
         "generation_date": "2026-07-05",
@@ -271,23 +277,23 @@ def generate_reports(report_type: str = Query(..., pattern="^(Expense|Profit|Tou
 # ── Notifications ─────────────────────────────────────────────────────────────
 
 @router.get("/notifications")
-def get_notifications(unread_only: bool = False):
+def get_notifications(unread_only: bool = False, agency_id: str = Depends(get_agency_id)):
     conn = get_db_conn()
     cursor = conn.cursor()
     if unread_only:
-        cursor.execute("SELECT * FROM notifications WHERE read = 0 ORDER BY id DESC")
+        cursor.execute("SELECT * FROM notifications WHERE agency_id = ? AND read = 0 ORDER BY id DESC", (agency_id,))
     else:
-        cursor.execute("SELECT * FROM notifications ORDER BY id DESC")
+        cursor.execute("SELECT * FROM notifications WHERE agency_id = ? ORDER BY id DESC", (agency_id,))
     notifications = [dict(row) for row in cursor.fetchall()]
     conn.close()
     return notifications
 
 
 @router.put("/notifications/{notif_id}/read")
-def mark_notification_as_read(notif_id: int):
+def mark_notification_as_read(notif_id: int, agency_id: str = Depends(get_agency_id)):
     conn = get_db_conn()
     cursor = conn.cursor()
-    cursor.execute("UPDATE notifications SET read = 1 WHERE id = ?", (notif_id,))
+    cursor.execute("UPDATE notifications SET read = 1 WHERE id = ? AND agency_id = ?", (notif_id, agency_id))
     if cursor.rowcount == 0:
         conn.close()
         raise HTTPException(status_code=404, detail="Notification not found")
@@ -299,7 +305,7 @@ def mark_notification_as_read(notif_id: int):
 # ── Settings ──────────────────────────────────────────────────────────────────
 
 @router.get("/settings")
-def get_settings():
+def get_settings(agency_id: str = Depends(get_agency_id)):
     conn = get_db_conn()
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM settings")
@@ -309,7 +315,7 @@ def get_settings():
 
 
 @router.put("/settings/{key}")
-def update_settings(key: str, payload: SettingsUpdate):
+def update_settings(key: str, payload: SettingsUpdate, agency_id: str = Depends(get_agency_id)):
     conn = get_db_conn()
     cursor = conn.cursor()
     cursor.execute("INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)", (key, payload.value))

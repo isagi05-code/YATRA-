@@ -1,10 +1,13 @@
 """Team Admin router — agencies, travellers, payments, analytics, support, health, etc."""
 from typing import Optional
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from core.database import get_db_conn as get_mysql_conn
 from schemas.team import AgencyUpdate, TicketUpdate, PlatformSettingUpdate
+from auth_deps import require_team_context
 
-router = APIRouter(tags=["Team Admin"])
+# Every route in this router requires an authenticated Yatra team-admin
+# account. Previously none of these endpoints checked auth at all.
+router = APIRouter(tags=["Team Admin"], dependencies=[Depends(require_team_context)])
 
 
 def get_db_conn():

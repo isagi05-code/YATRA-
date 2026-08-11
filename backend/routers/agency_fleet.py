@@ -1,8 +1,8 @@
 """Agency Fleet router — /vehicles and /drivers endpoints."""
-from typing import Optional
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from core.database import get_db_conn as get_mysql_conn
 from schemas.agency import VehicleCreate, DriverCreate
+from auth_deps import get_agency_id
 
 router = APIRouter(tags=["Agency Fleet"])
 
@@ -11,15 +11,10 @@ def get_db_conn():
     return get_mysql_conn("yatra_agency")
 
 
-def require_agency_id(agency_id: Optional[str]) -> str:
-    return agency_id or "AGY-1001"
-
-
 # ── Vehicles ──────────────────────────────────────────────────────────────────
 
 @router.get("/vehicles")
-def get_vehicles(agency_id: Optional[str] = None):
-    agency_id = require_agency_id(agency_id)
+def get_vehicles(agency_id: str = Depends(get_agency_id)):
     conn = get_db_conn()
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM vehicles WHERE agency_id = ? ORDER BY vehicle_number", (agency_id,))
@@ -29,8 +24,7 @@ def get_vehicles(agency_id: Optional[str] = None):
 
 
 @router.post("/vehicles")
-def create_vehicle(veh: VehicleCreate, agency_id: Optional[str] = None):
-    agency_id = require_agency_id(agency_id)
+def create_vehicle(veh: VehicleCreate, agency_id: str = Depends(get_agency_id)):
     conn = get_db_conn()
     cursor = conn.cursor()
     cursor.execute("SELECT vehicle_number FROM vehicles WHERE vehicle_number = ? AND agency_id = ?", (veh.vehicle_number, agency_id))
@@ -47,8 +41,7 @@ def create_vehicle(veh: VehicleCreate, agency_id: Optional[str] = None):
 
 
 @router.get("/vehicles/{vehicle_number}")
-def get_vehicle_details(vehicle_number: str, agency_id: Optional[str] = None):
-    agency_id = require_agency_id(agency_id)
+def get_vehicle_details(vehicle_number: str, agency_id: str = Depends(get_agency_id)):
     conn = get_db_conn()
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM vehicles WHERE vehicle_number = ? AND agency_id = ?", (vehicle_number, agency_id))
@@ -60,8 +53,7 @@ def get_vehicle_details(vehicle_number: str, agency_id: Optional[str] = None):
 
 
 @router.put("/vehicles/{vehicle_number}")
-def update_vehicle(vehicle_number: str, availability: str, current_location: str, agency_id: Optional[str] = None):
-    agency_id = require_agency_id(agency_id)
+def update_vehicle(vehicle_number: str, availability: str, current_location: str, agency_id: str = Depends(get_agency_id)):
     conn = get_db_conn()
     cursor = conn.cursor()
     cursor.execute("UPDATE vehicles SET availability = ?, current_location = ? WHERE vehicle_number = ? AND agency_id = ?", (availability, current_location, vehicle_number, agency_id))
@@ -74,8 +66,7 @@ def update_vehicle(vehicle_number: str, availability: str, current_location: str
 
 
 @router.delete("/vehicles/{vehicle_number}")
-def delete_vehicle(vehicle_number: str, agency_id: Optional[str] = None):
-    agency_id = require_agency_id(agency_id)
+def delete_vehicle(vehicle_number: str, agency_id: str = Depends(get_agency_id)):
     conn = get_db_conn()
     cursor = conn.cursor()
     cursor.execute("DELETE FROM vehicles WHERE vehicle_number = ? AND agency_id = ?", (vehicle_number, agency_id))
@@ -90,8 +81,7 @@ def delete_vehicle(vehicle_number: str, agency_id: Optional[str] = None):
 # ── Drivers ───────────────────────────────────────────────────────────────────
 
 @router.get("/drivers")
-def get_drivers(agency_id: Optional[str] = None):
-    agency_id = require_agency_id(agency_id)
+def get_drivers(agency_id: str = Depends(get_agency_id)):
     conn = get_db_conn()
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM drivers WHERE agency_id = ? ORDER BY driver_id", (agency_id,))
@@ -101,8 +91,7 @@ def get_drivers(agency_id: Optional[str] = None):
 
 
 @router.post("/drivers")
-def create_driver(driver: DriverCreate, agency_id: Optional[str] = None):
-    agency_id = require_agency_id(agency_id)
+def create_driver(driver: DriverCreate, agency_id: str = Depends(get_agency_id)):
     conn = get_db_conn()
     cursor = conn.cursor()
     cursor.execute("""
@@ -115,8 +104,7 @@ def create_driver(driver: DriverCreate, agency_id: Optional[str] = None):
 
 
 @router.delete("/drivers/{driver_id}")
-def delete_driver(driver_id: int, agency_id: Optional[str] = None):
-    agency_id = require_agency_id(agency_id)
+def delete_driver(driver_id: int, agency_id: str = Depends(get_agency_id)):
     conn = get_db_conn()
     cursor = conn.cursor()
     cursor.execute("DELETE FROM drivers WHERE driver_id = ? AND agency_id = ?", (driver_id, agency_id))
@@ -129,8 +117,7 @@ def delete_driver(driver_id: int, agency_id: Optional[str] = None):
 
 
 @router.get("/drivers/{driver_id}")
-def get_driver_details(driver_id: int, agency_id: Optional[str] = None):
-    agency_id = require_agency_id(agency_id)
+def get_driver_details(driver_id: int, agency_id: str = Depends(get_agency_id)):
     conn = get_db_conn()
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM drivers WHERE driver_id = ? AND agency_id = ?", (driver_id, agency_id))

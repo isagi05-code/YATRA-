@@ -1,18 +1,15 @@
 """Agency Tours router — /tours CRUD + journey, timeline, analytics."""
 from typing import Optional
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from core.database import get_db_conn as get_mysql_conn
 from schemas.agency import TourCreate
+from auth_deps import get_agency_id
 
 router = APIRouter(prefix="/tours", tags=["Agency Tours"])
 
 
 def get_db_conn():
     return get_mysql_conn("yatra_agency")
-
-
-def require_agency_id(agency_id: Optional[str]) -> str:
-    return agency_id or "AGY-1001"
 
 
 def verify_tour_belongs_to_agency(cursor, trip_id: int, agency_id: str):
@@ -24,8 +21,7 @@ def verify_tour_belongs_to_agency(cursor, trip_id: int, agency_id: str):
 
 
 @router.get("")
-def get_tours(status: Optional[str] = None, agency_id: Optional[str] = None):
-    agency_id = require_agency_id(agency_id)
+def get_tours(status: Optional[str] = None, agency_id: str = Depends(get_agency_id)):
     conn = get_db_conn()
     cursor = conn.cursor()
     query = "SELECT * FROM tours WHERE agency_id = ?"
@@ -40,8 +36,7 @@ def get_tours(status: Optional[str] = None, agency_id: Optional[str] = None):
 
 
 @router.post("")
-def create_tour(tour: TourCreate, agency_id: Optional[str] = None):
-    agency_id = require_agency_id(agency_id)
+def create_tour(tour: TourCreate, agency_id: str = Depends(get_agency_id)):
     conn = get_db_conn()
     cursor = conn.cursor()
     cursor.execute("""
@@ -55,8 +50,7 @@ def create_tour(tour: TourCreate, agency_id: Optional[str] = None):
 
 
 @router.get("/{trip_id}")
-def get_tour_details(trip_id: int, agency_id: Optional[str] = None):
-    agency_id = require_agency_id(agency_id)
+def get_tour_details(trip_id: int, agency_id: str = Depends(get_agency_id)):
     conn = get_db_conn()
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM tours WHERE trip_id = ? AND agency_id = ?", (trip_id, agency_id))
@@ -74,8 +68,7 @@ def get_tour_details(trip_id: int, agency_id: Optional[str] = None):
 
 
 @router.put("/{trip_id}")
-def update_tour(trip_id: int, status: str, timeline_status: Optional[str] = None, agency_id: Optional[str] = None):
-    agency_id = require_agency_id(agency_id)
+def update_tour(trip_id: int, status: str, timeline_status: Optional[str] = None, agency_id: str = Depends(get_agency_id)):
     conn = get_db_conn()
     cursor = conn.cursor()
     verify_tour_belongs_to_agency(cursor, trip_id, agency_id)
@@ -92,8 +85,7 @@ def update_tour(trip_id: int, status: str, timeline_status: Optional[str] = None
 
 
 @router.delete("/{trip_id}")
-def delete_tour(trip_id: int, agency_id: Optional[str] = None):
-    agency_id = require_agency_id(agency_id)
+def delete_tour(trip_id: int, agency_id: str = Depends(get_agency_id)):
     conn = get_db_conn()
     cursor = conn.cursor()
     cursor.execute("DELETE FROM tours WHERE trip_id = ? AND agency_id = ?", (trip_id, agency_id))
@@ -106,8 +98,7 @@ def delete_tour(trip_id: int, agency_id: Optional[str] = None):
 
 
 @router.get("/{trip_id}/journey")
-def get_journey_tracking(trip_id: int, agency_id: Optional[str] = None):
-    agency_id = require_agency_id(agency_id)
+def get_journey_tracking(trip_id: int, agency_id: str = Depends(get_agency_id)):
     conn = get_db_conn()
     cursor = conn.cursor()
     cursor.execute("SELECT current_lat, current_lng, destination, vehicle, driver FROM tours WHERE trip_id = ? AND agency_id = ?", (trip_id, agency_id))
@@ -129,8 +120,7 @@ def get_journey_tracking(trip_id: int, agency_id: Optional[str] = None):
 
 
 @router.put("/{trip_id}/journey")
-def update_journey_location(trip_id: int, lat: float, lng: float, agency_id: Optional[str] = None):
-    agency_id = require_agency_id(agency_id)
+def update_journey_location(trip_id: int, lat: float, lng: float, agency_id: str = Depends(get_agency_id)):
     conn = get_db_conn()
     cursor = conn.cursor()
     verify_tour_belongs_to_agency(cursor, trip_id, agency_id)
@@ -144,8 +134,7 @@ def update_journey_location(trip_id: int, lat: float, lng: float, agency_id: Opt
 
 
 @router.get("/{trip_id}/day-wise-expenses")
-def get_day_wise_expenses(trip_id: int, agency_id: Optional[str] = None):
-    agency_id = require_agency_id(agency_id)
+def get_day_wise_expenses(trip_id: int, agency_id: str = Depends(get_agency_id)):
     conn = get_db_conn()
     cursor = conn.cursor()
     verify_tour_belongs_to_agency(cursor, trip_id, agency_id)
@@ -182,8 +171,7 @@ def get_day_wise_expenses(trip_id: int, agency_id: Optional[str] = None):
 
 
 @router.put("/{trip_id}/vehicle-assignment")
-def assign_vehicle_to_tour(trip_id: int, vehicle_number: str, agency_id: Optional[str] = None):
-    agency_id = require_agency_id(agency_id)
+def assign_vehicle_to_tour(trip_id: int, vehicle_number: str, agency_id: str = Depends(get_agency_id)):
     conn = get_db_conn()
     cursor = conn.cursor()
     verify_tour_belongs_to_agency(cursor, trip_id, agency_id)
@@ -200,8 +188,7 @@ def assign_vehicle_to_tour(trip_id: int, vehicle_number: str, agency_id: Optiona
 
 
 @router.put("/{trip_id}/driver-assignment")
-def assign_driver_to_tour(trip_id: int, driver_id: int, agency_id: Optional[str] = None):
-    agency_id = require_agency_id(agency_id)
+def assign_driver_to_tour(trip_id: int, driver_id: int, agency_id: str = Depends(get_agency_id)):
     conn = get_db_conn()
     cursor = conn.cursor()
     verify_tour_belongs_to_agency(cursor, trip_id, agency_id)
@@ -219,8 +206,7 @@ def assign_driver_to_tour(trip_id: int, driver_id: int, agency_id: Optional[str]
 
 
 @router.get("/{trip_id}/timeline")
-def get_tour_timeline(trip_id: int, agency_id: Optional[str] = None):
-    agency_id = require_agency_id(agency_id)
+def get_tour_timeline(trip_id: int, agency_id: str = Depends(get_agency_id)):
     conn = get_db_conn()
     cursor = conn.cursor()
     verify_tour_belongs_to_agency(cursor, trip_id, agency_id)
@@ -231,8 +217,7 @@ def get_tour_timeline(trip_id: int, agency_id: Optional[str] = None):
 
 
 @router.post("/{trip_id}/timeline")
-def add_timeline_event(trip_id: int, event_name: str, status: str = "Completed", updated_at: str = "2026-07-05 12:00:00", agency_id: Optional[str] = None):
-    agency_id = require_agency_id(agency_id)
+def add_timeline_event(trip_id: int, event_name: str, status: str = "Completed", updated_at: str = "2026-07-05 12:00:00", agency_id: str = Depends(get_agency_id)):
     conn = get_db_conn()
     cursor = conn.cursor()
     verify_tour_belongs_to_agency(cursor, trip_id, agency_id)
@@ -243,8 +228,7 @@ def add_timeline_event(trip_id: int, event_name: str, status: str = "Completed",
 
 
 @router.get("/{trip_id}/analytics")
-def get_tour_analytics(trip_id: int, agency_id: Optional[str] = None):
-    agency_id = require_agency_id(agency_id)
+def get_tour_analytics(trip_id: int, agency_id: str = Depends(get_agency_id)):
     conn = get_db_conn()
     cursor = conn.cursor()
     cursor.execute("SELECT budget, destination FROM tours WHERE trip_id = ? AND agency_id = ?", (trip_id, agency_id))

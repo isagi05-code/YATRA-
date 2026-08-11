@@ -1,8 +1,9 @@
 """Traveller API router — trips, expenses, bookings, documents, profile, dashboard."""
 from typing import Optional
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from core.database import get_db_conn as get_mysql_conn
 from schemas.traveller import TripCreate, ExpenseCreate, BookingCreate, DocumentCreate, ProfileUpdate
+from auth_deps import get_user_id
 
 router = APIRouter(tags=["Traveller"])
 
@@ -14,19 +15,13 @@ def get_db_conn():
 # ── Dashboard ─────────────────────────────────────────────────────────────────
 
 @router.get("/dashboard/summary")
-def get_dashboard_summary(user_id: Optional[str] = None):
+def get_dashboard_summary(user_id: str = Depends(get_user_id)):
     conn = get_db_conn()
     cursor = conn.cursor()
-    if user_id:
-        cursor.execute("SELECT COUNT(*) FROM trips WHERE user_id = ?", (user_id,))
-        trips_count = cursor.fetchone()[0] or 0
-        cursor.execute("SELECT SUM(amount) FROM expenses WHERE user_id = ?", (user_id,))
-        total_spent = cursor.fetchone()[0] or 0.0
-    else:
-        cursor.execute("SELECT COUNT(*) FROM trips")
-        trips_count = cursor.fetchone()[0] or 0
-        cursor.execute("SELECT SUM(amount) FROM expenses")
-        total_spent = cursor.fetchone()[0] or 0.0
+    cursor.execute("SELECT COUNT(*) FROM trips WHERE user_id = ?", (user_id,))
+    trips_count = cursor.fetchone()[0] or 0
+    cursor.execute("SELECT SUM(amount) FROM expenses WHERE user_id = ?", (user_id,))
+    total_spent = cursor.fetchone()[0] or 0.0
     conn.close()
     monthly_budget = 25000.0
     savings = monthly_budget - total_spent if total_spent < monthly_budget else 0.0
@@ -45,17 +40,14 @@ def get_dashboard_summary(user_id: Optional[str] = None):
 # ── Trips ─────────────────────────────────────────────────────────────────────
 
 @router.get("/trips")
-def get_trips(status: Optional[str] = None, user_id: Optional[str] = None):
+def get_trips(status: Optional[str] = None, user_id: str = Depends(get_user_id)):
     conn = get_db_conn()
     cursor = conn.cursor()
-    query = "SELECT * FROM trips WHERE 1=1"
-    params = []
+    query = "SELECT * FROM trips WHERE user_id = ?"
+    params = [user_id]
     if status:
         query += " AND status = ?"
         params.append(status)
-    if user_id:
-        query += " AND user_id = ?"
-        params.append(user_id)
     cursor.execute(query, params)
     trips = [dict(row) for row in cursor.fetchall()]
     conn.close()
@@ -63,14 +55,13 @@ def get_trips(status: Optional[str] = None, user_id: Optional[str] = None):
 
 
 @router.post("/trips")
-def create_trip(trip: TripCreate):
+def create_trip(trip: TripCreate, user_id: str = Depends(get_user_id)):
     conn = get_db_conn()
     cursor = conn.cursor()
-    uid = trip.user_id or "TRV-1001"
     cursor.execute("""
     INSERT INTO trips (user_id, name, route, date, duration, budget, status, driver, vehicle)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-    (uid, trip.name, trip.route, trip.date, trip.duration, trip.budget, trip.status, trip.driver, trip.vehicle))
+    (user_id, trip.name, trip.route, trip.date, trip.duration, trip.budget, trip.status, trip.driver, trip.vehicle))
     trip_id = cursor.lastrowid
     conn.commit()
     conn.close()
@@ -78,10 +69,10 @@ def create_trip(trip: TripCreate):
 
 
 @router.get("/trips/{trip_id}")
-def get_trip_details(trip_id: int):
+def get_trip_details(trip_id: int, user_id: str = Depends(get_user_id)):
     conn = get_db_conn()
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM trips WHERE id = ?", (trip_id,))
+    cursor.execute("SELECT * FROM trips WHERE id = ? AND user_id = ?", (trip_id, user_id))
     row = cursor.fetchone()
     conn.close()
     if not row:
@@ -92,13 +83,10 @@ def get_trip_details(trip_id: int):
 # ── Expenses ──────────────────────────────────────────────────────────────────
 
 @router.get("/expenses/analytics")
-def get_expenses_analytics(user_id: Optional[str] = None):
+def get_expenses_analytics(user_id: str = Depends(get_user_id)):
     conn = get_db_conn()
     cursor = conn.cursor()
-    if user_id:
-        cursor.execute("SELECT category, SUM(amount) FROM expenses WHERE user_id = ? GROUP BY category", (user_id,))
-    else:
-        cursor.execute("SELECT category, SUM(amount) FROM expenses GROUP BY category")
+    cursor.execute("SELECT category, SUM(amount) FROM expenses WHERE user_id = ? GROUP BY category", (user_id,))
     category_summary = {row[0]: row[1] for row in cursor.fetchall()}
     conn.close()
     return {
@@ -111,17 +99,14 @@ def get_expenses_analytics(user_id: Optional[str] = None):
 
 
 @router.get("/expenses")
-def get_expenses(category: Optional[str] = None, user_id: Optional[str] = None):
+def get_expenses(category: Optional[str] = None, user_id: str = Depends(get_user_id)):
     conn = get_db_conn()
     cursor = conn.cursor()
-    query = "SELECT * FROM expenses WHERE 1=1"
-    params = []
+    query = "SELECT * FROM expenses WHERE user_id = ?"
+    params = [user_id]
     if category:
         query += " AND category = ?"
         params.append(category)
-    if user_id:
-        query += " AND user_id = ?"
-        params.append(user_id)
     cursor.execute(query, params)
     expenses = [dict(row) for row in cursor.fetchall()]
     conn.close()
@@ -129,14 +114,13 @@ def get_expenses(category: Optional[str] = None, user_id: Optional[str] = None):
 
 
 @router.post("/expenses")
-def create_expense(exp: ExpenseCreate):
+def create_expense(exp: ExpenseCreate, user_id: str = Depends(get_user_id)):
     conn = get_db_conn()
     cursor = conn.cursor()
-    uid = exp.user_id or "TRV-1001"
     cursor.execute("""
     INSERT INTO expenses (user_id, title, amount, date, category, status)
     VALUES (?, ?, ?, ?, ?, ?)""",
-    (uid, exp.title, exp.amount, exp.date, exp.category, exp.status))
+    (user_id, exp.title, exp.amount, exp.date, exp.category, exp.status))
     exp_id = cursor.lastrowid
     conn.commit()
     conn.close()
@@ -144,10 +128,10 @@ def create_expense(exp: ExpenseCreate):
 
 
 @router.delete("/expenses/{exp_id}")
-def delete_expense(exp_id: int):
+def delete_expense(exp_id: int, user_id: str = Depends(get_user_id)):
     conn = get_db_conn()
     cursor = conn.cursor()
-    cursor.execute("DELETE FROM expenses WHERE id = ?", (exp_id,))
+    cursor.execute("DELETE FROM expenses WHERE id = ? AND user_id = ?", (exp_id, user_id))
     if cursor.rowcount == 0:
         conn.close()
         raise HTTPException(status_code=404, detail="Expense not found")
@@ -159,25 +143,21 @@ def delete_expense(exp_id: int):
 # ── Bookings ──────────────────────────────────────────────────────────────────
 
 @router.get("/bookings")
-def get_bookings(user_id: Optional[str] = None):
+def get_bookings(user_id: str = Depends(get_user_id)):
     conn = get_db_conn()
     cursor = conn.cursor()
-    if user_id:
-        cursor.execute("SELECT * FROM bookings WHERE user_id = ?", (user_id,))
-    else:
-        cursor.execute("SELECT * FROM bookings")
+    cursor.execute("SELECT * FROM bookings WHERE user_id = ?", (user_id,))
     bookings = [dict(row) for row in cursor.fetchall()]
     conn.close()
     return bookings
 
 
 @router.post("/bookings")
-def create_booking(bk: BookingCreate):
+def create_booking(bk: BookingCreate, user_id: str = Depends(get_user_id)):
     conn = get_db_conn()
     cursor = conn.cursor()
-    uid = bk.user_id or "TRV-1001"
     cursor.execute("INSERT INTO bookings (user_id, trip_id, name, status, details) VALUES (?, ?, ?, ?, ?)",
-    (uid, bk.trip_id, bk.name, bk.status, bk.details))
+    (user_id, bk.trip_id, bk.name, bk.status, bk.details))
     conn.commit()
     conn.close()
     return {"message": "Booking added successfully"}
@@ -186,25 +166,21 @@ def create_booking(bk: BookingCreate):
 # ── Documents ─────────────────────────────────────────────────────────────────
 
 @router.get("/documents")
-def get_documents(user_id: Optional[str] = None):
+def get_documents(user_id: str = Depends(get_user_id)):
     conn = get_db_conn()
     cursor = conn.cursor()
-    if user_id:
-        cursor.execute("SELECT * FROM documents WHERE user_id = ?", (user_id,))
-    else:
-        cursor.execute("SELECT * FROM documents")
+    cursor.execute("SELECT * FROM documents WHERE user_id = ?", (user_id,))
     docs = [dict(row) for row in cursor.fetchall()]
     conn.close()
     return docs
 
 
 @router.post("/documents")
-def upload_document(doc: DocumentCreate):
+def upload_document(doc: DocumentCreate, user_id: str = Depends(get_user_id)):
     conn = get_db_conn()
     cursor = conn.cursor()
-    uid = doc.user_id or "TRV-1001"
     cursor.execute("INSERT INTO documents (user_id, name, type, file_url, upload_date) VALUES (?, ?, ?, ?, ?)",
-    (uid, doc.name, doc.type, doc.file_url, doc.upload_date))
+    (user_id, doc.name, doc.type, doc.file_url, doc.upload_date))
     conn.commit()
     conn.close()
     return {"message": "Document uploaded successfully"}
@@ -213,13 +189,10 @@ def upload_document(doc: DocumentCreate):
 # ── Profile & Settings ────────────────────────────────────────────────────────
 
 @router.get("/profile")
-def get_profile(user_id: Optional[str] = None):
+def get_profile(user_id: str = Depends(get_user_id)):
     conn = get_db_conn()
     cursor = conn.cursor()
-    if user_id:
-        cursor.execute("SELECT * FROM profile WHERE LOWER(user_id) = ? OR LOWER(email) = ?", (user_id.lower(), user_id.lower()))
-    else:
-        cursor.execute("SELECT * FROM profile LIMIT 1")
+    cursor.execute("SELECT * FROM profile WHERE LOWER(user_id) = ?", (user_id.lower(),))
     row = cursor.fetchone()
     conn.close()
     if not row:
@@ -228,19 +201,18 @@ def get_profile(user_id: Optional[str] = None):
 
 
 @router.put("/profile")
-def update_profile(prof: ProfileUpdate):
+def update_profile(prof: ProfileUpdate, user_id: str = Depends(get_user_id)):
     conn = get_db_conn()
     cursor = conn.cursor()
-    uid = prof.user_id or "TRV-1001"
-    cursor.execute("UPDATE profile SET name = ?, email = ?, contact = ?, preferences = ? WHERE LOWER(user_id) = ? OR LOWER(email) = ?",
-    (prof.name, prof.email, prof.contact, prof.preferences, uid.lower(), prof.email.lower()))
+    cursor.execute("UPDATE profile SET name = ?, email = ?, contact = ?, preferences = ? WHERE LOWER(user_id) = ?",
+    (prof.name, prof.email, prof.contact, prof.preferences, user_id.lower()))
     conn.commit()
     conn.close()
     return {"message": "Profile updated successfully"}
 
 
 @router.get("/settings")
-def get_settings():
+def get_settings(user_id: str = Depends(get_user_id)):
     return {
         "notifications_enabled": True,
         "theme": "dark",
