@@ -191,8 +191,7 @@ def seed_enterprise_db():
 
 def seed_agency_db():
     print("Seeding Agency database...")
-    # All data goes into yatra_enterprise — the virtual DBs only hold views
-    conn = get_db_conn("yatra_enterprise")
+    conn = get_db_conn("yatra_agency")
     cursor = conn.cursor()
 
     # 1. Tours
@@ -241,7 +240,7 @@ def seed_agency_db():
 
     # 5. Vehicles
     cursor.executemany("""
-    INSERT IGNORE INTO vehicles (vehicle_number, agency_id, model, owner, insurance, permit, fitness_expiry, puc_expiry, fuel_type, mileage, current_location, availability, expenses, upcoming_maintenance)
+    INSERT IGNORE INTO vehicles (vehicle_number, agency_id, model, owner, insurance, permit, fitness, puc, fuel_type, mileage, current_location, availability, expenses, upcoming_maintenance)
     VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""", [
         ("MH-01-DK-4507", "AGY-1001", "Toyota Innova Crysta", "Yatra Travels Ltd", "Active (Expires: 2027-02-15)", "National Permit (Expires: 2028-06-10)", "2027-01-20", "2026-12-05", "Diesel", 12.5, "Mumbai, MH", "Available", 12000.0, "2026-08-10 (General Service)"),
         ("MH-02-AB-9876", "AGY-1001", "Tempo Traveller 17-Seater", "Partner Fleet Rent", "Active (Expires: 2026-11-20)", "State Permit (Expires: 2027-03-12)", "2026-09-15", "2026-08-30", "Diesel", 9.8, "Jaipur, RJ", "Assigned", 35000.0, "2026-09-01 (Tire Alignment)"),
@@ -268,7 +267,7 @@ def seed_agency_db():
 
     # 8. Notifications
     cursor.executemany("""
-    INSERT IGNORE INTO notifications (agency_id, type, title, message, `date`, `read`)
+    INSERT IGNORE INTO notifications (agency_id, type, title, message, date, read)
     VALUES (%s, %s, %s, %s, %s, %s)""", [
         ("AGY-1001", "Upcoming Trip", "Trip #1 to Goa starts in 5 days", "Please double check the assignment status.", "2026-07-05", 0),
         ("AGY-1001", "Pending Expense", "UPI Expense #3 pending approval", "Requires review from Agency Manager.", "2026-07-02", 0),
@@ -278,7 +277,7 @@ def seed_agency_db():
 
     # 9. Agency Settings
     cursor.executemany("""
-    INSERT IGNORE INTO agency_settings (`key`, `value`)
+    INSERT IGNORE INTO settings (key, value)
     VALUES (%s, %s)""", [
         ("agency_name", "Yatra Travels Ltd"),
         ("gstin", "27AAAAA1111A1Z1"),
@@ -292,22 +291,19 @@ def seed_agency_db():
 
 def seed_traveller_db():
     print("Seeding Traveller database...")
-    # All data goes into yatra_enterprise — the virtual DBs only hold views
-    conn = get_db_conn("yatra_enterprise")
+    conn = get_db_conn("yatra_traveller")
     cursor = conn.cursor()
 
-    # Traveller trips go into yatra_enterprise.tours (with user_id set)
     cursor.executemany("""
-    INSERT IGNORE INTO tours (user_id, destination, start_date, end_date, budget, status, driver, vehicle)
-    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)""", [
-        ("USR-TRV-1001", "Goa Beach Retreat", "2026-07-18", "2026-07-23", 15000.0, "Confirmed", "Vikram Singh", "MH-01-DK-4507"),
-        ("USR-TRV-1001", "Royal Rajasthan Circuit", "2026-08-10", "2026-08-18", 28000.0, "Booked", "Amit Patel", "MH-01-LE-4321"),
-        ("USR-TRV-1001", "Manali Himalaya Adventure", "2026-06-22", "2026-06-28", 18400.0, "Completed", "Suresh Yadav", "MH-04-PQ-9102")
+    INSERT IGNORE INTO trips (user_id, name, route, date, duration, budget, status, driver, vehicle)
+    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)""", [
+        ("USR-TRV-1001", "Goa Beach Retreat", "Mumbai - Goa", "2026-07-18", "5 days", 15000.0, "Confirmed", "Vikram Singh", "MH-01-DK-4507"),
+        ("USR-TRV-1001", "Royal Rajasthan Circuit", "Delhi - Jaipur - Udaipur", "2026-08-10", "8 days", 28000.0, "Booked", "Amit Patel", "MH-01-LE-4321"),
+        ("USR-TRV-1001", "Manali Himalaya Adventure", "Delhi - Manali", "2026-06-22", "6 days", 18400.0, "Completed", "Suresh Yadav", "MH-04-PQ-9102")
     ])
 
-    # Traveller expenses into yatra_enterprise.expenses (with user_id, title)
     cursor.executemany("""
-    INSERT IGNORE INTO expenses (user_id, title, amount, `date`, category, status)
+    INSERT IGNORE INTO expenses (user_id, title, amount, date, category, status)
     VALUES (%s, %s, %s, %s, %s, %s)""", [
         ("USR-TRV-1001", "Lonavala Stay", 4800.0, "2026-05-04", "Hotels", "Paid"),
         ("USR-TRV-1001", "Surya Restaurant", 1200.0, "2026-06-24", "Food", "Paid"),
@@ -330,14 +326,6 @@ def seed_traveller_db():
         ("USR-TRV-1001", "Goa Hotel Voucher", "Booking Confirmation", "voucher_goa_hotel.pdf", "2026-07-01")
     ])
 
-    # Update traveller_profiles with preferences
-    try:
-        cursor.execute("""
-        UPDATE traveller_profiles SET preferences = %s WHERE user_id = %s
-        """, ("Window seats, Vegetarian, High floor hotels", "USR-TRV-1001"))
-    except Exception:
-        pass
-
     conn.commit()
     conn.close()
     print("Traveller database seeded successfully.")
@@ -345,36 +333,31 @@ def seed_traveller_db():
 
 def seed_team_db():
     print("Seeding Team database...")
-    # All data goes into yatra_enterprise — the virtual DBs only hold views
-    conn = get_db_conn("yatra_enterprise")
+    conn = get_db_conn("yatra_team")
     cursor = conn.cursor()
 
-    # Extra agencies (AGY-1001 seeded in seed_agency_db above)
     cursor.executemany("""
-    INSERT IGNORE INTO agencies (agency_id, name, owner_name, contact, email, status, active_tours, revenue, expenses, drivers_count, vehicles_count, subscription_status)
+    INSERT IGNORE INTO agencies (agency_id, name, owner, contact, email, status, active_tours, revenue, expenses, drivers_count, vehicles_count, subscription_status)
     VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""", [
         ("AGY-1002", "Aditya Travels", "Aditya Sen", "+919888833333", "aditya@aditya.com", "Active", 5, 890000.0, 520000.0, 10, 8, "Basic"),
         ("AGY-1003", "Speedy Tour & Co", "Mohit Verma", "+919777744444", "mohit@speedy.com", "Pending Verification", 0, 0.0, 0.0, 2, 2, "Trial")
     ])
 
-    # Extra traveller profiles
     cursor.executemany("""
-    INSERT IGNORE INTO traveller_profiles (user_id, trips_count, expenses_count, bookings_count, feedback_rating, ai_usage_tokens)
-    VALUES (%s, %s, %s, %s, %s, %s)""", [
-        ("USR-TRV-1002", 1, 0, 1, 5.0, 4200),
-        ("USR-TRV-1003", 8, 24, 10, 4.5, 34500)
+    INSERT IGNORE INTO travellers (user_id, name, email, trips_count, expenses_count, bookings_count, feedback_rating, ai_usage_tokens)
+    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)""", [
+        ("USR-TRV-1002", "Priya Nair", "priya@example.com", 1, 0, 1, 5.0, 4200),
+        ("USR-TRV-1003", "Arjun Kapoor", "arjun@example.com", 8, 24, 10, 4.5, 34500)
     ])
 
-    # Payments
     cursor.executemany("""
-    INSERT IGNORE INTO payments (agency_id, amount, `date`, status, description)
+    INSERT IGNORE INTO payments (agency_id, amount, date, status, description)
     VALUES (%s, %s, %s, %s, %s)""", [
         ("AGY-1001", 15000.0, "2026-06-01", "Completed", "Premium monthly subscription renewal"),
         ("AGY-1002", 5000.0, "2026-06-15", "Completed", "Basic monthly subscription renewal"),
         ("AGY-1001", 15000.0, "2026-07-01", "Completed", "Premium monthly subscription renewal")
     ])
 
-    # Subscriptions
     cursor.executemany("""
     INSERT IGNORE INTO subscriptions (name, cost, type, features)
     VALUES (%s, %s, %s, %s)""", [
@@ -383,17 +366,15 @@ def seed_team_db():
         ("Enterprise Tier", 120000.0, "Annual", "Unlimited fleet & AI, dedicated database instance, 24/7 support")
     ])
 
-    # Support Tickets
     cursor.executemany("""
-    INSERT IGNORE INTO support_tickets (agency_id, traveller_id, subject, description, status, priority, `date`)
+    INSERT IGNORE INTO support_tickets (agency_id, traveller_id, subject, description, status, priority, date)
     VALUES (%s, %s, %s, %s, %s, %s, %s)""", [
         ("AGY-1001", None, "OCR Extraction Failed", "Receipt for trip #2 from HP fuel pump had blurry image, OCR couldn't extract vendor.", "Open", "Medium", "2026-07-04"),
         (None, "USR-TRV-1001", "App logout issue", "Getting automatically logged out from User Portal on page refresh.", "Closed", "Low", "2026-06-28")
     ])
 
-    # Audit logs
     cursor.executemany("""
-    INSERT IGNORE INTO audit_logs (`timestamp`, level, message)
+    INSERT IGNORE INTO logs (timestamp, level, message)
     VALUES (%s, %s, %s)""", [
         ("2026-07-05 12:00:00", "INFO", "Database seed completed successfully."),
         ("2026-07-05 12:15:30", "WARNING", "SMS Gateway response latency exceeded threshold (3.2s)."),

@@ -197,6 +197,7 @@ class SQLiteCursorWrapper:
         query = re.sub(r"CURDATE\(\)", "DATE('now')", query, flags=re.IGNORECASE)
         query = re.sub(r"NOW\(\)", "DATETIME('now')", query, flags=re.IGNORECASE)
         query = re.sub(r"INSERT IGNORE INTO", "INSERT OR IGNORE INTO", query, flags=re.IGNORECASE)
+        query = query.replace("%s", "?")
         return self._cursor.executemany(query, seq_of_params)
 
     def fetchone(self):
