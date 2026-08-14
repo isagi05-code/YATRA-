@@ -1,6 +1,5 @@
-"""Agency Expenses router — /expenses CRUD + OCR."""
 from typing import Optional
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from core.database import get_db_conn as get_mysql_conn
 from schemas.agency import ExpenseCreate
 from auth_deps import get_agency_id, AuthUser, require_agency_context
@@ -43,6 +42,24 @@ def get_expenses(category: Optional[str] = None, status: Optional[str] = None, s
     query += " ORDER BY e.date DESC, e.expense_id DESC"
     cursor.execute(query, params)
     expenses = [dict(row) for row in cursor.fetchall()]
+    try:
+        ent_conn = get_mysql_conn("yatra_enterprise")
+        ent_cursor = ent_conn.cursor()
+        for e in expenses:
+            ent_cursor.execute("SELECT structured_json FROM ocr_results WHERE expense_id = ? AND is_deleted = 0", (e["expense_id"],))
+            ocr_row = ent_cursor.fetchone()
+            e["ocr_extracted_data"] = ocr_row["structured_json"] if ocr_row else None
+        ent_conn.close()
+    except Exception:
+        try:
+            for e in expenses:
+                cursor.execute("SELECT structured_json FROM ocr_results WHERE expense_id = ? AND is_deleted = 0", (e["expense_id"],))
+                ocr_row = cursor.fetchone()
+                e["ocr_extracted_data"] = ocr_row["structured_json"] if ocr_row else None
+        except Exception:
+            for e in expenses:
+                if "ocr_extracted_data" not in e:
+                    e["ocr_extracted_data"] = None
     conn.close()
     return expenses
 
@@ -54,24 +71,40 @@ def create_expense(expense: ExpenseCreate, agency_id: str = Depends(get_agency_i
     if expense.trip_id is not None:
         verify_tour_belongs_to_agency(cursor, expense.trip_id, agency_id)
     cursor.execute("""
-    INSERT INTO expenses (trip_id, agency_id, amount, gst, vendor, category, date, time, description, payment_mode, approved_by, status, receipt_image, ocr_extracted_data)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-    (expense.trip_id, agency_id, expense.amount, expense.gst, expense.vendor, expense.category, expense.date, expense.time, expense.description, expense.payment_mode, expense.approved_by, expense.status, expense.receipt_image, expense.ocr_extracted_data))
+    INSERT INTO expenses (trip_id, agency_id, amount, gst, vendor, category, date, time, description, payment_mode, approved_by, status, receipt_image)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+    (expense.trip_id, agency_id, expense.amount, expense.gst, expense.vendor, expense.category, expense.date, expense.time, expense.description, expense.payment_mode, expense.approved_by, expense.status, expense.receipt_image))
     expense_id = cursor.lastrowid
+    if expense.ocr_extracted_data:
+        try:
+            ent_conn = get_mysql_conn("yatra_enterprise")
+            ent_cursor = ent_conn.cursor()
+            ent_cursor.execute("INSERT INTO ocr_results (agency_id, expense_id, structured_json) VALUES (?, ?, ?)", (agency_id, expense_id, expense.ocr_extracted_data))
+            ent_conn.commit()
+            ent_conn.close()
+        except Exception:
+            try:
+                cursor.execute("INSERT INTO ocr_results (agency_id, expense_id, structured_json) VALUES (?, ?, ?)", (agency_id, expense_id, expense.ocr_extracted_data))
+            except Exception:
+                pass
     conn.commit()
     conn.close()
     return {"message": "Expense created successfully", "expense_id": expense_id}
 
 
 @router.post("/ocr")
-def extract_ocr_receipt(receipt_image: str, agency_id: str = Depends(get_agency_id)):
+async def extract_ocr_receipt(
+    receipt_image: Optional[str] = Query(None),
+    agency_id: str = Depends(get_agency_id)
+):
+    img_name = receipt_image or "receipt.png"
     vendor = "Shell Fuel Station"
-    if "toll" in receipt_image.lower():
+    if "toll" in img_name.lower():
         vendor = "NH-8 Toll Booth"
         amount = 350.0
         gst = 0.0
         category = "Toll"
-    elif "hotel" in receipt_image.lower() or "stay" in receipt_image.lower():
+    elif "hotel" in img_name.lower() or "stay" in img_name.lower():
         vendor = "Himalayan Lodge"
         amount = 4500.0
         gst = 810.0
@@ -89,7 +122,8 @@ def extract_ocr_receipt(receipt_image: str, agency_id: str = Depends(get_agency_
             "date": "2026-07-05",
             "time": "12:30:15",
             "confidence_score": 0.98,
-            "description": "Auto-extracted by Yatra AI OCR engine"
+            "description": "Auto-extracted by Yatra AI OCR engine",
+            "file_name": img_name
         }
     }
 
@@ -104,10 +138,26 @@ def get_expense(expense_id: int, agency_id: str = Depends(get_agency_id)):
         WHERE e.expense_id = ? AND (t.agency_id = ? OR (e.trip_id IS NULL AND e.agency_id = ?))
     """, (expense_id, agency_id, agency_id))
     row = cursor.fetchone()
-    conn.close()
     if not row:
+        conn.close()
         raise HTTPException(status_code=404, detail="Expense not found")
-    return dict(row)
+    exp = dict(row)
+    try:
+        ent_conn = get_mysql_conn("yatra_enterprise")
+        ent_cursor = ent_conn.cursor()
+        ent_cursor.execute("SELECT structured_json FROM ocr_results WHERE expense_id = ? AND is_deleted = 0", (expense_id,))
+        ocr_row = ent_cursor.fetchone()
+        exp["ocr_extracted_data"] = ocr_row["structured_json"] if ocr_row else None
+        ent_conn.close()
+    except Exception:
+        try:
+            cursor.execute("SELECT structured_json FROM ocr_results WHERE expense_id = ? AND is_deleted = 0", (expense_id,))
+            ocr_row = cursor.fetchone()
+            exp["ocr_extracted_data"] = ocr_row["structured_json"] if ocr_row else None
+        except Exception:
+            exp["ocr_extracted_data"] = None
+    conn.close()
+    return exp
 
 
 @router.put("/{expense_id}")

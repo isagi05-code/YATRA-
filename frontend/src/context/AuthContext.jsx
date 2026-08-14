@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { AUTH_BASE } from '../services/httpClient';
 
 const AuthContext = createContext(null);
 
@@ -56,7 +57,7 @@ export function AuthProvider({ children }) {
     if (refreshToken) {
       try {
         const token = localStorage.getItem('yatra_access_token');
-        await fetch('http://localhost:8003/auth/logout', {
+        await fetch(`${AUTH_BASE}/auth/logout`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -85,7 +86,7 @@ export function AuthProvider({ children }) {
     const rt = localStorage.getItem('yatra_refresh_token');
     if (!rt) return null;
     try {
-      const res = await fetch('http://localhost:8003/auth/refresh', {
+      const res = await fetch(`${AUTH_BASE}/auth/refresh`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ refresh_token: rt }),

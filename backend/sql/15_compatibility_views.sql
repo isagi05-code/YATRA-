@@ -41,8 +41,7 @@ CREATE OR REPLACE VIEW yatra_agency.expenses AS
 SELECT 
   expense_id, trip_id, agency_id, amount, gst, vendor, 
   category, `date`, `time`, description, payment_mode, approved_by, 
-  status, receipt_image,
-  (SELECT structured_json FROM yatra_enterprise.ocr_results o WHERE o.expense_id = e.expense_id LIMIT 1) AS ocr_extracted_data
+  status, receipt_image
 FROM yatra_enterprise.expenses e
 WHERE is_deleted = 0;
 
@@ -50,10 +49,7 @@ CREATE OR REPLACE VIEW yatra_agency.vehicles AS
 SELECT 
   vehicle_number, agency_id, model, owner, insurance, permit, 
   fitness_expiry AS fitness, puc_expiry AS puc, fuel_type, mileage, 
-  current_location, availability, 
-  (SELECT JSON_ARRAYAGG(JSON_OBJECT('date', service_date, 'type', service_type, 'cost', cost))
-   FROM yatra_enterprise.vehicle_maintenance vm WHERE vm.vehicle_number = v.vehicle_number AND vm.is_deleted = 0) AS service_history,
-  expenses, upcoming_maintenance
+  current_location, availability, expenses, upcoming_maintenance
 FROM yatra_enterprise.vehicles v
 WHERE is_deleted = 0;
 
@@ -80,7 +76,7 @@ WHERE is_deleted = 0;
 
 CREATE OR REPLACE VIEW yatra_agency.settings AS
 SELECT 
-  `key`, `value`
+  agency_id, `key`, `value`
 FROM yatra_enterprise.agency_settings
 WHERE is_deleted = 0;
 

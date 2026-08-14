@@ -8,8 +8,14 @@ from fastapi import APIRouter, HTTPException, Depends, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
 
-from google.oauth2 import id_token
-from google.auth.transport import requests as google_requests
+try:
+    from google.oauth2 import id_token
+    from google.auth.transport import requests as google_requests
+    _GOOGLE_AUTH_AVAILABLE = True
+except ImportError:
+    _GOOGLE_AUTH_AVAILABLE = False
+    id_token = None
+    google_requests = None
 
 from core.database import get_db_conn as get_mysql_conn
 from schemas.auth import (
@@ -35,6 +41,8 @@ print(f"[AUTH STARTUP] GOOGLE_CLIENT_ID = {'SET (' + _gcid[:20] + '...)' if _gci
 @router.get("/debug-env")
 async def debug_env():
     """Dev-only: confirm what env vars the worker process has."""
+    if os.environ.get("APP_ENV") != "development":
+        raise HTTPException(status_code=404, detail="Not found")
     gcid = os.environ.get("GOOGLE_CLIENT_ID", "")
     return {
         "GOOGLE_CLIENT_ID_set": bool(gcid),
@@ -437,12 +445,26 @@ async def login(payload: LoginRequest):
 
 @router.post("/set-password")
 async def set_password(payload: SetPasswordRequest):
+    """
+    SECURITY: setting a password is equivalent to an account takeover if it
+    isn't gated behind proof of ownership. This endpoint requires the caller
+    to supply a valid, unexpired, not-yet-used OTP for the target identifier
+    — the same OTP issued by POST /auth/send-otp. The OTP is consumed on
+    successful verification, so it cannot be reused.
+    """
     if payload.password != payload.confirm_password:
         raise HTTPException(status_code=400, detail="Passwords do not match")
     if len(payload.password) < 8:
         raise HTTPException(status_code=400, detail="Password must be at least 8 characters")
+    if not payload.otp or not payload.otp.strip():
+        raise HTTPException(status_code=400, detail="A verification code is required to set a password. Request one via /auth/send-otp first.")
 
     identifier = payload.identifier.strip().lower()
+
+    otp_valid = verify_and_consume_otp(identifier, payload.otp.strip())
+    if not otp_valid:
+        raise HTTPException(status_code=400, detail="Invalid or expired verification code. Please request a new one.")
+
     user = get_user_by_identifier(identifier)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -451,6 +473,8 @@ async def set_password(payload: SetPasswordRequest):
     try:
         conn = get_mysql_conn("yatra_enterprise")
         cursor = conn.cursor()
+        # Bump token_version so any existing sessions/tokens for this account
+        # are invalidated the moment the password changes.
         cursor.execute("UPDATE users SET password_hash = ?, token_version = token_version + 1 WHERE user_id = ?", (hashed, user["user_id"]))
         conn.close()
     except Exception as e:
@@ -493,6 +517,31 @@ async def refresh_token(payload: RefreshTokenRequest):
     portal = token_payload.get("portal", "agency")
     agency_id = user.get("agency_id")
     role = "Agency Owner"
+    if portal == "agency":
+        try:
+            conn = get_mysql_conn("yatra_enterprise")
+            cursor = conn.cursor()
+            if agency_id:
+                cursor.execute("SELECT role FROM agency_members WHERE user_id = ? AND agency_id = ?", (user_id, agency_id))
+                r_row = cursor.fetchone()
+                if r_row:
+                    role = r_row["role"]
+            conn.close()
+        except Exception:
+            pass
+    elif portal == "traveller":
+        role = "Traveller"
+    elif portal == "team":
+        try:
+            conn = get_mysql_conn("yatra_enterprise")
+            cursor = conn.cursor()
+            cursor.execute("SELECT role FROM team_members WHERE user_id = ?", (user_id,))
+            r_row = cursor.fetchone()
+            role = r_row["role"] if r_row else "Admin"
+            conn.close()
+        except Exception:
+            role = "Admin"
+
     permissions = get_user_permissions(user_id, portal, agency_id)
     payload_data = build_jwt_payload(user, portal, agency_id, role, permissions)
     new_access_token = create_access_token(payload_data)
@@ -560,60 +609,29 @@ async def google_login(payload: GoogleLoginRequest):
     """
     google_client_id = os.environ.get("GOOGLE_CLIENT_ID", "").strip()
 
-    # ── 1. Verify the Google ID token (with Dev/Demo Mode Fallback) ───────────
-    id_info = None
+    # ── 1. Verify the Google ID token ──────────────────────────────────────────
+    # SECURITY: this verification must never be skippable. There is no mock,
+    # demo, or "dev fallback" path — a credential is either a real Google ID
+    # token that passes cryptographic + audience verification, or the request
+    # is rejected. If GOOGLE_CLIENT_ID isn't configured, Google login is
+    # unavailable rather than silently trusting an unverified token.
+    if not _GOOGLE_AUTH_AVAILABLE or not google_client_id or google_client_id == "PASTE_YOUR_GOOGLE_CLIENT_ID_HERE":
+        raise HTTPException(
+            status_code=503,
+            detail="Google sign-in is not configured on this server (GOOGLE_CLIENT_ID missing or google-auth library unavailable).",
+        )
 
-    if payload.credential.startswith("mock_") or payload.credential.startswith("demo_"):
-        # Explicit mock/demo token from frontend
-        print("[AUTH GOOGLE] Explicit Mock/Demo Google Login triggered")
-        id_info = {
-            "sub": "DEV-GOOGLE-1001",
-            "email": "urva546@gmail.com",
-            "name": "Urva Desai (Google)",
-            "picture": "https://lh3.googleusercontent.com/a/default-user"
-        }
-    elif not google_client_id or google_client_id == "PASTE_YOUR_GOOGLE_CLIENT_ID_HERE":
-        # Dev fallback when Google Client ID is not pasted in backend/.env yet
-        print("[AUTH GOOGLE] Dev Mode Fallback triggered (GOOGLE_CLIENT_ID not set in .env)")
-        # Try decoding unverified JWT if coming from frontend Google button
-        try:
-            import jwt
-            unverified = jwt.decode(payload.credential, options={"verify_signature": False})
-            if unverified and unverified.get("email"):
-                id_info = unverified
-        except Exception:
-            pass
-
-        if not id_info:
-            id_info = {
-                "sub": "DEV-GOOGLE-1001",
-                "email": "urva546@gmail.com",
-                "name": "Urva Desai (Google)",
-                "picture": "https://lh3.googleusercontent.com/a/default-user"
-            }
-    else:
-        # Production Google OAuth 2.0 Token Verification
-        try:
-            id_info = id_token.verify_oauth2_token(
-                payload.credential,
-                google_requests.Request(),
-                google_client_id,
-                clock_skew_in_seconds=10
-            )
-            if id_info.get("aud") != google_client_id:
-                raise HTTPException(status_code=401, detail="Token audience mismatch")
-        except ValueError as e:
-            # Fallback: attempt unverified payload decode if dev token
-            try:
-                import jwt
-                unverified = jwt.decode(payload.credential, options={"verify_signature": False})
-                if unverified and unverified.get("email"):
-                    id_info = unverified
-            except Exception:
-                pass
-
-            if not id_info:
-                raise HTTPException(status_code=401, detail=f"Invalid Google token: {str(e)}")
+    try:
+        id_info = id_token.verify_oauth2_token(
+            payload.credential,
+            google_requests.Request(),
+            google_client_id,
+            clock_skew_in_seconds=10
+        )
+        if id_info.get("aud") != google_client_id:
+            raise HTTPException(status_code=401, detail="Token audience mismatch")
+    except ValueError as e:
+        raise HTTPException(status_code=401, detail=f"Invalid Google token: {str(e)}")
 
     # ── 2. Extract user info from Google payload ───────────────────────────────
     google_id   = id_info["sub"]

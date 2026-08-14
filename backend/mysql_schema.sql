@@ -1,7 +1,10 @@
--- MySQL schema for the Yatra project.
--- Recommended setup: keep the original three-database split from SQLite.
--- Note: the current Python backend still uses sqlite3 directly, so this script
--- only creates the MySQL structure for use in DBeaver or a future migration.
+-- ============================================================================
+-- DEPRECATION NOTICE:
+-- This flat 3-database schema file is DEPRECATED and maintained for legacy reference only.
+-- The canonical schema of truth for YATRA is the modular SQL scripts located in:
+--   backend/sql/00_auth_tables.sql through 16_master_seed_data.sql
+-- ============================================================================
+-- MySQL schema for the Yatra project (LEGACY).
 
 CREATE DATABASE IF NOT EXISTS yatra_agency;
 CREATE DATABASE IF NOT EXISTS yatra_traveller;

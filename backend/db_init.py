@@ -6,7 +6,7 @@ from core.database import MYSQL_CONFIG, get_db_conn, MySQLConnectionWrapper
 
 SQLITE_SCHEMAS = {
     "yatra_enterprise": [
-        "CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id TEXT UNIQUE, agency_id TEXT, user_type TEXT, name TEXT, email TEXT, phone TEXT, password_hash TEXT, status TEXT DEFAULT 'Active', token_version INTEGER DEFAULT 1, is_deleted INTEGER DEFAULT 0)",
+        "CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id TEXT UNIQUE, agency_id TEXT, user_type TEXT, name TEXT, email TEXT, phone TEXT, google_id TEXT, profile_picture TEXT, password_hash TEXT, otp_secret TEXT, token_version INTEGER DEFAULT 1, status TEXT DEFAULT 'Active', avatar_url TEXT, is_deleted INTEGER DEFAULT 0, deleted_at DATETIME, created_at DATETIME, updated_at DATETIME)",
         "CREATE TABLE IF NOT EXISTS agencies (id INTEGER PRIMARY KEY AUTOINCREMENT, agency_id TEXT UNIQUE, name TEXT, owner_name TEXT, email TEXT, contact TEXT, status TEXT DEFAULT 'Active', active_tours INTEGER DEFAULT 0, revenue REAL DEFAULT 0, expenses REAL DEFAULT 0, drivers_count INTEGER DEFAULT 0, vehicles_count INTEGER DEFAULT 0, subscription_status TEXT DEFAULT 'Trial')",
         "CREATE TABLE IF NOT EXISTS agency_members (id INTEGER PRIMARY KEY AUTOINCREMENT, agency_id TEXT, user_id TEXT, role TEXT, is_owner INTEGER DEFAULT 0)",
         "CREATE TABLE IF NOT EXISTS traveller_profiles (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id TEXT UNIQUE, preferences TEXT)",
@@ -14,18 +14,22 @@ SQLITE_SCHEMAS = {
         "CREATE TABLE IF NOT EXISTS roles (id INTEGER PRIMARY KEY AUTOINCREMENT, agency_id TEXT, role_name TEXT, description TEXT, is_system_role INTEGER DEFAULT 1)",
         "CREATE TABLE IF NOT EXISTS permissions (id INTEGER PRIMARY KEY AUTOINCREMENT, permission_key TEXT UNIQUE, module TEXT, description TEXT)",
         "CREATE TABLE IF NOT EXISTS otps (id INTEGER PRIMARY KEY AUTOINCREMENT, identifier TEXT, otp_code TEXT, portal TEXT, mode TEXT, expires_at TEXT, is_used INTEGER DEFAULT 0)",
-        "CREATE TABLE IF NOT EXISTS refresh_tokens (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id TEXT, token_hash TEXT, expires_at TEXT, revoked INTEGER DEFAULT 0)"
+        "CREATE TABLE IF NOT EXISTS refresh_tokens (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id TEXT, token_hash TEXT, expires_at TEXT, revoked INTEGER DEFAULT 0)",
+        "CREATE TABLE IF NOT EXISTS vehicle_maintenance (id INTEGER PRIMARY KEY AUTOINCREMENT, agency_id TEXT, vehicle_number TEXT, service_type TEXT, service_date DATE, cost REAL DEFAULT 0.0, mechanic_vendor TEXT, odometer_reading INTEGER, notes TEXT, is_deleted INTEGER DEFAULT 0, deleted_at DATETIME, created_at DATETIME, updated_at DATETIME)",
+        "CREATE TABLE IF NOT EXISTS ocr_results (id INTEGER PRIMARY KEY AUTOINCREMENT, agency_id TEXT, expense_id INTEGER UNIQUE, raw_text TEXT, extracted_vendor TEXT, extracted_total REAL, extracted_tax REAL, extracted_date DATE, confidence_score REAL DEFAULT 0.0, structured_json TEXT, is_deleted INTEGER DEFAULT 0, deleted_at DATETIME, created_at DATETIME, updated_at DATETIME)",
+        "CREATE TABLE IF NOT EXISTS agency_settings (id INTEGER PRIMARY KEY AUTOINCREMENT, agency_id TEXT, key TEXT, value TEXT, is_deleted INTEGER DEFAULT 0, deleted_at DATETIME, created_at DATETIME, updated_at DATETIME, UNIQUE(agency_id, key))",
+        "CREATE TABLE IF NOT EXISTS invoices (id INTEGER PRIMARY KEY AUTOINCREMENT, invoice_number TEXT UNIQUE, trip_id INTEGER, agency_id TEXT, customer_name TEXT, subtotal REAL DEFAULT 0.0, gst_amount REAL DEFAULT 0.0, grand_total REAL DEFAULT 0.0, status TEXT DEFAULT 'Pending Payment', billing_type TEXT DEFAULT 'Entire Tour', issued_date DATE, due_date DATE, paid_date DATE, notes TEXT, is_deleted INTEGER DEFAULT 0, deleted_at DATETIME, created_at DATETIME, updated_at DATETIME)"
     ],
     "yatra_agency": [
         "CREATE TABLE IF NOT EXISTS tours (trip_id INTEGER PRIMARY KEY AUTOINCREMENT, agency_id TEXT, destination TEXT, customer TEXT, agency TEXT, start_date DATE, end_date DATE, status TEXT, vehicle TEXT, driver TEXT, passengers INTEGER, guide TEXT, budget REAL, current_lat REAL, current_lng REAL, timeline_status TEXT)",
         "CREATE TABLE IF NOT EXISTS tour_stops (id INTEGER PRIMARY KEY AUTOINCREMENT, trip_id INTEGER, type TEXT, name TEXT, lat REAL, lng REAL, completed INTEGER DEFAULT 0)",
         "CREATE TABLE IF NOT EXISTS tour_timeline (id INTEGER PRIMARY KEY AUTOINCREMENT, trip_id INTEGER, event_name TEXT, status TEXT, updated_at DATETIME)",
-        "CREATE TABLE IF NOT EXISTS expenses (expense_id INTEGER PRIMARY KEY AUTOINCREMENT, trip_id INTEGER, agency_id TEXT, amount REAL, gst REAL, vendor TEXT, category TEXT, date DATE, time TIME, description TEXT, payment_mode TEXT, approved_by TEXT, status TEXT, receipt_image TEXT, ocr_extracted_data TEXT)",
-        "CREATE TABLE IF NOT EXISTS vehicles (vehicle_number TEXT PRIMARY KEY, agency_id TEXT, model TEXT, owner TEXT, insurance TEXT, permit TEXT, fitness TEXT, puc TEXT, fuel_type TEXT, mileage REAL, current_location TEXT, availability TEXT, service_history TEXT, expenses REAL, upcoming_maintenance TEXT)",
+        "CREATE TABLE IF NOT EXISTS expenses (expense_id INTEGER PRIMARY KEY AUTOINCREMENT, trip_id INTEGER, agency_id TEXT, amount REAL, gst REAL, vendor TEXT, category TEXT, date DATE, time TIME, description TEXT, payment_mode TEXT, approved_by TEXT, status TEXT, receipt_image TEXT)",
+        "CREATE TABLE IF NOT EXISTS vehicles (vehicle_number TEXT PRIMARY KEY, agency_id TEXT, model TEXT, owner TEXT, insurance TEXT, permit TEXT, fitness TEXT, puc TEXT, fuel_type TEXT, mileage REAL, current_location TEXT, availability TEXT, expenses REAL, upcoming_maintenance TEXT)",
         "CREATE TABLE IF NOT EXISTS drivers (driver_id INTEGER PRIMARY KEY AUTOINCREMENT, agency_id TEXT, name TEXT, license TEXT, aadhar TEXT, experience INTEGER, trips_completed INTEGER, assigned_tour TEXT, current_location TEXT, contact TEXT, emergency_contact TEXT, salary REAL, expense REAL, ratings REAL, documents TEXT)",
         "CREATE TABLE IF NOT EXISTS customers (customer_id INTEGER PRIMARY KEY AUTOINCREMENT, agency_id TEXT, name TEXT, contact TEXT, email TEXT, booking_history TEXT, invoices TEXT, payments TEXT, upcoming_tours TEXT, documents TEXT)",
         "CREATE TABLE IF NOT EXISTS notifications (id INTEGER PRIMARY KEY AUTOINCREMENT, agency_id TEXT, type TEXT, title TEXT, message TEXT, date DATE, read INTEGER DEFAULT 0)",
-        "CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT)"
+        "CREATE TABLE IF NOT EXISTS settings (agency_id TEXT, key TEXT, value TEXT, PRIMARY KEY (agency_id, key))"
     ],
     "yatra_traveller": [
         "CREATE TABLE IF NOT EXISTS trips (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id TEXT, name TEXT, route TEXT, date DATE, duration TEXT, budget REAL, status TEXT, driver TEXT, vehicle TEXT)",
@@ -104,6 +108,30 @@ def initialize_mysql_databases():
                     cursor.execute(query)
                 except Exception as ex:
                     print(f"SQLite init error on {db_name}: {ex}")
+            
+            # Auto-migrate SQLite tables if they exist with older schema
+            if db_name == "yatra_agency":
+                try:
+                    cursor.execute("PRAGMA table_info(settings)")
+                    cols = [r[1] for r in cursor.fetchall()]
+                    if cols and "agency_id" not in cols:
+                        cursor.execute("DROP TABLE IF EXISTS settings")
+                        cursor.execute("CREATE TABLE settings (agency_id TEXT, key TEXT, value TEXT, PRIMARY KEY (agency_id, key))")
+                except Exception:
+                    pass
+            elif db_name == "yatra_enterprise":
+                try:
+                    cursor.execute("PRAGMA table_info(users)")
+                    cols = [r[1] for r in cursor.fetchall()]
+                    for col, typ in [("google_id", "TEXT"), ("profile_picture", "TEXT"), ("otp_secret", "TEXT"), ("avatar_url", "TEXT")]:
+                        if cols and col not in cols:
+                            try:
+                                cursor.execute(f"ALTER TABLE users ADD COLUMN {col} {typ}")
+                            except Exception:
+                                pass
+                except Exception:
+                    pass
+            conn.commit()
             conn.close()
             
     seed_enterprise_db()
@@ -277,12 +305,12 @@ def seed_agency_db():
 
     # 9. Agency Settings
     cursor.executemany("""
-    INSERT IGNORE INTO settings (key, value)
-    VALUES (%s, %s)""", [
-        ("agency_name", "Yatra Travels Ltd"),
-        ("gstin", "27AAAAA1111A1Z1"),
-        ("currency", "INR"),
-        ("auto_approve_fastag", "True")
+    INSERT IGNORE INTO settings (agency_id, `key`, `value`)
+    VALUES (%s, %s, %s)""", [
+        ("AGY-1001", "agency_name", "Yatra Travels Ltd"),
+        ("AGY-1001", "gstin", "27AAAAA1111A1Z1"),
+        ("AGY-1001", "currency", "INR"),
+        ("AGY-1001", "auto_approve_fastag", "True")
     ])
 
     conn.commit()

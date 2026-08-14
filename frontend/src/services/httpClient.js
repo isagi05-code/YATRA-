@@ -1,7 +1,7 @@
-export const AGENCY_BASE = "http://localhost:8000";
-export const TRAVELLER_BASE = "http://localhost:8001";
-export const ADMIN_BASE = "http://localhost:8002";
-export const AUTH_BASE = "http://localhost:8003";
+export const AGENCY_BASE = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_AGENCY_API_BASE) || "http://localhost:8000";
+export const TRAVELLER_BASE = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_TRAVELLER_API_BASE) || "http://localhost:8001";
+export const ADMIN_BASE = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_ADMIN_API_BASE) || "http://localhost:8002";
+export const AUTH_BASE = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_AUTH_API_BASE) || "http://localhost:8003";
 
 export function getAuthToken() {
   try {
@@ -33,16 +33,61 @@ export function getUserId() {
   }
 }
 
+export async function refreshAccessToken() {
+  try {
+    const refreshToken = localStorage.getItem('yatra_refresh_token');
+    if (!refreshToken) return null;
+    const res = await fetch(`${AUTH_BASE}/auth/refresh`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ refresh_token: refreshToken }),
+    });
+    if (!res.ok) {
+      localStorage.removeItem('yatra_access_token');
+      localStorage.removeItem('yatra_refresh_token');
+      return null;
+    }
+    const data = await res.json();
+    if (data.access_token) {
+      localStorage.setItem('yatra_access_token', data.access_token);
+      return data.access_token;
+    }
+  } catch {
+    return null;
+  }
+  return null;
+}
+
 export async function request(url, options = {}) {
-  const token = getAuthToken();
-  const res = await fetch(url, {
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { "Authorization": `Bearer ${token}` } : {}),
-      ...options.headers,
-    },
+  let token = getAuthToken();
+  const isFormData = typeof FormData !== 'undefined' && options.body instanceof FormData;
+  const headers = {
+    ...(isFormData ? {} : { "Content-Type": "application/json" }),
+    ...(token ? { "Authorization": `Bearer ${token}` } : {}),
+    ...options.headers,
+  };
+
+  let res = await fetch(url, {
     ...options,
+    headers,
   });
+
+  if (res.status === 401 && !options._retry) {
+    const newToken = await refreshAccessToken();
+    if (newToken) {
+      const retryHeaders = {
+        ...(isFormData ? {} : { "Content-Type": "application/json" }),
+        "Authorization": `Bearer ${newToken}`,
+        ...options.headers,
+      };
+      res = await fetch(url, {
+        ...options,
+        _retry: true,
+        headers: retryHeaders,
+      });
+    }
+  }
+
   if (!res.ok) {
     const text = await res.text();
     let msg = text;

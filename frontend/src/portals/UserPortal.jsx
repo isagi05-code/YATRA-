@@ -102,29 +102,23 @@ function AddExpenseModal({ userId, onClose, onSaved }) {
   );
 }
 
+import { useAuth } from '../context/AuthContext';
+
 export default function UserPortal({ page, onNavigate }) {
+  const { user } = useAuth();
   const [trips, setTrips] = useState([]);
   const [expenses, setExpenses] = useState([]);
   const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState(null);
   const [profile, setProfile] = useState(null);
   const [showExpenseModal, setShowExpenseModal] = useState(false);
 
-  const getLoggedInUserId = () => {
-    try {
-      const stored = localStorage.getItem('yatra_user');
-      if (stored) {
-        const u = JSON.parse(stored);
-        return u.id || u.user_id || u.email;
-      }
-    } catch (e) {}
-    return 'TRV-1001';
-  };
-
-  const userId = getLoggedInUserId();
+  const userId = user?.user_id || user?.id || '';
 
   const loadData = () => {
     setLoading(true);
+    setFetchError(null);
     Promise.all([
       api.traveller.getTrips(undefined, userId),
       api.traveller.getExpenses(undefined, userId),
@@ -132,14 +126,15 @@ export default function UserPortal({ page, onNavigate }) {
       api.traveller.getProfile(userId)
     ])
       .then(([tripsData, expensesData, summaryData, profileData]) => {
-        setTrips(tripsData);
-        setExpenses(expensesData);
-        setSummary(summaryData);
-        setProfile(profileData);
+        setTrips(tripsData || []);
+        setExpenses(expensesData || []);
+        setSummary(summaryData || null);
+        setProfile(profileData || null);
         setLoading(false);
       })
       .catch((err) => {
         console.error("Failed to load traveller data", err);
+        setFetchError(err.message || "Failed to load traveller data");
         setLoading(false);
       });
   };

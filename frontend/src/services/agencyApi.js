@@ -1,175 +1,100 @@
-import { AGENCY_BASE, request, getAgencyId } from './httpClient';
+import { AGENCY_BASE, request } from './httpClient';
 
 export const agencyApi = {
-  getSummary: () => {
-    const aid = getAgencyId();
-    return request(`${AGENCY_BASE}/dashboard/summary${aid ? `?agency_id=${aid}` : ''}`);
-  },
-  getGraphs: () => {
-    const aid = getAgencyId();
-    return request(`${AGENCY_BASE}/dashboard/graphs${aid ? `?agency_id=${aid}` : ''}`);
-  },
+  getSummary: () => request(`${AGENCY_BASE}/dashboard/summary`),
+  getGraphs: () => request(`${AGENCY_BASE}/dashboard/graphs`),
   getTours: (status) => {
-    const aid = getAgencyId();
     const p = new URLSearchParams();
     if (status) p.append("status", status);
-    if (aid) p.append("agency_id", aid);
-    return request(`${AGENCY_BASE}/tours?${p.toString()}`);
+    const qs = p.toString();
+    return request(`${AGENCY_BASE}/tours${qs ? `?${qs}` : ''}`);
   },
-  createTour: (data) => {
-    const aid = getAgencyId();
-    return request(`${AGENCY_BASE}/tours${aid ? `?agency_id=${aid}` : ''}`, { method: "POST", body: JSON.stringify(data) });
-  },
-  getTour: (id) => {
-    const aid = getAgencyId();
-    return request(`${AGENCY_BASE}/tours/${id}${aid ? `?agency_id=${aid}` : ''}`);
-  },
+  createTour: (data) => request(`${AGENCY_BASE}/tours`, { method: "POST", body: JSON.stringify(data) }),
+  getTour: (id) => request(`${AGENCY_BASE}/tours/${encodeURIComponent(id)}`),
   updateTour: (id, status, timeline_status) => {
-    const aid = getAgencyId();
-    let url = `${AGENCY_BASE}/tours/${id}?status=${status}`;
-    if (aid) url += `&agency_id=${aid}`;
-    if (timeline_status) url += `&timeline_status=${timeline_status}`;
-    return request(url, { method: "PUT" });
+    const p = new URLSearchParams();
+    if (status) p.append("status", status);
+    if (timeline_status) p.append("timeline_status", timeline_status);
+    return request(`${AGENCY_BASE}/tours/${encodeURIComponent(id)}?${p.toString()}`, { method: "PUT" });
   },
-  deleteTour: (id) => {
-    const aid = getAgencyId();
-    return request(`${AGENCY_BASE}/tours/${id}${aid ? `?agency_id=${aid}` : ''}`, { method: "DELETE" });
-  },
-  getJourney: (id) => {
-    const aid = getAgencyId();
-    return request(`${AGENCY_BASE}/tours/${id}/journey${aid ? `?agency_id=${aid}` : ''}`);
-  },
+  deleteTour: (id) => request(`${AGENCY_BASE}/tours/${encodeURIComponent(id)}`, { method: "DELETE" }),
+  getJourney: (id) => request(`${AGENCY_BASE}/tours/${encodeURIComponent(id)}/journey`),
   updateJourney: (id, lat, lng) => {
-    const aid = getAgencyId();
-    return request(`${AGENCY_BASE}/tours/${id}/journey?lat=${lat}&lng=${lng}${aid ? `&agency_id=${aid}` : ''}`, { method: "PUT" });
+    const p = new URLSearchParams({ lat: String(lat), lng: String(lng) });
+    return request(`${AGENCY_BASE}/tours/${encodeURIComponent(id)}/journey?${p.toString()}`, { method: "PUT" });
   },
-  getDayWiseExpenses: (id) => {
-    const aid = getAgencyId();
-    return request(`${AGENCY_BASE}/tours/${id}/day-wise-expenses${aid ? `?agency_id=${aid}` : ''}`);
-  },
+  getDayWiseExpenses: (id) => request(`${AGENCY_BASE}/tours/${encodeURIComponent(id)}/day-wise-expenses`),
   assignVehicle: (id, vehicleNum) => {
-    const aid = getAgencyId();
-    return request(`${AGENCY_BASE}/tours/${id}/vehicle-assignment?vehicle_number=${vehicleNum}${aid ? `&agency_id=${aid}` : ''}`, { method: "PUT" });
+    const p = new URLSearchParams({ vehicle_number: vehicleNum });
+    return request(`${AGENCY_BASE}/tours/${encodeURIComponent(id)}/vehicle-assignment?${p.toString()}`, { method: "PUT" });
   },
   assignDriver: (id, driverId) => {
-    const aid = getAgencyId();
-    return request(`${AGENCY_BASE}/tours/${id}/driver-assignment?driver_id=${driverId}${aid ? `&agency_id=${aid}` : ''}`, { method: "PUT" });
+    const p = new URLSearchParams({ driver_id: String(driverId) });
+    return request(`${AGENCY_BASE}/tours/${encodeURIComponent(id)}/driver-assignment?${p.toString()}`, { method: "PUT" });
   },
-  getTimeline: (id) => {
-    const aid = getAgencyId();
-    return request(`${AGENCY_BASE}/tours/${id}/timeline${aid ? `?agency_id=${aid}` : ''}`);
-  },
+  getTimeline: (id) => request(`${AGENCY_BASE}/tours/${encodeURIComponent(id)}/timeline`),
   addTimelineEvent: (id, name, status, date) => {
-    const aid = getAgencyId();
-    return request(`${AGENCY_BASE}/tours/${id}/timeline?event_name=${name}&status=${status}&updated_at=${date}${aid ? `&agency_id=${aid}` : ''}`, { method: "POST" });
+    const p = new URLSearchParams({ event_name: name, status, updated_at: date });
+    return request(`${AGENCY_BASE}/tours/${encodeURIComponent(id)}/timeline?${p.toString()}`, { method: "POST" });
   },
-  getAnalytics: (id) => {
-    const aid = getAgencyId();
-    return request(`${AGENCY_BASE}/tours/${id}/analytics${aid ? `?agency_id=${aid}` : ''}`);
-  },
+  getAnalytics: (id) => request(`${AGENCY_BASE}/tours/${encodeURIComponent(id)}/analytics`),
   getExpenses: (cat, status, q) => {
-    const aid = getAgencyId();
     const p = new URLSearchParams();
     if (cat) p.append("category", cat);
     if (status) p.append("status", status);
     if (q) p.append("search", q);
-    if (aid) p.append("agency_id", aid);
-    return request(`${AGENCY_BASE}/expenses?${p.toString()}`);
+    const qs = p.toString();
+    return request(`${AGENCY_BASE}/expenses${qs ? `?${qs}` : ''}`);
   },
-  createExpense: (data) => {
-    const aid = getAgencyId();
-    return request(`${AGENCY_BASE}/expenses${aid ? `?agency_id=${aid}` : ''}`, { method: "POST", body: JSON.stringify(data) });
+  createExpense: (data) => request(`${AGENCY_BASE}/expenses`, { method: "POST", body: JSON.stringify(data) }),
+  getExpense: (id) => request(`${AGENCY_BASE}/expenses/${encodeURIComponent(id)}`),
+  updateExpense: (id, status) => {
+    const p = new URLSearchParams();
+    if (status) p.append("status", status);
+    return request(`${AGENCY_BASE}/expenses/${encodeURIComponent(id)}?${p.toString()}`, { method: "PUT" });
   },
-  getExpense: (id) => {
-    const aid = getAgencyId();
-    return request(`${AGENCY_BASE}/expenses/${id}${aid ? `?agency_id=${aid}` : ''}`);
+  deleteExpense: (id) => request(`${AGENCY_BASE}/expenses/${encodeURIComponent(id)}`, { method: "DELETE" }),
+  ocrReceipt: (imageOrFile) => {
+    if (typeof FormData !== 'undefined' && imageOrFile instanceof FormData) {
+      return request(`${AGENCY_BASE}/expenses/ocr`, { method: "POST", body: imageOrFile });
+    }
+    return request(`${AGENCY_BASE}/expenses/ocr?receipt_image=${encodeURIComponent(imageOrFile || '')}`, { method: "POST" });
   },
-  updateExpense: (id, status, approved_by) => {
-    const aid = getAgencyId();
-    return request(`${AGENCY_BASE}/expenses/${id}?status=${status}&approved_by=${approved_by}${aid ? `&agency_id=${aid}` : ''}`, { method: "PUT" });
-  },
-  deleteExpense: (id) => {
-    const aid = getAgencyId();
-    return request(`${AGENCY_BASE}/expenses/${id}${aid ? `?agency_id=${aid}` : ''}`, { method: "DELETE" });
-  },
-  ocrReceipt: (imageName) => request(`${AGENCY_BASE}/expenses/ocr?receipt_image=${imageName}`, { method: "POST" }),
-  getVehicles: () => {
-    const aid = getAgencyId();
-    return request(`${AGENCY_BASE}/vehicles${aid ? `?agency_id=${aid}` : ''}`);
-  },
-  createVehicle: (data) => {
-    const aid = getAgencyId();
-    return request(`${AGENCY_BASE}/vehicles${aid ? `?agency_id=${aid}` : ''}`, { method: "POST", body: JSON.stringify(data) });
-  },
-  getVehicle: (num) => {
-    const aid = getAgencyId();
-    return request(`${AGENCY_BASE}/vehicles/${num}${aid ? `?agency_id=${aid}` : ''}`);
-  },
+  getVehicles: () => request(`${AGENCY_BASE}/vehicles`),
+  createVehicle: (data) => request(`${AGENCY_BASE}/vehicles`, { method: "POST", body: JSON.stringify(data) }),
+  getVehicle: (num) => request(`${AGENCY_BASE}/vehicles/${encodeURIComponent(num)}`),
   updateVehicle: (num, avail, loc) => {
-    const aid = getAgencyId();
-    return request(`${AGENCY_BASE}/vehicles/${num}?availability=${avail}&current_location=${loc}${aid ? `&agency_id=${aid}` : ''}`, { method: "PUT" });
+    const p = new URLSearchParams({ availability: avail, current_location: loc });
+    return request(`${AGENCY_BASE}/vehicles/${encodeURIComponent(num)}?${p.toString()}`, { method: "PUT" });
   },
-  deleteVehicle: (num) => {
-    const aid = getAgencyId();
-    return request(`${AGENCY_BASE}/vehicles/${num}${aid ? `&agency_id=${aid}` : ''}`, { method: "DELETE" });
-  },
-  getDrivers: () => {
-    const aid = getAgencyId();
-    return request(`${AGENCY_BASE}/drivers${aid ? `?agency_id=${aid}` : ''}`);
-  },
-  createDriver: (data) => {
-    const aid = getAgencyId();
-    return request(`${AGENCY_BASE}/drivers${aid ? `?agency_id=${aid}` : ''}`, { method: "POST", body: JSON.stringify(data) });
-  },
-  deleteDriver: (id) => {
-    const aid = getAgencyId();
-    return request(`${AGENCY_BASE}/drivers/${id}${aid ? `?agency_id=${aid}` : ''}`, { method: "DELETE" });
-  },
-  getDriver: (id) => {
-    const aid = getAgencyId();
-    return request(`${AGENCY_BASE}/drivers/${id}${aid ? `?agency_id=${aid}` : ''}`);
-  },
-  getCustomers: () => {
-    const aid = getAgencyId();
-    return request(`${AGENCY_BASE}/customers${aid ? `?agency_id=${aid}` : ''}`);
-  },
-  getCustomer: (id) => {
-    const aid = getAgencyId();
-    return request(`${AGENCY_BASE}/customers/${id}${aid ? `?agency_id=${aid}` : ''}`);
-  },
+  deleteVehicle: (num) => request(`${AGENCY_BASE}/vehicles/${encodeURIComponent(num)}`, { method: "DELETE" }),
+  getDrivers: () => request(`${AGENCY_BASE}/drivers`),
+  createDriver: (data) => request(`${AGENCY_BASE}/drivers`, { method: "POST", body: JSON.stringify(data) }),
+  deleteDriver: (id) => request(`${AGENCY_BASE}/drivers/${encodeURIComponent(id)}`, { method: "DELETE" }),
+  getDriver: (id) => request(`${AGENCY_BASE}/drivers/${encodeURIComponent(id)}`),
+  getCustomers: () => request(`${AGENCY_BASE}/customers`),
+  getCustomer: (id) => request(`${AGENCY_BASE}/customers/${encodeURIComponent(id)}`),
   generateItinerary: (dest, days, budget) => {
-    const aid = getAgencyId();
-    return request(`${AGENCY_BASE}/ai-itinerary?destination=${dest}&days=${days}&budget=${budget}${aid ? `&agency_id=${aid}` : ''}`, { method: "POST" });
+    const p = new URLSearchParams({ destination: dest, days: String(days) });
+    if (budget) p.append("budget", String(budget));
+    return request(`${AGENCY_BASE}/ai-itinerary?${p.toString()}`, { method: "POST" });
   },
-  getInvoices: () => {
-    const aid = getAgencyId();
-    return request(`${AGENCY_BASE}/invoices${aid ? `?agency_id=${aid}` : ''}`);
-  },
+  getInvoices: () => request(`${AGENCY_BASE}/invoices`),
   getInvoice: (id, day) => {
-    const aid = getAgencyId();
-    let url = `${AGENCY_BASE}/invoices/${id}`;
-    const params = new URLSearchParams();
-    if (day) params.append("day", day);
-    if (aid) params.append("agency_id", aid);
-    const queryStr = params.toString();
-    return request(`${url}${queryStr ? `?${queryStr}` : ''}`);
+    const p = new URLSearchParams();
+    if (day) p.append("day", day);
+    const qs = p.toString();
+    return request(`${AGENCY_BASE}/invoices/${encodeURIComponent(id)}${qs ? `?${qs}` : ''}`);
   },
-  downloadInvoice: (id) => {
-    const aid = getAgencyId();
-    return request(`${AGENCY_BASE}/invoices/download/${id}${aid ? `?agency_id=${aid}` : ''}`);
-  },
-  getReports: (type) => {
-    const aid = getAgencyId();
-    return request(`${AGENCY_BASE}/reports?report_type=${type}${aid ? `&agency_id=${aid}` : ''}`);
-  },
+  downloadInvoice: (id) => request(`${AGENCY_BASE}/invoices/download/${encodeURIComponent(id)}`),
+  getReports: (type) => request(`${AGENCY_BASE}/reports?report_type=${encodeURIComponent(type)}`),
   getNotifications: (unread) => {
-    const aid = getAgencyId();
     const p = new URLSearchParams();
     if (unread) p.append("unread_only", "true");
-    if (aid) p.append("agency_id", aid);
-    return request(`${AGENCY_BASE}/notifications?${p.toString()}`);
+    const qs = p.toString();
+    return request(`${AGENCY_BASE}/notifications${qs ? `?${qs}` : ''}`);
   },
-  markNotificationRead: (id) => request(`${AGENCY_BASE}/notifications/${id}/read`, { method: "PUT" }),
+  markNotificationRead: (id) => request(`${AGENCY_BASE}/notifications/${encodeURIComponent(id)}/read`, { method: "PUT" }),
   getSettings: () => request(`${AGENCY_BASE}/settings`),
-  updateSetting: (key, val) => request(`${AGENCY_BASE}/settings/${key}`, { method: "PUT", body: JSON.stringify({ value: val }) }),
+  updateSetting: (key, val) => request(`${AGENCY_BASE}/settings/${encodeURIComponent(key)}`, { method: "PUT", body: JSON.stringify({ value: val }) }),
 };

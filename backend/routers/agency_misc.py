@@ -40,10 +40,11 @@ def get_customer_details(customer_id: int, agency_id: str = Depends(get_agency_i
 # ── AI Itinerary ──────────────────────────────────────────────────────────────
 
 @router.post("/ai-itinerary")
-def generate_ai_itinerary(destination: str, days: int, budget: float = 0, agency_id: str = Depends(get_agency_id)):
+async def generate_ai_itinerary(destination: str, days: int, budget: float = 0, agency_id: str = Depends(get_agency_id)):
     """Generate a real day-wise itinerary using Google Gemini Flash (REST API with fallback)."""
     import json as _json
     import requests as _requests
+    from starlette.concurrency import run_in_threadpool
 
     gemini_key = os.environ.get("GEMINI_API_KEY", "").strip()
     preferred_model = os.environ.get("GEMINI_MODEL", "gemini-2.0-flash").strip()
@@ -98,7 +99,9 @@ Generate exactly {days} day objects in the itinerary array. Keep descriptions pr
                 "generationConfig": {"temperature": 0.7, "maxOutputTokens": 4096, "responseMimeType": "application/json"}
             }
             try:
-                resp = _requests.post(url, json=payload, timeout=15)
+                def _do_post():
+                    return _requests.post(url, json=payload, timeout=15)
+                resp = await run_in_threadpool(_do_post)
                 if resp.status_code == 200:
                     candidates = resp.json().get("candidates", [])
                     if candidates:
@@ -213,12 +216,17 @@ def generate_invoice_for_tour(trip_id: int, day: Optional[str] = None, agency_id
     else:
         cursor.execute("SELECT * FROM expenses WHERE trip_id = ? AND status = 'Approved'", (trip_id,))
     expenses = [dict(row) for row in cursor.fetchall()]
+    cursor.execute("SELECT `key`, `value` FROM settings WHERE agency_id = ?", (agency_id,))
+    settings_map = {r["key"]: r["value"] for r in cursor.fetchall()}
     conn.close()
     expenses_total = sum(e["amount"] for e in expenses)
     gst_total = sum(e["gst"] for e in expenses)
     grand_total = expenses_total + gst_total
     return {
         "agency_logo": "/yatralogo.jpg",
+        "agency_name": settings_map.get("agency_name", "Yatra Travels Ltd"),
+        "agency_gstin": settings_map.get("gstin", "27AAAAA1111A1Z1"),
+        "currency": settings_map.get("currency", "INR"),
         "invoice_number": f"YATRA-{1000 + trip_id}",
         "customer": tour["customer"],
         "trip_id": trip_id,
@@ -308,7 +316,7 @@ def mark_notification_as_read(notif_id: int, agency_id: str = Depends(get_agency
 def get_settings(agency_id: str = Depends(get_agency_id)):
     conn = get_db_conn()
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM settings")
+    cursor.execute("SELECT `key`, `value` FROM settings WHERE agency_id = ?", (agency_id,))
     settings_dict = {row["key"]: row["value"] for row in cursor.fetchall()}
     conn.close()
     return settings_dict
@@ -318,7 +326,12 @@ def get_settings(agency_id: str = Depends(get_agency_id)):
 def update_settings(key: str, payload: SettingsUpdate, agency_id: str = Depends(get_agency_id)):
     conn = get_db_conn()
     cursor = conn.cursor()
-    cursor.execute("INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)", (key, payload.value))
+    cursor.execute("UPDATE settings SET value = ? WHERE agency_id = ? AND `key` = ?", (payload.value, agency_id, key))
+    if cursor.rowcount == 0:
+        try:
+            cursor.execute("INSERT INTO settings (agency_id, `key`, `value`) VALUES (?, ?, ?)", (agency_id, key, payload.value))
+        except Exception:
+            cursor.execute("UPDATE settings SET value = ? WHERE agency_id = ? AND `key` = ?", (payload.value, agency_id, key))
     conn.commit()
     conn.close()
     return {"message": f"Setting '{key}' updated successfully."}

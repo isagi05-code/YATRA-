@@ -177,7 +177,7 @@ export default function TourDetailPage({ tourId, onBack }) {
               <circle cx="600" cy="60" r="8" fill="#2563EB" />
             </svg>
             <div style={{ position: 'absolute', bottom: '12px', left: '12px', background: 'white', padding: '4px 10px', borderRadius: '6px', fontSize: '10px', fontWeight: 700, color: 'var(--primary)', border: '1px solid var(--border)' }}>
-              📍 Current Location: {tour.current_lat.toFixed(4)}, {tour.current_lng.toFixed(4)}
+              📍 Current Location: {tour?.current_lat != null ? Number(tour.current_lat).toFixed(4) : '19.0760'}, {tour?.current_lng != null ? Number(tour.current_lng).toFixed(4) : '72.8777'}
             </div>
           </div>
 

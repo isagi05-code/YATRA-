@@ -19,6 +19,28 @@ def get_vehicles(agency_id: str = Depends(get_agency_id)):
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM vehicles WHERE agency_id = ? ORDER BY vehicle_number", (agency_id,))
     vehicles = [dict(row) for row in cursor.fetchall()]
+    try:
+        ent_conn = get_mysql_conn("yatra_enterprise")
+        ent_cursor = ent_conn.cursor()
+        for v in vehicles:
+            ent_cursor.execute(
+                "SELECT service_date as date, service_type as type, cost FROM vehicle_maintenance WHERE vehicle_number = ? AND agency_id = ? AND is_deleted = 0 ORDER BY service_date DESC",
+                (v["vehicle_number"], agency_id)
+            )
+            v["service_history"] = [dict(r) for r in ent_cursor.fetchall()]
+        ent_conn.close()
+    except Exception:
+        try:
+            for v in vehicles:
+                cursor.execute(
+                    "SELECT service_date as date, service_type as type, cost FROM vehicle_maintenance WHERE vehicle_number = ? AND agency_id = ? AND is_deleted = 0 ORDER BY service_date DESC",
+                    (v["vehicle_number"], agency_id)
+                )
+                v["service_history"] = [dict(r) for r in cursor.fetchall()]
+        except Exception:
+            for v in vehicles:
+                if "service_history" not in v:
+                    v["service_history"] = []
     conn.close()
     return vehicles
 
@@ -32,9 +54,9 @@ def create_vehicle(veh: VehicleCreate, agency_id: str = Depends(get_agency_id)):
         conn.close()
         raise HTTPException(status_code=400, detail="Vehicle number already registered for this agency")
     cursor.execute("""
-    INSERT INTO vehicles (vehicle_number, agency_id, model, owner, insurance, permit, fitness, puc, fuel_type, mileage, current_location, availability, service_history, expenses, upcoming_maintenance)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-    (veh.vehicle_number, agency_id, veh.model, veh.owner, veh.insurance, veh.permit, veh.fitness, veh.puc, veh.fuel_type, veh.mileage, veh.current_location, veh.availability, veh.service_history, veh.expenses, veh.upcoming_maintenance))
+    INSERT INTO vehicles (vehicle_number, agency_id, model, owner, insurance, permit, fitness, puc, fuel_type, mileage, current_location, availability, expenses, upcoming_maintenance)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+    (veh.vehicle_number, agency_id, veh.model, veh.owner, veh.insurance, veh.permit, veh.fitness, veh.puc, veh.fuel_type, veh.mileage, veh.current_location, veh.availability, veh.expenses, veh.upcoming_maintenance))
     conn.commit()
     conn.close()
     return {"message": "Vehicle registered successfully"}
@@ -46,10 +68,30 @@ def get_vehicle_details(vehicle_number: str, agency_id: str = Depends(get_agency
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM vehicles WHERE vehicle_number = ? AND agency_id = ?", (vehicle_number, agency_id))
     row = cursor.fetchone()
-    conn.close()
     if not row:
+        conn.close()
         raise HTTPException(status_code=404, detail="Vehicle not found")
-    return dict(row)
+    v = dict(row)
+    try:
+        ent_conn = get_mysql_conn("yatra_enterprise")
+        ent_cursor = ent_conn.cursor()
+        ent_cursor.execute(
+            "SELECT service_date as date, service_type as type, cost FROM vehicle_maintenance WHERE vehicle_number = ? AND agency_id = ? AND is_deleted = 0 ORDER BY service_date DESC",
+            (vehicle_number, agency_id)
+        )
+        v["service_history"] = [dict(r) for r in ent_cursor.fetchall()]
+        ent_conn.close()
+    except Exception:
+        try:
+            cursor.execute(
+                "SELECT service_date as date, service_type as type, cost FROM vehicle_maintenance WHERE vehicle_number = ? AND agency_id = ? AND is_deleted = 0 ORDER BY service_date DESC",
+                (vehicle_number, agency_id)
+            )
+            v["service_history"] = [dict(r) for r in cursor.fetchall()]
+        except Exception:
+            v["service_history"] = []
+    conn.close()
+    return v
 
 
 @router.put("/vehicles/{vehicle_number}")
