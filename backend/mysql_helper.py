@@ -7,9 +7,9 @@ import datetime
 from core.config import setting, BACKEND_DIR
 
 try:
-    _port = int(setting('MYSQL_PORT', '3307'))
+    _port = int(setting('MYSQL_PORT', '3306'))
 except ValueError:
-    _port = 3307
+    _port = 3306
 
 MYSQL_CONFIG = {
     'host': setting('MYSQL_HOST', 'localhost'),
