@@ -5,7 +5,8 @@ Modularized FastAPI app mounting routers for Traveller features and Auth.
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from routers import traveller_router, auth_router
+from modules.traveller.router import router as traveller_router
+from modules.auth.router import router as auth_router
 
 app = FastAPI(title="Yatra Traveller Dashboard API", version="2.0.0")
 

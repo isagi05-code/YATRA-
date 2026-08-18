@@ -3,8 +3,8 @@ import os
 from typing import Optional
 from fastapi import APIRouter, HTTPException, Query, Depends
 from core.database import get_db_conn as get_mysql_conn
-from schemas.agency import SettingsUpdate
-from auth_deps import get_agency_id
+from modules.agency.schemas import SettingsUpdate
+from modules.auth.deps import get_agency_id
 
 router = APIRouter(tags=["Agency Misc"])
 
@@ -41,66 +41,160 @@ def get_customer_details(customer_id: int, agency_id: str = Depends(get_agency_i
 
 @router.post("/ai-itinerary")
 async def generate_ai_itinerary(destination: str, days: int, budget: float = 0, agency_id: str = Depends(get_agency_id)):
-    """Generate a real day-wise itinerary using Google Gemini Flash (REST API with fallback)."""
+    """Generate a rich, detailed day-wise itinerary using Google Gemini (REST API)."""
     import json as _json
     import requests as _requests
     from starlette.concurrency import run_in_threadpool
 
     gemini_key = os.environ.get("GEMINI_API_KEY", "").strip()
     preferred_model = os.environ.get("GEMINI_MODEL", "gemini-2.0-flash").strip()
-    models_to_try = [preferred_model, "gemini-2.0-flash", "gemini-2.5-flash", "gemini-1.5-flash-latest"]
+    models_to_try = [preferred_model, "gemini-3.6-flash", "gemini-2.5-flash", "gemini-1.5-flash-latest"]
 
     # Remove duplicates preserving order
     seen = set()
     models_to_try = [m for m in models_to_try if not (m in seen or seen.add(m))]
 
-    budget_val = int(budget) if budget > 0 else days * 5000
+    budget_val = int(budget) if budget > 0 else days * 6000
     budget_label = f"₹{budget_val:,}"
     dest_clean = destination.strip().title()
+    per_day = int(budget_val / max(days, 1))
 
-    prompt = f"""You are a professional Indian travel planner. Generate a {days}-day itinerary for {dest_clean} with a total budget of {budget_label}.
+    prompt = f"""You are an expert Indian travel planner with deep local knowledge. Generate a highly detailed, realistic {days}-day itinerary for {dest_clean} with a total budget of {budget_label}.
 
-Return ONLY valid JSON — no markdown, no extra text, no code fences. Use this exact schema:
+Return ONLY valid JSON — no markdown, no extra text, no code fences. Use EXACTLY this schema:
 {{
   "destination": "{dest_clean}",
   "days": {days},
-  "summary": "<one-sentence trip summary>",
+  "summary": "<2-3 sentence vivid trip summary capturing the mood, highlights, and best experiences>",
   "estimated_budget": {budget_val},
   "budget_breakdown": {{
-    "accommodation": {int(budget_val * 0.4)},
-    "food": {int(budget_val * 0.25)},
-    "transport": {int(budget_val * 0.2)},
-    "activities": {int(budget_val * 0.1)},
-    "miscellaneous": {int(budget_val * 0.05)}
+    "accommodation": <integer, ~35-40% of total>,
+    "food": <integer, ~20-25% of total>,
+    "transport": <integer, ~15-20% of total>,
+    "activities_and_entry": <integer, ~10-15% of total>,
+    "shopping_and_misc": <integer, ~5-10% of total>
+  }},
+  "accommodation_suggestion": {{
+    "name": "<specific hotel or guesthouse name for {dest_clean}>",
+    "area": "<locality or area in {dest_clean}>",
+    "price_per_night": <integer in INR>,
+    "type": "<Budget / Mid-range / Luxury>"
   }},
   "itinerary": [
     {{
       "day": 1,
-      "title": "<theme or focus for the day>",
-      "estimated_cost": {int(budget_val / max(days, 1))},
+      "title": "<engaging thematic title for this day's journey>",
+      "theme": "<one-word theme: Heritage / Nature / Adventure / Spiritual / Leisure / Culture>",
+      "estimated_cost": <integer daily cost in INR>,
+      "highlights": ["<top attraction 1>", "<top attraction 2>", "<top attraction 3>"],
       "activities": [
-        {{ "time": "Morning",   "name": "<activity name>", "description": "<1-2 sentence description>" }},
-        {{ "time": "Afternoon", "name": "<activity name>", "description": "<1-2 sentence description>" }},
-        {{ "time": "Evening",   "name": "<activity name>", "description": "<1-2 sentence description>" }}
-      ]
+        {{
+          "time": "Morning",
+          "time_slot": "07:00 - 10:00",
+          "name": "<specific attraction or activity name>",
+          "location": "<exact place name, neighbourhood, or landmark>",
+          "description": "<2-3 sentences: what to do, what to see, why it's special>",
+          "distance_from_base": "<X km from hotel/city center>",
+          "entry_fee": "<₹XX per person or Free>",
+          "duration": "<approx duration e.g. 2 hours>",
+          "tips": "<1 practical insider tip>"
+        }},
+        {{
+          "time": "Late Morning",
+          "time_slot": "10:30 - 13:00",
+          "name": "<specific attraction or activity name>",
+          "location": "<exact place name>",
+          "description": "<2-3 sentences>",
+          "distance_from_base": "<X km>",
+          "entry_fee": "<₹XX or Free>",
+          "duration": "<approx duration>",
+          "tips": "<1 practical tip>"
+        }},
+        {{
+          "time": "Afternoon",
+          "time_slot": "13:00 - 14:30",
+          "name": "Lunch at <specific restaurant or dhaba name>",
+          "location": "<restaurant area or street name>",
+          "description": "<what dishes to try, type of cuisine, ambiance>",
+          "distance_from_base": "<X km>",
+          "entry_fee": "₹<approx cost per person>",
+          "duration": "1.5 hours",
+          "tips": "<ordering tip or reservation advice>"
+        }},
+        {{
+          "time": "Afternoon",
+          "time_slot": "15:00 - 18:00",
+          "name": "<specific afternoon attraction or activity>",
+          "location": "<exact location>",
+          "description": "<2-3 sentences>",
+          "distance_from_base": "<X km>",
+          "entry_fee": "<₹XX or Free>",
+          "duration": "<approx duration>",
+          "tips": "<1 practical tip>"
+        }},
+        {{
+          "time": "Evening",
+          "time_slot": "18:30 - 21:00",
+          "name": "<specific evening experience or dinner spot>",
+          "location": "<exact location>",
+          "description": "<2-3 sentences capturing the evening atmosphere>",
+          "distance_from_base": "<X km>",
+          "entry_fee": "<₹XX or Free>",
+          "duration": "<approx duration>",
+          "tips": "<evening-specific tip>"
+        }}
+      ],
+      "transport_for_day": {{
+        "mode": "<Auto / Cab / Bus / Walk / Boat / etc.>",
+        "estimated_cost": "<₹XX for the day>",
+        "notes": "<key transport detail or booking tip>"
+      }},
+      "meals_budget": "<₹XX estimated for all meals today>"
     }}
   ],
-  "tips": "<2-3 practical travel tips, semicolon-separated>",
-  "best_time_to_visit": "<season or months>"
+  "tips": [
+    "<specific, actionable tip 1 for {dest_clean}>",
+    "<specific tip 2 about local customs or etiquette>",
+    "<specific tip 3 about safety or health>",
+    "<specific tip 4 about best local experiences>",
+    "<specific tip 5 about money-saving or booking>"
+  ],
+  "best_time_to_visit": "<specific months and reason>",
+  "how_to_reach": {{
+    "by_air": "<nearest airport and approx distance>",
+    "by_train": "<nearest railway station and approx distance>",
+    "by_road": "<road route from nearest major city>"
+  }},
+  "emergency_contacts": {{
+    "police": "100",
+    "ambulance": "108",
+    "tourist_helpline": "1800-11-1363"
+  }}
 }}
 
-Generate exactly {days} day objects in the itinerary array. Keep descriptions practical and specific to {dest_clean}."""
+RULES:
+- Use REAL, SPECIFIC place names, restaurant names, and landmarks in {dest_clean}. No generic placeholders.
+- Entry fees must be actual approximate INR amounts (e.g., ₹35, ₹500) or "Free". Research accurately.
+- Distances must be realistic (e.g., "2.5 km from city center" not just "nearby").
+- Time slots must be logical and allow realistic travel time between locations.
+- Generate exactly {days} day objects in the itinerary array.
+- Budget breakdown integers must sum exactly to {budget_val}.
+- The accommodation suggestion must be a real property in {dest_clean} that fits the budget."""
 
     if gemini_key:
         for model in models_to_try:
             url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={gemini_key}"
             payload = {
                 "contents": [{"parts": [{"text": prompt}]}],
-                "generationConfig": {"temperature": 0.7, "maxOutputTokens": 4096, "responseMimeType": "application/json"}
+                "generationConfig": {
+                    "temperature": 0.65,
+                    "maxOutputTokens": 8192,
+                    "responseMimeType": "application/json"
+                }
             }
             try:
                 def _do_post():
-                    return _requests.post(url, json=payload, timeout=15)
+                    return _requests.post(url, json=payload, timeout=30)
                 resp = await run_in_threadpool(_do_post)
                 if resp.status_code == 200:
                     candidates = resp.json().get("candidates", [])
@@ -116,55 +210,16 @@ Generate exactly {days} day objects in the itinerary array. Keep descriptions pr
                     print(f"[AI ITINERARY] Model {model} returned {resp.status_code}, trying next model...")
                     continue
                 else:
-                    print(f"[AI ITINERARY] Model {model} returned HTTP {resp.status_code}: {resp.text[:120]}")
+                    print(f"[AI ITINERARY] Model {model} returned HTTP {resp.status_code}: {resp.text[:200]}")
             except Exception as e:
                 print(f"[AI ITINERARY] Error calling model {model}: {e}")
 
-    # Fallback Generator — generates a complete day-wise itinerary if API key is rate-limited or unavailable
-    print(f"[AI ITINERARY] Using Smart Itinerary Generator fallback for '{dest_clean}' ({days} days)")
-    per_day_cost = int(budget_val / max(days, 1))
-
-    days_list = []
-    highlights = [
-        ("Arrival & Cultural Exploration", "Local sightseeing, landmark visits, and introductory city tour", "Sunset view at prominent viewpoint and local dinner experience"),
-        ("Morning nature walk and trekking trail", "Scenic lunch stop and afternoon heritage site exploration", "Evening local market shopping and regional culinary tasting"),
-        ("Visit historical monuments and ancient temples", "Explore local museums and artisan workshops", "Traditional cultural performance or riverside stroll"),
-        ("Day excursion to nearby scenic valley or viewpoint", "Picnic lunch amidst nature and photo sessions", "Return to town center for evening leisure"),
-        ("Visit traditional village or local handicraft center", "Authentic regional lunch at recommended diner", "Relaxing cafe hopping or leisure walk"),
-        ("Morning sports or outdoor adventure activity", "Relaxing afternoon spa or boat ride", "Special dinner experience and stargazing"),
-        ("Last-minute souvenir shopping and local photo spots", "Hotel checkout and departure transport arrangement", "Safe travels home")
-    ]
-
-    for d in range(1, days + 1):
-        idx = (d - 1) % len(highlights)
-        m_act, a_act, e_act = highlights[idx]
-        days_list.append({
-            "day": d,
-            "title": f"Day {d}: {m_act}",
-            "estimated_cost": per_day_cost,
-            "activities": [
-                {"time": "Morning", "name": f"{dest_clean} Morning Tour", "description": m_act},
-                {"time": "Afternoon", "name": f"{dest_clean} Exploration", "description": a_act},
-                {"time": "Evening", "name": f"{dest_clean} Evening Leisure", "description": e_act}
-            ]
-        })
-
-    return {
-        "destination": dest_clean,
-        "days": days,
-        "summary": f"A curated {days}-day journey through {dest_clean} featuring scenic spots, local heritage, and regional dining.",
-        "estimated_budget": budget_val,
-        "budget_breakdown": {
-            "accommodation": int(budget_val * 0.4),
-            "food": int(budget_val * 0.25),
-            "transport": int(budget_val * 0.2),
-            "activities": int(budget_val * 0.1),
-            "miscellaneous": int(budget_val * 0.05)
-        },
-        "itinerary": days_list,
-        "tips": "Book local transport in advance; Carry comfortable walking shoes; Keep digital copies of ID proof.",
-        "best_time_to_visit": "October to March"
-    }
+    # Minimal fallback — inform frontend that AI is unavailable rather than serving generic fake data
+    print(f"[AI ITINERARY] All models failed for '{dest_clean}' — returning service unavailable")
+    raise HTTPException(
+        status_code=503,
+        detail=f"Unable to generate itinerary for '{dest_clean}' at this time. Please check your GEMINI_API_KEY and try again."
+    )
 
 
 # ── Invoices ──────────────────────────────────────────────────────────────────

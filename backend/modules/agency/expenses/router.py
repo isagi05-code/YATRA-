@@ -1,8 +1,8 @@
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from core.database import get_db_conn as get_mysql_conn
-from schemas.agency import ExpenseCreate
-from auth_deps import get_agency_id, AuthUser, require_agency_context
+from modules.agency.schemas import ExpenseCreate
+from modules.auth.deps import get_agency_id, AuthUser, require_agency_context
 
 router = APIRouter(prefix="/expenses", tags=["Agency Expenses"])
 

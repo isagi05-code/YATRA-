@@ -1,11 +1,11 @@
 """Automated unit test suite for YATRA authentication, tenant isolation, and CRUD correctness."""
 import asyncio
-from auth_utils import create_access_token
-from auth_deps import get_current_user, require_agency_context, get_agency_id, get_user_id, AuthUser
-from routers.agency_fleet import get_vehicles, create_vehicle, get_vehicle_details, update_vehicle
-from routers.agency_expenses import get_expenses, create_expense, get_expense, update_expense_status
-from routers.agency_misc import get_settings, update_settings, generate_invoice_for_tour
-from schemas.agency import VehicleCreate, ExpenseCreate, SettingsUpdate
+from modules.auth.utils import create_access_token
+from modules.auth.deps import get_current_user, require_agency_context, get_agency_id, get_user_id, AuthUser
+from modules.agency.fleet.router import get_vehicles, create_vehicle, get_vehicle_details, update_vehicle
+from modules.agency.expenses.router import get_expenses, create_expense, get_expense, update_expense_status
+from modules.agency.misc.router import get_settings, update_settings, generate_invoice_for_tour
+from modules.agency.schemas import VehicleCreate, ExpenseCreate, SettingsUpdate
 from db_init import initialize_mysql_databases
 from fastapi import HTTPException
 from fastapi.security import HTTPAuthorizationCredentials

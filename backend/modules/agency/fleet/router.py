@@ -1,8 +1,8 @@
 """Agency Fleet router — /vehicles and /drivers endpoints."""
 from fastapi import APIRouter, Depends, HTTPException
 from core.database import get_db_conn as get_mysql_conn
-from schemas.agency import VehicleCreate, DriverCreate
-from auth_deps import get_agency_id
+from modules.agency.schemas import VehicleCreate, DriverCreate
+from modules.auth.deps import get_agency_id
 
 router = APIRouter(tags=["Agency Fleet"])
 

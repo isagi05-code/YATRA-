@@ -2,8 +2,8 @@
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException
 from core.database import get_db_conn as get_mysql_conn
-from schemas.traveller import TripCreate, ExpenseCreate, BookingCreate, DocumentCreate, ProfileUpdate
-from auth_deps import get_user_id
+from modules.traveller.schemas import TripCreate, ExpenseCreate, BookingCreate, DocumentCreate, ProfileUpdate
+from modules.auth.deps import get_user_id
 
 router = APIRouter(tags=["Traveller"])
 

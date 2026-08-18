@@ -1,7 +1,7 @@
 """Agency Dashboard router — /dashboard/summary and /dashboard/graphs."""
 from fastapi import APIRouter, Depends
 from core.database import get_db_conn as get_mysql_conn
-from auth_deps import get_agency_id
+from modules.auth.deps import get_agency_id
 
 router = APIRouter(prefix="/dashboard", tags=["Agency Dashboard"])
 

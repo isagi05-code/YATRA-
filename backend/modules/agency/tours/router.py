@@ -2,8 +2,8 @@
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException
 from core.database import get_db_conn as get_mysql_conn
-from schemas.agency import TourCreate
-from auth_deps import get_agency_id
+from modules.agency.schemas import TourCreate
+from modules.auth.deps import get_agency_id
 
 router = APIRouter(prefix="/tours", tags=["Agency Tours"])
 

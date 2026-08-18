@@ -251,14 +251,35 @@
 .ait-day-card__body     { padding: 12px 16px; }
 .ait-day-card__fallback { margin: 0; font-size: 13px; color: var(--yatra-muted); line-height: 1.6; }
 
-.ait-activity           { display: flex; gap: 11px; padding: 8px 0; border-bottom: 1px solid var(--yatra-border); }
+.ait-activity           { display: flex; gap: 11px; padding: 10px 0; border-bottom: 1px solid var(--yatra-border); }
 .ait-activity:last-child{ border-bottom: none; padding-bottom: 0; }
-.ait-activity__dot      { flex-shrink: 0; width: 7px; height: 7px; border-radius: 50%; margin-top: 5px; }
+.ait-activity__dot      { flex-shrink: 0; width: 7px; height: 7px; border-radius: 50%; margin-top: 6px; }
 .ait-activity__body     { flex: 1; min-width: 0; }
-.ait-activity__header   { display: flex; align-items: baseline; gap: 8px; margin-bottom: 2px; }
+.ait-activity__header   { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin-bottom: 3px; cursor: default; }
+.ait-activity__title-row{ display: flex; align-items: baseline; gap: 7px; flex-wrap: wrap; }
+.ait-activity__slot     { display: inline-flex; align-items: center; gap: 3px; font-size: 10px; color: var(--yatra-muted); background: var(--yatra-cream); border-radius: 4px; padding: 1px 5px; white-space: nowrap; }
 .ait-activity__time     { font-size: 10px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--yatra-muted); white-space: nowrap; }
 .ait-activity__name     { font-size: 13px; font-weight: 600; color: var(--yatra-ink); }
-.ait-activity__desc     { margin: 0; font-size: 12px; color: var(--yatra-muted); line-height: 1.55; }
+.ait-activity__expand-icon { flex-shrink: 0; color: var(--yatra-muted); margin-top: 2px; }
+.ait-activity__desc     { margin: 0 0 6px; font-size: 12px; color: var(--yatra-muted); line-height: 1.55; }
+.ait-activity__meta     { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
+.ait-meta-pill          { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; background: var(--yatra-cream); color: var(--yatra-muted); border-radius: 5px; padding: 2px 7px; border: 1px solid var(--yatra-border); white-space: nowrap; }
+.ait-meta-pill--fee     { background: #fef9c3; color: #854d0e; border-color: #fde68a; }
+.ait-activity__tip      { display: flex; align-items: flex-start; gap: 5px; font-size: 11px; color: #92400e; background: #fffbeb; border-radius: 5px; padding: 5px 8px; border: 1px solid #fde68a; margin-top: 5px; width: 100%; }
+.ait-activity__tip span { line-height: 1.5; }
+
+/* Day card extended */
+.ait-day-card__meta-row { display: flex; align-items: center; gap: 8px; margin-bottom: 3px; }
+.ait-day-card__theme    { font-size: 10px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; border-radius: 20px; padding: 1px 8px; }
+.ait-day-card__highlights { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
+.ait-highlight-chip     { display: inline-flex; align-items: center; gap: 4px; font-size: 10px; color: var(--yatra-muted); background: var(--yatra-cream); border-radius: 5px; padding: 2px 7px; border: 1px solid var(--yatra-border); }
+.ait-day-card__costs    { text-align: right; }
+.ait-day-card__cost     { flex-shrink: 0; font-size: 14px; font-weight: 800; color: var(--yatra-blue); white-space: nowrap; display: flex; flex-direction: column; }
+.ait-day-card__cost small { font-size: 10px; font-weight: 400; color: var(--yatra-muted); }
+.ait-day-card__footer   { padding: 8px 16px; border-top: 1px solid var(--yatra-border); display: flex; flex-wrap: wrap; gap: 8px; }
+.ait-footer-pill        { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; color: var(--yatra-muted); }
+.ait-footer-pill em     { font-style: normal; font-size: 10px; }
+.ait-footer-pill--meals { color: #065f46; }
 
 .ait-sidebar            { display: flex; flex-direction: column; gap: 12px; align-self: start; position: sticky; top: 68px; }
 .ait-budget-card        { background: var(--yatra-blue); color: #fff; }
@@ -267,15 +288,19 @@
 .ait-budget-card__row   { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-top: 1px solid rgba(255,255,255,.10); font-size: 12px; }
 .ait-budget-card__row span   { color: rgba(255,255,255,.65); text-transform: capitalize; }
 .ait-budget-card__row strong { color: #fff; }
-.ait-meta-card          { font-size: 13px; }
-.ait-meta-card__item    { display: flex; align-items: center; gap: 7px; color: var(--yatra-muted); }
+.ait-meta-card          { font-size: 13px; display: flex; flex-direction: column; gap: 7px; }
+.ait-meta-card__heading { display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--yatra-muted); }
+.ait-meta-card__item    { display: flex; align-items: flex-start; gap: 7px; color: var(--yatra-muted); font-size: 12px; line-height: 1.5; }
 .ait-meta-card__item b  { color: var(--yatra-ink); }
+.ait-accom__name        { font-size: 13px; font-weight: 700; color: var(--yatra-ink); margin: 0; }
+.ait-emergency-label    { text-transform: capitalize; flex: 1; }
 .ait-tips-card          { font-size: 13px; }
 .ait-tips-card__heading { display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 9px; color: var(--yatra-muted); }
 .ait-tips-card__list    { margin: 0; padding-left: 15px; color: var(--yatra-muted); line-height: 1.65; }
 .ait-tips-card__list li { margin-bottom: 4px; }
 
 .ait-skeleton-wrap         { display: flex; flex-direction: column; gap: 10px; }
+.ait-skeleton-msg          { text-align: center; color: var(--yatra-muted); font-size: 13px; padding: 16px; }
 .ait-skeleton-card         { border-radius: 10px; overflow: hidden; background: #fff; border: 1px solid var(--yatra-border); }
 .ait-skeleton__header      { height: 48px; background: linear-gradient(90deg, var(--yatra-cream) 25%, #f0e8d8 50%, var(--yatra-cream) 75%); background-size: 200% 100%; animation: ait-shimmer 1.4s infinite; }
 .ait-skeleton__line        { height: 12px; margin: 12px 16px 0; border-radius: 5px; background: linear-gradient(90deg, var(--yatra-cream) 25%, #f0e8d8 50%, var(--yatra-cream) 75%); background-size: 200% 100%; animation: ait-shimmer 1.4s infinite; }

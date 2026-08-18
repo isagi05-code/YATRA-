@@ -18,11 +18,11 @@ except ImportError:
     google_requests = None
 
 from core.database import get_db_conn as get_mysql_conn
-from schemas.auth import (
+from modules.auth.schemas import (
     SendOtpRequest, VerifyOtpRequest, LoginRequest,
     SetPasswordRequest, RefreshTokenRequest, LogoutRequest
 )
-from auth_utils import (
+from modules.auth.utils import (
     hash_password, verify_password,
     create_access_token, create_refresh_token,
     decode_access_token, decode_refresh_token,

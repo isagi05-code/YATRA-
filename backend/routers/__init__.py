@@ -7,6 +7,7 @@ from .agency_misc import router as agency_misc_router
 from .traveller_router import router as traveller_router
 from .team_admin import router as team_admin_router
 from .auth_router import router as auth_router
+from .tracking import router as tracking_router
 
 __all__ = [
     "agency_dashboard_router",
@@ -17,4 +18,5 @@ __all__ = [
     "traveller_router",
     "team_admin_router",
     "auth_router",
+    "tracking_router",
 ]

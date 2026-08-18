@@ -5,7 +5,8 @@ Modularized FastAPI app mounting routers for Platform Management and Auth.
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from routers import team_admin_router, auth_router
+from modules.team_admin.router import router as team_admin_router
+from modules.auth.router import router as auth_router
 
 app = FastAPI(title="Yatra Team Admin API", version="2.0.0")
 

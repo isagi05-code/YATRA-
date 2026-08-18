@@ -5,14 +5,13 @@ Modularized FastAPI app mounting routers for Dashboard, Tours, Expenses, Fleet, 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from routers import (
-    agency_dashboard_router,
-    agency_tours_router,
-    agency_expenses_router,
-    agency_fleet_router,
-    agency_misc_router,
-    auth_router,
-)
+from modules.agency.dashboard.router import router as agency_dashboard_router
+from modules.agency.tours.router import router as agency_tours_router
+from modules.agency.expenses.router import router as agency_expenses_router
+from modules.agency.fleet.router import router as agency_fleet_router
+from modules.agency.misc.router import router as agency_misc_router
+from modules.auth.router import router as auth_router
+from modules.tracking.router import router as tracking_router
 
 app = FastAPI(title="Yatra Agency Dashboard API", version="2.0.0")
 
@@ -31,3 +30,4 @@ app.include_router(agency_expenses_router)
 app.include_router(agency_fleet_router)
 app.include_router(agency_misc_router)
 app.include_router(auth_router)
+app.include_router(tracking_router)

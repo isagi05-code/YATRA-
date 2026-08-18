@@ -2,8 +2,8 @@
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from core.database import get_db_conn as get_mysql_conn
-from schemas.team import AgencyUpdate, TicketUpdate, PlatformSettingUpdate
-from auth_deps import require_team_context
+from modules.team_admin.schemas import AgencyUpdate, TicketUpdate, PlatformSettingUpdate
+from modules.auth.deps import require_team_context
 
 # Every route in this router requires an authenticated Yatra team-admin
 # account. Previously none of these endpoints checked auth at all.

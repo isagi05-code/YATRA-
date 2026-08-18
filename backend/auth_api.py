@@ -5,7 +5,7 @@ Modularized FastAPI app mounting the auth router.
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from routers import auth_router
+from modules.auth.router import router as auth_router
 
 app = FastAPI(title="Yatra Auth API", version="2.0.0", description="Centralized Auth & Authorization")
 

@@ -18,7 +18,8 @@ SQLITE_SCHEMAS = {
         "CREATE TABLE IF NOT EXISTS vehicle_maintenance (id INTEGER PRIMARY KEY AUTOINCREMENT, agency_id TEXT, vehicle_number TEXT, service_type TEXT, service_date DATE, cost REAL DEFAULT 0.0, mechanic_vendor TEXT, odometer_reading INTEGER, notes TEXT, is_deleted INTEGER DEFAULT 0, deleted_at DATETIME, created_at DATETIME, updated_at DATETIME)",
         "CREATE TABLE IF NOT EXISTS ocr_results (id INTEGER PRIMARY KEY AUTOINCREMENT, agency_id TEXT, expense_id INTEGER UNIQUE, raw_text TEXT, extracted_vendor TEXT, extracted_total REAL, extracted_tax REAL, extracted_date DATE, confidence_score REAL DEFAULT 0.0, structured_json TEXT, is_deleted INTEGER DEFAULT 0, deleted_at DATETIME, created_at DATETIME, updated_at DATETIME)",
         "CREATE TABLE IF NOT EXISTS agency_settings (id INTEGER PRIMARY KEY AUTOINCREMENT, agency_id TEXT, key TEXT, value TEXT, is_deleted INTEGER DEFAULT 0, deleted_at DATETIME, created_at DATETIME, updated_at DATETIME, UNIQUE(agency_id, key))",
-        "CREATE TABLE IF NOT EXISTS invoices (id INTEGER PRIMARY KEY AUTOINCREMENT, invoice_number TEXT UNIQUE, trip_id INTEGER, agency_id TEXT, customer_name TEXT, subtotal REAL DEFAULT 0.0, gst_amount REAL DEFAULT 0.0, grand_total REAL DEFAULT 0.0, status TEXT DEFAULT 'Pending Payment', billing_type TEXT DEFAULT 'Entire Tour', issued_date DATE, due_date DATE, paid_date DATE, notes TEXT, is_deleted INTEGER DEFAULT 0, deleted_at DATETIME, created_at DATETIME, updated_at DATETIME)"
+        "CREATE TABLE IF NOT EXISTS invoices (id INTEGER PRIMARY KEY AUTOINCREMENT, invoice_number TEXT UNIQUE, trip_id INTEGER, agency_id TEXT, customer_name TEXT, subtotal REAL DEFAULT 0.0, gst_amount REAL DEFAULT 0.0, grand_total REAL DEFAULT 0.0, status TEXT DEFAULT 'Pending Payment', billing_type TEXT DEFAULT 'Entire Tour', issued_date DATE, due_date DATE, paid_date DATE, notes TEXT, is_deleted INTEGER DEFAULT 0, deleted_at DATETIME, created_at DATETIME, updated_at DATETIME)",
+        "CREATE TABLE IF NOT EXISTS location_pings (ping_id INTEGER PRIMARY KEY AUTOINCREMENT, entity_type TEXT NOT NULL, entity_id TEXT NOT NULL, trip_id INTEGER, latitude REAL NOT NULL, longitude REAL NOT NULL, speed REAL, heading REAL, accuracy REAL, timestamp DATETIME DEFAULT CURRENT_TIMESTAMP, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)"
     ],
     "yatra_agency": [
         "CREATE TABLE IF NOT EXISTS tours (trip_id INTEGER PRIMARY KEY AUTOINCREMENT, agency_id TEXT, destination TEXT, customer TEXT, agency TEXT, start_date DATE, end_date DATE, status TEXT, vehicle TEXT, driver TEXT, passengers INTEGER, guide TEXT, budget REAL, current_lat REAL, current_lng REAL, timeline_status TEXT)",
@@ -326,40 +327,52 @@ def seed_traveller_db():
     cursor = conn.cursor()
 
     # Trips → tours table (destination = name, start_date = date, end_date derived from duration)
-    cursor.executemany("""
-    INSERT IGNORE INTO tours (agency_id, destination, start_date, end_date, budget, status, driver, vehicle, user_id)
-    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)""", [
-        ("AGY-1001", "Goa Beach Retreat",         "2026-07-18", "2026-07-23", 15000.0, "Confirmed",  "Vikram Singh",  "MH-01-DK-4507", "USR-TRV-1001"),
-        ("AGY-1001", "Royal Rajasthan Circuit",    "2026-08-10", "2026-08-18", 28000.0, "Booked",     "Amit Patel",    "MH-01-LE-4321", "USR-TRV-1001"),
-        ("AGY-1001", "Manali Himalaya Adventure",  "2026-06-22", "2026-06-28", 18400.0, "Completed",  "Suresh Yadav",  "MH-04-PQ-9102", "USR-TRV-1001"),
-    ])
+    try:
+        cursor.executemany("""
+        INSERT IGNORE INTO tours (agency_id, destination, start_date, end_date, budget, status, driver, vehicle, user_id)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)""", [
+            ("AGY-1001", "Goa Beach Retreat",         "2026-07-18", "2026-07-23", 15000.0, "Confirmed",  "Vikram Singh",  "MH-01-DK-4507", "USR-TRV-1001"),
+            ("AGY-1001", "Royal Rajasthan Circuit",    "2026-08-10", "2026-08-18", 28000.0, "Booked",     "Amit Patel",    "MH-01-LE-4321", "USR-TRV-1001"),
+            ("AGY-1001", "Manali Himalaya Adventure",  "2026-06-22", "2026-06-28", 18400.0, "Completed",  "Suresh Yadav",  "MH-04-PQ-9102", "USR-TRV-1001"),
+        ])
+    except Exception as e:
+        print(f"Skipping tours seed for traveller (SQLite fallback issue): {e}")
 
     # Traveller expenses (personal, no agency trip association)
-    cursor.executemany("""
-    INSERT IGNORE INTO expenses (user_id, title, amount, `date`, category, status, agency_id)
-    VALUES (%s, %s, %s, %s, %s, %s, %s)""", [
-        ("USR-TRV-1001", "Lonavala Stay",       4800.0, "2026-05-04", "Hotels",        "Paid", "AGY-1001"),
-        ("USR-TRV-1001", "Surya Restaurant",    1200.0, "2026-06-24", "Food",          "Paid", "AGY-1001"),
-        ("USR-TRV-1001", "FASTag Toll payment",  450.0, "2026-06-22", "Taxi",          "Paid", "AGY-1001"),
-        ("USR-TRV-1001", "Goa Shopping Spree",  2500.0, "2026-07-03", "Shopping",      "Paid", "AGY-1001"),
-        ("USR-TRV-1001", "Cinema Tickets",       600.0, "2026-07-04", "Entertainment", "Paid", "AGY-1001"),
-    ])
+    try:
+        cursor.executemany("""
+        INSERT IGNORE INTO expenses (user_id, title, amount, `date`, category, status, agency_id)
+        VALUES (%s, %s, %s, %s, %s, %s, %s)""", [
+            ("USR-TRV-1001", "Lonavala Stay",       4800.0, "2026-05-04", "Hotels",        "Paid", "AGY-1001"),
+            ("USR-TRV-1001", "Surya Restaurant",    1200.0, "2026-06-24", "Food",          "Paid", "AGY-1001"),
+            ("USR-TRV-1001", "FASTag Toll payment",  450.0, "2026-06-22", "Taxi",          "Paid", "AGY-1001"),
+            ("USR-TRV-1001", "Goa Shopping Spree",  2500.0, "2026-07-03", "Shopping",      "Paid", "AGY-1001"),
+            ("USR-TRV-1001", "Cinema Tickets",       600.0, "2026-07-04", "Entertainment", "Paid", "AGY-1001"),
+        ])
+    except Exception as e:
+        pass
 
     # Traveller bookings
-    cursor.executemany("""
-    INSERT IGNORE INTO bookings (user_id, trip_id, name, status, details, agency_id)
-    VALUES (%s, %s, %s, %s, %s, %s)""", [
-        ("USR-TRV-1001", 1, "Hotel Beach View",        "Confirmed", "Deluxe Room, 4 nights",                  "AGY-1001"),
-        ("USR-TRV-1001", 1, "Goa Sightseeing Cruise",  "Confirmed", "Sunset cruise tickets for 4 passengers", "AGY-1001"),
-    ])
+    try:
+        cursor.executemany("""
+        INSERT IGNORE INTO bookings (user_id, trip_id, name, status, details, agency_id)
+        VALUES (%s, %s, %s, %s, %s, %s)""", [
+            ("USR-TRV-1001", 1, "Hotel Beach View",        "Confirmed", "Deluxe Room, 4 nights",                  "AGY-1001"),
+            ("USR-TRV-1001", 1, "Goa Sightseeing Cruise",  "Confirmed", "Sunset cruise tickets for 4 passengers", "AGY-1001"),
+        ])
+    except Exception as e:
+        pass
 
     # Traveller documents
-    cursor.executemany("""
-    INSERT IGNORE INTO documents (user_id, name, type, file_url, upload_date, agency_id)
-    VALUES (%s, %s, %s, %s, %s, %s)""", [
-        ("USR-TRV-1001", "My Passport",        "Passport",              "passport_yugal.pdf",     "2026-06-01", "AGY-1001"),
-        ("USR-TRV-1001", "Goa Hotel Voucher",  "Booking Confirmation",  "voucher_goa_hotel.pdf",  "2026-07-01", "AGY-1001"),
-    ])
+    try:
+        cursor.executemany("""
+        INSERT IGNORE INTO documents (user_id, name, type, file_url, upload_date, agency_id)
+        VALUES (%s, %s, %s, %s, %s, %s)""", [
+            ("USR-TRV-1001", "My Passport",        "Passport",              "passport_yugal.pdf",     "2026-06-01", "AGY-1001"),
+            ("USR-TRV-1001", "Goa Hotel Voucher",  "Booking Confirmation",  "voucher_goa_hotel.pdf",  "2026-07-01", "AGY-1001"),
+        ])
+    except Exception as e:
+        pass
 
     conn.commit()
     conn.close()
