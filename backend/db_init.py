@@ -295,7 +295,7 @@ def seed_agency_db():
 
     # 8. Notifications
     cursor.executemany("""
-    INSERT IGNORE INTO notifications (agency_id, type, title, message, date, read)
+    INSERT IGNORE INTO notifications (agency_id, type, title, message, date, `read`)
     VALUES (%s, %s, %s, %s, %s, %s)""", [
         ("AGY-1001", "Upcoming Trip", "Trip #1 to Goa starts in 5 days", "Please double check the assignment status.", "2026-07-05", 0),
         ("AGY-1001", "Pending Expense", "UPI Expense #3 pending approval", "Requires review from Agency Manager.", "2026-07-02", 0),
@@ -319,44 +319,52 @@ def seed_agency_db():
 
 def seed_traveller_db():
     print("Seeding Traveller database...")
-    conn = get_db_conn("yatra_traveller")
+    # Traveller views (yatra_traveller.*) are computed views over yatra_enterprise
+    # and contain non-updatable expressions (e.g. CONCAT for duration, column aliases).
+    # We must seed into the underlying yatra_enterprise tables directly.
+    conn = get_db_conn("yatra_enterprise")
     cursor = conn.cursor()
 
+    # Trips → tours table (destination = name, start_date = date, end_date derived from duration)
     cursor.executemany("""
-    INSERT IGNORE INTO trips (user_id, name, route, date, duration, budget, status, driver, vehicle)
+    INSERT IGNORE INTO tours (agency_id, destination, start_date, end_date, budget, status, driver, vehicle, user_id)
     VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)""", [
-        ("USR-TRV-1001", "Goa Beach Retreat", "Mumbai - Goa", "2026-07-18", "5 days", 15000.0, "Confirmed", "Vikram Singh", "MH-01-DK-4507"),
-        ("USR-TRV-1001", "Royal Rajasthan Circuit", "Delhi - Jaipur - Udaipur", "2026-08-10", "8 days", 28000.0, "Booked", "Amit Patel", "MH-01-LE-4321"),
-        ("USR-TRV-1001", "Manali Himalaya Adventure", "Delhi - Manali", "2026-06-22", "6 days", 18400.0, "Completed", "Suresh Yadav", "MH-04-PQ-9102")
+        ("AGY-1001", "Goa Beach Retreat",         "2026-07-18", "2026-07-23", 15000.0, "Confirmed",  "Vikram Singh",  "MH-01-DK-4507", "USR-TRV-1001"),
+        ("AGY-1001", "Royal Rajasthan Circuit",    "2026-08-10", "2026-08-18", 28000.0, "Booked",     "Amit Patel",    "MH-01-LE-4321", "USR-TRV-1001"),
+        ("AGY-1001", "Manali Himalaya Adventure",  "2026-06-22", "2026-06-28", 18400.0, "Completed",  "Suresh Yadav",  "MH-04-PQ-9102", "USR-TRV-1001"),
     ])
 
+    # Traveller expenses (personal, no agency trip association)
     cursor.executemany("""
-    INSERT IGNORE INTO expenses (user_id, title, amount, date, category, status)
+    INSERT IGNORE INTO expenses (user_id, title, amount, `date`, category, status, agency_id)
+    VALUES (%s, %s, %s, %s, %s, %s, %s)""", [
+        ("USR-TRV-1001", "Lonavala Stay",       4800.0, "2026-05-04", "Hotels",        "Paid", "AGY-1001"),
+        ("USR-TRV-1001", "Surya Restaurant",    1200.0, "2026-06-24", "Food",          "Paid", "AGY-1001"),
+        ("USR-TRV-1001", "FASTag Toll payment",  450.0, "2026-06-22", "Taxi",          "Paid", "AGY-1001"),
+        ("USR-TRV-1001", "Goa Shopping Spree",  2500.0, "2026-07-03", "Shopping",      "Paid", "AGY-1001"),
+        ("USR-TRV-1001", "Cinema Tickets",       600.0, "2026-07-04", "Entertainment", "Paid", "AGY-1001"),
+    ])
+
+    # Traveller bookings
+    cursor.executemany("""
+    INSERT IGNORE INTO bookings (user_id, trip_id, name, status, details, agency_id)
     VALUES (%s, %s, %s, %s, %s, %s)""", [
-        ("USR-TRV-1001", "Lonavala Stay", 4800.0, "2026-05-04", "Hotels", "Paid"),
-        ("USR-TRV-1001", "Surya Restaurant", 1200.0, "2026-06-24", "Food", "Paid"),
-        ("USR-TRV-1001", "FASTag Toll payment", 450.0, "2026-06-22", "Taxi", "Paid"),
-        ("USR-TRV-1001", "Goa Shopping Spree", 2500.0, "2026-07-03", "Shopping", "Paid"),
-        ("USR-TRV-1001", "Cinema Tickets", 600.0, "2026-07-04", "Entertainment", "Paid")
+        ("USR-TRV-1001", 1, "Hotel Beach View",        "Confirmed", "Deluxe Room, 4 nights",                  "AGY-1001"),
+        ("USR-TRV-1001", 1, "Goa Sightseeing Cruise",  "Confirmed", "Sunset cruise tickets for 4 passengers", "AGY-1001"),
     ])
 
+    # Traveller documents
     cursor.executemany("""
-    INSERT IGNORE INTO bookings (user_id, trip_id, name, status, details)
-    VALUES (%s, %s, %s, %s, %s)""", [
-        ("USR-TRV-1001", 1, "Hotel Beach View", "Confirmed", "Deluxe Room, 4 nights"),
-        ("USR-TRV-1001", 1, "Goa Sightseeing Cruise", "Confirmed", "Sunset cruise tickets for 4 passengers")
-    ])
-
-    cursor.executemany("""
-    INSERT IGNORE INTO documents (user_id, name, type, file_url, upload_date)
-    VALUES (%s, %s, %s, %s, %s)""", [
-        ("USR-TRV-1001", "My Passport", "Passport", "passport_yugal.pdf", "2026-06-01"),
-        ("USR-TRV-1001", "Goa Hotel Voucher", "Booking Confirmation", "voucher_goa_hotel.pdf", "2026-07-01")
+    INSERT IGNORE INTO documents (user_id, name, type, file_url, upload_date, agency_id)
+    VALUES (%s, %s, %s, %s, %s, %s)""", [
+        ("USR-TRV-1001", "My Passport",        "Passport",              "passport_yugal.pdf",     "2026-06-01", "AGY-1001"),
+        ("USR-TRV-1001", "Goa Hotel Voucher",  "Booking Confirmation",  "voucher_goa_hotel.pdf",  "2026-07-01", "AGY-1001"),
     ])
 
     conn.commit()
     conn.close()
     print("Traveller database seeded successfully.")
+
 
 
 def seed_team_db():
