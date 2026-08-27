@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Travel Itinerary Planner — Standalone Edition</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/lucide@latest/dist/umd/lucide.js"></script>
+  <style>
+    :root {
+      --primary: #1e3a8a;
+      --primary-hover: #172554;
+      --primary-light: #eff6ff;
+      --accent: #10b981;
+      --accent-hover: #059669;
+      --bg: #f8fafc;
+      --surface: #ffffff;
+      --border: #e2e8f0;
+      --text: #0f172a;
+      --text-muted: #64748b;
+      --radius: 12px;
+      --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+      --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.07), 0 2px 4px -2px rgb(0 0 0 / 0.07);
+      --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.08), 0 4px 6px -4px rgb(0 0 0 / 0.08);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+      padding: 32px 20px;
+    }
+
+    .container {
+      max-width: 1180px;
+      margin: 0 auto;
+    }
+
+    /* Hero header */
+    .hero {
+      background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 50%, #2563eb 100%);
+      border-radius: 20px;
+      padding: 36px 32px;
+      color: white;
+      margin-bottom: 28px;
+      box-shadow: var(--shadow-lg);
+    }
+    .hero-eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #93c5fd;
+      margin-bottom: 8px;
+    }
+    .hero h1 {
+      font-family: 'Outfit', sans-serif;
+      font-size: 32px;
+      font-weight: 800;
+      margin-bottom: 6px;
+      letter-spacing: -0.02em;
+    }
+    .hero p {
+      color: #cbd5e1;
+      font-size: 14px;
+      max-width: 700px;
+      margin-bottom: 24px;
+    }
+
+    /* Input form */
+    .form-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1.2fr 1fr auto;
+      gap: 12px;
+      align-items: end;
+      background: rgba(255, 255, 255, 0.08);
+      padding: 16px;
+      border-radius: 14px;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+    }
+    @media (max-width: 900px) {
+      .form-grid { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 600px) {
+      .form-grid { grid-template-columns: 1fr; }
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .form-group label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #93c5fd;
+    }
+    .form-group input, .form-group select {
+      background: rgba(255, 255, 255, 0.12);
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      border-radius: 8px;
+      padding: 10px 14px;
+      color: white;
+      font-size: 14px;
+      font-family: inherit;
+      outline: none;
+      transition: all 0.2s;
+    }
+    .form-group input:focus, .form-group select:focus {
+      border-color: #60a5fa;
+      background: rgba(255, 255, 255, 0.2);
+    }
+    .form-group input::placeholder { color: #94a3b8; }
+    .form-group select option { color: #0f172a; background: #fff; }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 700;
+      padding: 11px 22px;
+      border-radius: 8px;
+      cursor: pointer;
+      border: none;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+    .btn-primary {
+      background: #10b981;
+      color: white;
+    }
+    .btn-primary:hover { background: #059669; }
+    .btn-primary:disabled { background: #6ee7b7; cursor: not-allowed; }
+
+    .btn-secondary {
+      background: #ffffff;
+      color: #0f172a;
+      border: 1px solid var(--border);
+    }
+    .btn-secondary:hover { background: #f1f5f9; }
+
+    /* Templates */
+    .templates-section {
+      margin-bottom: 32px;
+    }
+    .section-title {
+      font-family: 'Outfit', sans-serif;
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 14px;
+    }
+    .template-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 12px;
+    }
+    .template-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .template-card:hover {
+      border-color: #3b82f6;
+      transform: translateY(-2px);
+      box-shadow: var(--shadow);
+    }
+    .template-emoji { font-size: 24px; margin-bottom: 6px; }
+    .template-name { font-size: 14px; font-weight: 700; color: var(--text); }
+    .template-meta { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+
+    /* Result grid */
+    .result-grid {
+      display: grid;
+      grid-template-columns: 1fr 320px;
+      gap: 24px;
+      align-items: start;
+    }
+    @media (max-width: 960px) {
+      .result-grid { grid-template-columns: 1fr; }
+    }
+
+    .result-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 20px;
+      gap: 16px;
+    }
+    .result-header h2 {
+      font-family: 'Outfit', sans-serif;
+      font-size: 24px;
+      font-weight: 800;
+    }
+    .result-summary {
+      font-size: 14px;
+      color: var(--text-muted);
+      margin-top: 4px;
+      line-height: 1.6;
+    }
+
+    /* Day cards */
+    .day-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      margin-bottom: 16px;
+      overflow: hidden;
+      box-shadow: var(--shadow-sm);
+    }
+    .day-card-header {
+      background: #f8fafc;
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .day-badge {
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #2563eb;
+    }
+    .day-theme {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 20px;
+      margin-left: 8px;
+      background: #dbeafe;
+      color: #1d4ed8;
+    }
+    .day-title {
+      font-size: 15px;
+      font-weight: 700;
+      margin-top: 2px;
+    }
+    .day-cost {
+      font-size: 14px;
+      font-weight: 800;
+      color: #059669;
+    }
+
+    .day-body { padding: 16px 20px; }
+    .activity-row {
+      display: flex;
+      gap: 14px;
+      padding: 12px 0;
+      border-bottom: 1px solid #f1f5f9;
+    }
+    .activity-row:last-child { border-bottom: none; }
+    .activity-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #3b82f6;
+      margin-top: 6px;
+      flex-shrink: 0;
+    }
+    .activity-content { flex: 1; }
+    .activity-time-slot {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 11px;
+      font-weight: 700;
+      color: #64748b;
+      background: #f1f5f9;
+      padding: 1px 6px;
+      border-radius: 4px;
+      margin-right: 8px;
+    }
+    .activity-name {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text);
+    }
+    .activity-desc {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin: 4px 0 6px;
+      line-height: 1.5;
+    }
+    .activity-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      font-size: 11px;
+    }
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 8px;
+      border-radius: 6px;
+      background: #f1f5f9;
+      color: #475569;
+      border: 1px solid #e2e8f0;
+    }
+    .pill-fee { background: #fef3c7; color: #92400e; border-color: #fde68a; }
+    .pill-tip { background: #ecfdf5; color: #065f46; border-color: #a7f3d0; width: 100%; margin-top: 4px; }
+
+    .day-footer {
+      background: #fafafa;
+      border-top: 1px solid var(--border);
+      padding: 10px 20px;
+      font-size: 12px;
+      color: #64748b;
+      display: flex;
+      gap: 16px;
+    }
+
+    /* Sidebar cards */
+    .side-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px;
+      margin-bottom: 16px;
+      box-shadow: var(--shadow-sm);
+    }
+    .side-card h3 {
+      font-size: 13px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .budget-total {
+      font-family: 'Outfit', sans-serif;
+      font-size: 28px;
+      font-weight: 800;
+      color: #059669;
+      margin-bottom: 12px;
+    }
+    .budget-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 13px;
+      padding: 6px 0;
+      border-bottom: 1px solid #f1f5f9;
+      text-transform: capitalize;
+    }
+
+    .meta-item {
+      font-size: 13px;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+    }
+
+    .tips-list {
+      padding-left: 18px;
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+    .tips-list li { margin-bottom: 6px; line-height: 1.5; }
+
+    /* Loading state */
+    .spinner {
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin { 100% { transform: rotate(360deg); } }
+
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    
+    <!-- Hero Banner -->
+    <header class="hero">
+      <div class="hero-eyebrow">
+        <i data-lucide="sparkles" style="width: 14px; height: 14px;"></i> Standalone AI Planner
+      </div>
+      <h1>Generate Perfect Travel Itineraries</h1>
+      <p>Enter any destination, duration, and budget. Gemini AI generates realistic day-wise schedules, exact places, dining spots, entry tickets, and logistics.</p>
+
+      <form id="itineraryForm" class="form-grid" onsubmit="handleGenerate(event)">
+        <div class="form-group">
+          <label>Destination</label>
+          <input id="destInput" type="text" placeholder="e.g. Kedarnath, Goa, Manali..." required />
+        </div>
+        <div class="form-group">
+          <label>Days</label>
+          <input id="daysInput" type="number" min="1" max="30" value="5" required />
+        </div>
+        <div class="form-group">
+          <label>Budget (₹)</label>
+          <input id="budgetInput" type="number" min="0" placeholder="Optional (e.g. 35000)" />
+        </div>
+        <div class="form-group">
+          <label>Gemini API Key</label>
+          <input id="apiKeyInput" type="password" placeholder="Optional if server configured" />
+        </div>
+        <button id="submitBtn" type="submit" class="btn btn-primary">
+          <i data-lucide="sparkles" style="width: 16px; height: 16px;"></i>
+          <span>Generate</span>
+        </button>
+      </form>
+    </header>
+
+    <!-- Popular Route Templates -->
+    <section id="templatesSection" class="templates-section">
+      <h2 class="section-title">Popular Routes</h2>
+      <div class="template-grid">
+        <div class="template-card" onclick="selectTemplate('Kedarnath', 7, 50000)">
+          <div class="template-emoji">🕉️</div>
+          <div class="template-name">Char Dham / Kedarnath</div>
+          <div class="template-meta">Spiritual · 7 Days</div>
+        </div>
+        <div class="template-card" onclick="selectTemplate('Goa', 5, 30000)">
+          <div class="template-emoji">🌊</div>
+          <div class="template-name">Goa Beach Holiday</div>
+          <div class="template-meta">Leisure · 5 Days</div>
+        </div>
+        <div class="template-card" onclick="selectTemplate('Rajasthan', 8, 80000)">
+          <div class="template-emoji">🏰</div>
+          <div class="template-name">Royal Rajasthan</div>
+          <div class="template-meta">Heritage · 8 Days</div>
+        </div>
+        <div class="template-card" onclick="selectTemplate('Kerala', 6, 60000)">
+          <div class="template-emoji">🌴</div>
+          <div class="template-name">Kerala Backwaters</div>
+          <div class="template-meta">Nature · 6 Days</div>
+        </div>
+        <div class="template-card" onclick="selectTemplate('Ladakh', 9, 90000)">
+          <div class="template-emoji">🏔️</div>
+          <div class="template-name">Ladakh Explorer</div>
+          <div class="template-meta">Adventure · 9 Days</div>
+        </div>
+        <div class="template-card" onclick="selectTemplate('Varanasi', 4, 25000)">
+          <div class="template-emoji">🪔</div>
+          <div class="template-name">Ganga Ghats Varanasi</div>
+          <div class="template-meta">Culture · 4 Days</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Error Banner -->
+    <div id="errorBanner" class="hidden" style="background: #fef2f2; border: 1px solid #f87171; color: #b91c1c; padding: 14px 20px; border-radius: 12px; margin-bottom: 24px; font-size: 14px;"></div>
+
+    <!-- Output Result Section -->
+    <main id="resultSection" class="result-grid hidden">
+      <!-- Left Column: Days -->
+      <section>
+        <div class="result-header">
+          <div>
+            <h2 id="resultTitle">Itinerary Details</h2>
+            <p id="resultSummary" class="result-summary"></p>
+          </div>
+          <div style="display: flex; gap: 8px;">
+            <button class="btn btn-secondary" onclick="window.print()">
+              <i data-lucide="printer" style="width: 14px; height: 14px;"></i> Print / PDF
+            </button>
+            <button class="btn btn-secondary" onclick="downloadJSON()">
+              <i data-lucide="download" style="width: 14px; height: 14px;"></i> JSON
+            </button>
+          </div>
+        </div>
+        <div id="daysList"></div>
+      </section>
+
+      <!-- Right Column: Budget & Info -->
+      <aside>
+        <div class="side-card">
+          <h3><i data-lucide="wallet" style="width: 14px; height: 14px;"></i> Budget Breakdown</h3>
+          <div id="budgetTotal" class="budget-total">₹0</div>
+          <div id="budgetBreakdownList"></div>
+        </div>
+
+        <div id="hotelCard" class="side-card hidden">
+          <h3><i data-lucide="hotel" style="width: 14px; height: 14px;"></i> Suggested Stay</h3>
+          <div id="hotelDetails"></div>
+        </div>
+
+        <div id="logisticsCard" class="side-card hidden">
+          <h3><i data-lucide="map-pin" style="width: 14px; height: 14px;"></i> Travel Logistics</h3>
+          <div id="logisticsDetails"></div>
+        </div>
+
+        <div id="tipsCard" class="side-card hidden">
+          <h3><i data-lucide="lightbulb" style="width: 14px; height: 14px;"></i> Local Tips</h3>
+          <ul id="tipsList" class="tips-list"></ul>
+        </div>
+      </aside>
+    </main>
+
+  </div>
+
+  <script>
+    let currentData = null;
+
+    function selectTemplate(dest, days, budget) {
+      document.getElementById('destInput').value = dest;
+      document.getElementById('daysInput').value = days;
+      document.getElementById('budgetInput').value = budget;
+      handleGenerate();
+    }
+
+    async function handleGenerate(e) {
+      if (e) e.preventDefault();
+      const dest = document.getElementById('destInput').value.trim();
+      const days = parseInt(document.getElementById('daysInput').value) || 5;
+      const budget = parseFloat(document.getElementById('budgetInput').value) || 0;
+      const apiKey = document.getElementById('apiKeyInput').value.trim();
+
+      if (!dest) return;
+
+      const submitBtn = document.getElementById('submitBtn');
+      const errorBanner = document.getElementById('errorBanner');
+      const resultSection = document.getElementById('resultSection');
+      
+      errorBanner.classList.add('hidden');
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<i data-lucide="loader-2" class="spinner" style="width: 16px; height: 16px;"></i> Generating...';
+      lucide.createIcons();
+
+      try {
+        let data;
+        // Try local server API first, or direct Gemini API if key provided
+        if (window.location.protocol.startsWith('http') && !apiKey) {
+          const qs = new URLSearchParams({ destination: dest, days: days, budget: budget });
+          const res = await fetch(`/api/itinerary?${qs}`);
+          if (!res.ok) {
+            const err = await res.json().catch(() => ({ detail: res.statusText }));
+            throw new Error(err.detail || 'Failed to generate from server');
+          }
+          data = await res.json();
+        } else if (apiKey) {
+          data = await generateDirectGemini(dest, days, budget, apiKey);
+        } else {
+          throw new Error('Please enter your Gemini API Key or run the standalone python server.');
+        }
+
+        currentData = data;
+        renderResult(data);
+        resultSection.classList.remove('hidden');
+        resultSection.scrollIntoView({ behavior: 'smooth' });
+      } catch (err) {
+        errorBanner.innerText = err.message || 'An error occurred while generating the itinerary.';
+        errorBanner.classList.remove('hidden');
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<i data-lucide="sparkles" style="width: 16px; height: 16px;"></i> <span>Generate</span>';
+        lucide.createIcons();
+      }
+    }
+
+    async function generateDirectGemini(destination, days, budget, apiKey) {
+      const budgetVal = budget > 0 ? budget : days * 6000;
+      const prompt = `You are an expert travel planner. Generate a highly detailed ${days}-day itinerary for ${destination} with total budget ₹${budgetVal}. Return ONLY valid JSON adhering strictly to: { "destination": "${destination}", "days": ${days}, "summary": "...", "estimated_budget": ${budgetVal}, "budget_breakdown": { "accommodation": 0, "food": 0, "transport": 0, "activities_and_entry": 0, "shopping_and_misc": 0 }, "accommodation_suggestion": { "name": "...", "area": "...", "price_per_night": 0, "type": "..." }, "itinerary": [ { "day": 1, "title": "...", "theme": "...", "estimated_cost": 0, "activities": [ { "time": "Morning", "time_slot": "08:00 - 10:00", "name": "...", "location": "...", "description": "...", "distance_from_base": "...", "entry_fee": "...", "tips": "..." } ], "transport_for_day": { "mode": "...", "estimated_cost": "..." }, "meals_budget": "..." } ], "tips": ["..."], "best_time_to_visit": "...", "how_to_reach": { "by_air": "...", "by_train": "...", "by_road": "..." } }`;
+      
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+      const resp = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: { responseMimeType: 'application/json' }
+        })
+      });
+      if (!resp.ok) throw new Error(`Gemini API Error (${resp.status}): ${await resp.text()}`);
+      const json = await resp.json();
+      let raw = json.candidates[0].content.parts[0].text.trim();
+      if (raw.startsWith('```')) raw = raw.replace(/^```json/, '').replace(/^```/, '').replace(/```$/, '');
+      return JSON.parse(raw);
+    }
+
+    function renderResult(data) {
+      document.getElementById('resultTitle').innerText = `${data.destination} · ${data.days}-Day Itinerary`;
+      document.getElementById('resultSummary').innerText = data.summary || '';
+
+      // Days list
+      const daysContainer = document.getElementById('daysList');
+      daysContainer.innerHTML = '';
+      (data.itinerary || []).forEach((day, idx) => {
+        const dayDiv = document.createElement('div');
+        dayDiv.className = 'day-card';
+        dayDiv.innerHTML = `
+          <div class="day-card-header">
+            <div>
+              <span class="day-badge">Day ${day.day || idx + 1}</span>
+              ${day.theme ? `<span class="day-theme">${day.theme}</span>` : ''}
+              <div class="day-title">${day.title || `Day ${idx + 1}`}</div>
+            </div>
+            ${day.estimated_cost ? `<div class="day-cost">₹${Number(day.estimated_cost).toLocaleString('en-IN')}/day</div>` : ''}
+          </div>
+          <div class="day-body">
+            ${(day.activities || []).map(act => `
+              <div class="activity-row">
+                <div class="activity-dot"></div>
+                <div class="activity-content">
+                  <div>
+                    ${act.time_slot ? `<span class="activity-time-slot">${act.time_slot}</span>` : ''}
+                    <strong class="activity-name">${act.name}</strong>
+                  </div>
+                  <p class="activity-desc">${act.description || ''}</p>
+                  <div class="activity-pills">
+                    ${act.location ? `<span class="pill"><i data-lucide="map-pin" style="width:10px;height:10px;"></i> ${act.location}</span>` : ''}
+                    ${act.distance_from_base ? `<span class="pill"><i data-lucide="navigation" style="width:10px;height:10px;"></i> ${act.distance_from_base}</span>` : ''}
+                    ${act.entry_fee ? `<span class="pill pill-fee"><i data-lucide="ticket" style="width:10px;height:10px;"></i> ${act.entry_fee}</span>` : ''}
+                    ${act.tips ? `<div class="pill pill-tip"><i data-lucide="lightbulb" style="width:10px;height:10px;"></i> ${act.tips}</div>` : ''}
+                  </div>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+          ${(day.transport_for_day || day.meals_budget) ? `
+            <div class="day-footer">
+              ${day.transport_for_day ? `<span>🚗 <b>${day.transport_for_day.mode || 'Transport'}</b> (${day.transport_for_day.estimated_cost || ''})</span>` : ''}
+              ${day.meals_budget ? `<span>🍽️ <b>Meals:</b> ${day.meals_budget}</span>` : ''}
+            </div>
+          ` : ''}
+        `;
+        daysContainer.appendChild(dayDiv);
+      });
+
+      // Budget Breakdown
+      const totalBudget = data.estimated_budget || data.total_budget || 0;
+      document.getElementById('budgetTotal').innerText = `₹${Number(totalBudget).toLocaleString('en-IN')}`;
+      const budgetList = document.getElementById('budgetBreakdownList');
+      budgetList.innerHTML = '';
+      if (data.budget_breakdown) {
+        Object.entries(data.budget_breakdown).forEach(([k, v]) => {
+          budgetList.innerHTML += `<div class="budget-row"><span>${k.replace(/_/g, ' ')}</span><b>₹${Number(v).toLocaleString('en-IN')}</b></div>`;
+        });
+      }
+
+      // Hotel / Stay
+      const hotelCard = document.getElementById('hotelCard');
+      const hotelDetails = document.getElementById('hotelDetails');
+      if (data.accommodation_suggestion) {
+        const h = data.accommodation_suggestion;
+        hotelDetails.innerHTML = `
+          <div style="font-weight:700; font-size:14px; margin-bottom:4px;">${h.name || 'Recommended Hotel'}</div>
+          <div class="meta-item"><i data-lucide="map-pin" style="width:12px;height:12px;"></i> ${h.area || ''}</div>
+          <div class="meta-item"><i data-lucide="ticket" style="width:12px;height:12px;"></i> ₹${Number(h.price_per_night || 0).toLocaleString('en-IN')} / night (${h.type || 'Mid-range'})</div>
+        `;
+        hotelCard.classList.remove('hidden');
+      } else {
+        hotelCard.classList.add('hidden');
+      }
+
+      // Logistics
+      const logCard = document.getElementById('logisticsCard');
+      const logDetails = document.getElementById('logisticsDetails');
+      let logHtml = '';
+      if (data.best_time_to_visit) logHtml += `<div class="meta-item"><i data-lucide="calendar" style="width:12px;height:12px;"></i> <b>Best time:</b> ${data.best_time_to_visit}</div>`;
+      if (data.how_to_reach?.by_air) logHtml += `<div class="meta-item">✈️ ${data.how_to_reach.by_air}</div>`;
+      if (data.how_to_reach?.by_train) logHtml += `<div class="meta-item">🚆 ${data.how_to_reach.by_train}</div>`;
+      if (data.how_to_reach?.by_road) logHtml += `<div class="meta-item">🚗 ${data.how_to_reach.by_road}</div>`;
+      if (logHtml) {
+        logDetails.innerHTML = logHtml;
+        logCard.classList.remove('hidden');
+      } else {
+        logCard.classList.add('hidden');
+      }
+
+      // Tips
+      const tipsCard = document.getElementById('tipsCard');
+      const tipsList = document.getElementById('tipsList');
+      if (data.tips && data.tips.length > 0) {
+        tipsList.innerHTML = (Array.isArray(data.tips) ? data.tips : [data.tips]).map(t => `<li>${t}</li>`).join('');
+        tipsCard.classList.remove('hidden');
+      } else {
+        tipsCard.classList.add('hidden');
+      }
+
+      lucide.createIcons();
+    }
+
+    function downloadJSON() {
+      if (!currentData) return;
+      const str = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(currentData, null, 2));
+      const a = document.createElement('a');
+      a.setAttribute("href", str);
+      a.setAttribute("download", `${(currentData.destination || 'itinerary').toLowerCase()}_plan.json`);
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    }
+
+    lucide.createIcons();
+  </script>
+</body>
+</html>

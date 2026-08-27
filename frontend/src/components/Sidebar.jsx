@@ -8,7 +8,6 @@ const AGENCY_NAV = [
   { icon: 'Receipt',          label: 'Expenses',      id: 'expenses',     badge: null },
   { icon: 'UserCircle',      label: 'Drivers',       id: 'drivers',      badge: null },
   { icon: 'Truck',            label: 'Vehicles',      id: 'vehicles',     badge: null },
-  { icon: 'Sparkles',         label: 'AI Itinerary',  id: 'ai-itinerary', badge: 'New', badgeClass: 'success' },
   { icon: 'FileText',        label: 'Invoices',      id: 'invoice',      badge: null },
   { icon: 'BarChart2',      label: 'Reports',       id: 'reports',      badge: null },
   { icon: 'TrendingUp',      label: 'Analytics',     id: 'analytics',    badge: null },
@@ -19,7 +18,6 @@ const TRAVELLER_NAV = [
   { icon: 'LayoutDashboard', label: 'Dashboard',      id: 'dashboard',      badge: null },
   { icon: 'Calendar',         label: 'My Trips',       id: 'trips',          badge: null },
   { icon: 'Receipt',          label: 'My Expenses',    id: 'expenses',       badge: null },
-  { icon: 'Sparkles',         label: 'AI Assistant',   id: 'ai-assistant',   badge: 'New', badgeClass: 'success' },
   { icon: 'Star',             label: 'Reviews',        id: 'reviews',        badge: null },
 ];
 

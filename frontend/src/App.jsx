@@ -69,7 +69,6 @@ function AppContent() {
         case 'tour-detail': return { title: 'Tour Detail', desc: 'Live route and checkpoint tracking' };
         case 'expenses': return { title: 'Expenses', desc: 'Review receipt claims and tallies' };
         case 'invoice': return { title: 'Invoice Preview', desc: 'Download and print statement details' };
-        case 'ai-itinerary': return { title: 'AI Planner', desc: 'Generate a customized day-wise plan' };
         case 'vehicles': return { title: 'Fleet Manager', desc: 'Uptime, insurance compliance, and utilization' };
         case 'drivers': return { title: 'Drivers List', desc: 'Performances, satisfaction ratings, and profiles' };
         case 'reports': return { title: 'Reports & Downloads', desc: 'Generate exportable P&L and metrics' };
@@ -81,7 +80,6 @@ function AppContent() {
         case 'dashboard': return { title: 'My Dashboard', desc: 'Overview of trips and expenses' };
         case 'trips': return { title: 'My Trips', desc: 'View current, past, and future bookings' };
         case 'expenses': return { title: 'Expenses', desc: 'Keep track of travel spending' };
-        case 'ai-assistant': return { title: 'AI Assistant', desc: 'Generate customized itineraries in seconds' };
         case 'reviews': return { title: 'Feedback', desc: 'Rate your trips and experiences' };
         default: return { title: 'Traveller App', desc: 'Companion services' };
       }

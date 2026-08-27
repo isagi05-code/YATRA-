@@ -74,11 +74,6 @@ export const agencyApi = {
   getDriver: (id) => request(`${AGENCY_BASE}/drivers/${encodeURIComponent(id)}`),
   getCustomers: () => request(`${AGENCY_BASE}/customers`),
   getCustomer: (id) => request(`${AGENCY_BASE}/customers/${encodeURIComponent(id)}`),
-  generateItinerary: (dest, days, budget) => {
-    const p = new URLSearchParams({ destination: dest, days: String(days) });
-    if (budget) p.append("budget", String(budget));
-    return request(`${AGENCY_BASE}/ai-itinerary?${p.toString()}`, { method: "POST" });
-  },
   getInvoices: () => request(`${AGENCY_BASE}/invoices`),
   getInvoice: (id, day) => {
     const p = new URLSearchParams();

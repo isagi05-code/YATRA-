@@ -4,7 +4,6 @@ import ToursPage from './AgencyPortal/ToursPage';
 import TourDetailPage from './AgencyPortal/TourDetailPage';
 import ExpensesPage from './AgencyPortal/ExpensesPage';
 import InvoicePage from './AgencyPortal/InvoicePage';
-import AiItineraryPage from './AgencyPortal/AiItineraryPage';
 import VehiclesPage from './AgencyPortal/VehiclesPage';
 import DriversPage from './AgencyPortal/DriversPage';
 import ReportsPage from './AgencyPortal/ReportsPage';
@@ -24,8 +23,6 @@ export default function AgencyPortal({ page, onNavigate }) {
       return <ExpensesPage />;
     case 'invoice':
       return <InvoicePage />;
-    case 'ai-itinerary':
-      return <AiItineraryPage />;
     case 'vehicles':
       return <VehiclesPage />;
     case 'drivers':

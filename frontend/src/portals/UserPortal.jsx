@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import * as Icons from 'lucide-react';
-import AiItineraryPage from './AgencyPortal/AiItineraryPage';
 import { api } from '../services/api';
 
 const EXPENSE_CATEGORIES = ['Food', 'Shopping', 'Taxi', 'Hotels', 'Entertainment', 'Activities', 'Misc'];
@@ -154,10 +153,6 @@ export default function UserPortal({ page, onNavigate }) {
     );
   }
 
-  if (page === 'ai-assistant') {
-    return <AiItineraryPage />;
-  }
-
   if (page === 'trips') {
     return (
       <div className="fade-in">
@@ -166,19 +161,14 @@ export default function UserPortal({ page, onNavigate }) {
             <h1 className="page-title" style={{ fontSize: '24px', fontWeight: 700 }}>My Trips</h1>
             <p className="page-desc" style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Track and manage all your past and upcoming travel itineraries.</p>
           </div>
-          <button onClick={() => onNavigate('ai-assistant')} className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#10B981', borderColor: '#10B981' }}>
-            <Icons.Sparkles size={14} /> Plan New Trip
-          </button>
         </div>
+
 
         {trips.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '80px 20px', color: 'var(--text-muted)' }}>
             <Icons.Map size={48} style={{ margin: '0 auto 16px', opacity: 0.25, display: 'block' }} />
             <h3 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '8px' }}>No trips yet</h3>
-            <p style={{ fontSize: '13px', marginBottom: '20px' }}>Use the AI Assistant to plan and book your first trip.</p>
-            <button onClick={() => onNavigate('ai-assistant')} className="btn btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: '#10B981', borderColor: '#10B981' }}>
-              <Icons.Sparkles size={14} /> Plan First Trip
-            </button>
+            <p style={{ fontSize: '13px', marginBottom: '20px' }}>Your upcoming and completed bookings will appear here.</p>
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -305,7 +295,7 @@ export default function UserPortal({ page, onNavigate }) {
           <p style={{ fontSize: '13px', opacity: 0.75 }}>Your next adventure is just around the corner.</p>
           <div style={{ marginTop: '16px', display: 'flex', gap: '12px' }}>
             <button onClick={() => onNavigate('trips')} className="btn btn-xl" style={{ background: 'rgba(255,255,255,0.2)', color: 'white', border: '1px solid rgba(255,255,255,0.3)', fontSize: '13px', padding: '10px 20px', borderRadius: '10px' }}>View My Trips</button>
-            <button onClick={() => onNavigate('ai-assistant')} className="btn btn-xl" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'white', color: '#10B981', fontSize: '13px', fontWeight: 700, padding: '10px 20px', borderRadius: '10px' }}>✨ Plan New Trip</button>
+            <button onClick={() => onNavigate('expenses')} className="btn btn-xl" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'white', color: '#10B981', fontSize: '13px', fontWeight: 700, padding: '10px 20px', borderRadius: '10px' }}>Track Expenses</button>
           </div>
         </div>
         <div style={{ position: 'relative', zIndex: 1, display: 'flex', gap: '32px' }}>
@@ -373,20 +363,20 @@ export default function UserPortal({ page, onNavigate }) {
         {/* Right: AI Quick Actions */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           
-          {/* AI Banner Card */}
-          <div onClick={() => onNavigate('ai-assistant')} className="ai-quick-card" style={{
+          {/* Trips Quick Action Card */}
+          <div onClick={() => onNavigate('trips')} className="ai-quick-card" style={{
             background: 'linear-gradient(135deg, #1e3a5f, #2563EB)',
             borderRadius: '16px', padding: '24px', color: 'white', cursor: 'pointer',
             transition: 'all 0.3s', position: 'relative', overflow: 'hidden'
           }}>
             <div style={{ position: 'relative', zIndex: 1 }}>
-              <div style={{ fontSize: '28px', marginBottom: '12px' }}>✨</div>
-              <h3 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: '18px', fontWeight: 800, marginBottom: '6px' }}>AI Travel Assistant</h3>
+              <div style={{ fontSize: '28px', marginBottom: '12px' }}>🗺️</div>
+              <h3 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: '18px', fontWeight: 800, marginBottom: '6px' }}>My Travel Schedule</h3>
               <p style={{ fontSize: '12px', opacity: 0.8, marginBottom: '16px', lineHeight: 1.5 }}>
-                Plan your next trip with AI-powered suggestions and personalized itineraries.
+                View your active booking details, driver assignments, and trip itinerary.
               </p>
               <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'rgba(255,255,255,0.15)', padding: '8px 16px', borderRadius: '8px', fontSize: '12px', fontWeight: 700 }}>
-                Ask AI Now <Icons.Send size={12} />
+                View Itineraries <Icons.ArrowRight size={12} />
               </div>
             </div>
           </div>
