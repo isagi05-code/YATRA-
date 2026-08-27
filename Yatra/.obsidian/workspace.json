@@ -4,20 +4,17 @@
     "type": "split",
     "children": [
       {
-        "id": "953d9839291bb8d9",
+        "id": "1102ab8161cb2bf2",
         "type": "tabs",
         "children": [
           {
-            "id": "91189f83ebe8c76f",
+            "id": "e323d61de318d743",
             "type": "leaf",
             "state": {
-              "type": "bases",
-              "state": {
-                "file": "Untitled 1.base",
-                "viewName": "Table"
-              },
-              "icon": "lucide-table",
-              "title": "Untitled 1"
+              "type": "graph",
+              "state": {},
+              "icon": "lucide-git-fork",
+              "title": "Graph view"
             }
           }
         ]
@@ -70,7 +67,7 @@
               "type": "file-explorer",
               "state": {
                 "sortOrder": "alphabetical",
-                "autoReveal": false,
+                "autoReveal": true,
                 "showSearch": false,
                 "searchQuery": ""
               },
@@ -188,15 +185,20 @@
       "bases:Create new base": false
     }
   },
-  "active": "91189f83ebe8c76f",
+  "active": "e323d61de318d743",
   "lastOpenFiles": [
-    "Untitled.base",
-    "Untitled 1.base",
+    "docs/project-structure.md",
+    "docs",
+    "architecture_diagram.md",
+    "2026-08-09.md",
+    "MERMAID_DIAGRAMS.md",
     "Untitled.canvas",
+    "Untitled",
+    "Untitled 1.base",
+    "Untitled.base",
     "Welcome.md",
     "Untitled.md",
     "create a link.md",
-    "Untitled",
     "desktop.ini"
   ]
 }

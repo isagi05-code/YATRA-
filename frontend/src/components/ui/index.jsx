@@ -39,3 +39,5 @@ export function EmptyState({ icon: Icon = Icons.Inbox, title = 'Nothing here yet
 export function Modal({ title, description, children, onClose, footer, size = 'md' }) { return <div className="ui-modal-backdrop" role="presentation" onMouseDown={onClose}><section className={join('ui-modal', `ui-modal--${size}`)} role="dialog" aria-modal="true" aria-label={title} onMouseDown={event => event.stopPropagation()}><header className="ui-modal__header"><div><h2>{title}</h2>{description && <p>{description}</p>}</div><button className="ui-modal__close" onClick={onClose} aria-label="Close"><Icons.X size={18} /></button></header><div className="ui-modal__body">{children}</div>{footer && <footer className="ui-modal__footer">{footer}</footer>}</section></div>; }
 export function FormField({ label, children, hint, required }) { return <label className="ui-field"><span>{label}{required && <b> *</b>}</span>{children}{hint && <small>{hint}</small>}</label>; }
 export function FormGrid({ children, className }) { return <div className={join('ui-form-grid', className)}>{children}</div>; }
+
+export { default as GradientWaves } from './GradientWaves';

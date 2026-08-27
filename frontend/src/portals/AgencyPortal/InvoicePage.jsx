@@ -112,17 +112,17 @@ export default function InvoicePage() {
                 <div style={{ width: '32px', height: '32px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', background: 'white' }}>
                   <img src={invoice.agency_logo || "/yatralogo.jpg"} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 </div>
-                <span style={{ fontSize: '18px', fontWeight: 800 }}>Yatra</span>
+                <span style={{ fontSize: '18px', fontWeight: 800 }}>VittAro</span>
               </div>
               <div style={{ fontSize: '12px', opacity: 0.7, lineHeight: 1.6 }}>
-                Yatra Travels Pvt. Ltd.<br />
+                VittAro Travels Pvt. Ltd.<br />
                 204, Andheri West, Mumbai — 400053<br />
                 GSTIN: 27AAAAA1111A1Z1
               </div>
             </div>
             <div style={{ textAlign: 'right' }}>
               <div style={{ fontSize: '12px', opacity: 0.6, textTransform: 'uppercase' }}>Invoice</div>
-              <h2 style={{ fontSize: '26px', fontWeight: 900, fontFamily: "'Poppins', sans-serif", margin: '4px 0' }}>{invoice.invoice_number}</h2>
+              <h2 style={{ fontSize: '26px', fontWeight: 900, fontFamily: "'Plus Jakarta Sans', sans-serif", margin: '4px 0' }}>{invoice.invoice_number}</h2>
               <span className={`badge ${invoice.payment_status === 'Paid' ? 'green' : 'orange'}`} style={{ display: 'inline-block', marginTop: '6px' }}>
                 {invoice.payment_status}
               </span>
@@ -183,7 +183,7 @@ export default function InvoicePage() {
             <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '32px', borderTop: '1px solid var(--border-light)', paddingTop: '20px' }}>
               <div style={{ background: 'var(--bg-secondary)', padding: '16px', borderRadius: '10px', fontSize: '12px', color: 'var(--text-secondary)' }}>
                 <strong style={{ color: 'var(--text-primary)' }}>Notes</strong>
-                <p style={{ marginTop: '6px', lineHeight: 1.6 }}>Thank you for travelling with Yatra. This invoice confirms full details of approved expenses. For questions or support, contact billing@yatraai.in.</p>
+                <p style={{ marginTop: '6px', lineHeight: 1.6 }}>Thank you for travelling with VittAro. This invoice confirms full details of approved expenses. For questions or support, contact billing@vittaro.in.</p>
               </div>
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', padding: '6px 0' }}>
@@ -204,13 +204,13 @@ export default function InvoicePage() {
             <div>
               <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Bank Account</div>
               <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '4px' }}>
-                Yatra Travels Pvt. Ltd. · HDFC Bank<br />
+                VittAro Travels Pvt. Ltd. · HDFC Bank<br />
                 A/C: 502000987654321 · IFSC: HDFC0001234
               </div>
             </div>
             <div style={{ textAlign: 'right' }}>
               <div style={{ fontSize: '12px', fontWeight: 600 }}>Authorized Signatory</div>
-              <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>Yatra Platform</div>
+              <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>VittAro Platform</div>
             </div>
           </div>
 

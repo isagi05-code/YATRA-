@@ -30,7 +30,7 @@ export default function Header({ title, description, portal, onPortalSwitch }) {
     switch (portal) {
       case 'agency': return 'Agency Portal';
       case 'user': return 'Traveller App';
-      case 'yatra-team': return 'Yatra Team Admin';
+      case 'yatra-team': return 'VittAro Team Admin';
       default: return 'Portal Select';
     }
   };
@@ -182,7 +182,7 @@ export default function Header({ title, description, portal, onPortalSwitch }) {
                   }}
                 >
                   <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#6366F1' }}></span>
-                  Yatra Team Admin
+                  VittAro Team Admin
                 </button>
               </div>
             </div>

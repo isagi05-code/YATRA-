@@ -172,9 +172,9 @@ export default function AiItineraryPage() {
       {/* ── Hero input ── */}
       <section className="ait-hero">
         <PageHeader
-          eyebrow="Yatra Intelligence"
+          eyebrow="VittAro Intelligence"
           title="Build a thoughtful itinerary in moments."
-          description="Enter a destination, trip length, and budget — Yatra AI creates a day-wise travel plan."
+          description="Enter a destination, trip length, and budget — VittAro AI creates a day-wise travel plan."
         />
         <div className="ait-form">
           {error && <p className="ait-form__error">{error}</p>}
