@@ -49,15 +49,15 @@ export default function Sidebar({ portal, activePage, onNavigate, onLogout }) {
       case 'agency': return 'Agency Portal';
       case 'user': return 'Traveller App';
       case 'yatra-team': return 'Team Admin';
-      default: return 'Yatra';
+      default: return 'VittAro';
     }
   };
 
   const navItems = getNavItems();
 
-  const userName = user?.name || (portal === 'agency' ? 'Agency User' : portal === 'user' ? 'Traveller User' : 'Yatra Admin');
+  const userName = user?.name || (portal === 'agency' ? 'Agency User' : portal === 'user' ? 'Traveller User' : 'VittAro Admin');
   const userId = user?.agency_id || user?.user_id || user?.id || agencyId || (portal === 'agency' ? 'AGY-1001' : portal === 'user' ? 'TRV-1001' : 'ADM-1001');
-  const initials = userName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() || 'YA';
+  const initials = userName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() || 'VA';
 
 return (
   <aside className="sidebar">
@@ -69,12 +69,12 @@ return (
       <div className="brand-logo">
         <img
           src="/yatralogo.jpg"
-          alt="Yatra"
+          alt="VittAro"
         />
       </div>
 
       <div className="brand-content">
-        <h2>Yatra</h2>
+        <h2>VittAro</h2>
 
         <span className="portal-chip">
           {getPortalName()}

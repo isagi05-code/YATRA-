@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import * as Icons from 'lucide-react';
 import { LoginModal } from './LoginModal';
 import { HeroSection } from './HeroSection';
+import GradientWaves from '../../components/ui/GradientWaves';
 
 export default function LandingPortal({ onSelectRole }) {
   const [activeSlide, setActiveSlide] = useState(0);
@@ -30,7 +31,7 @@ export default function LandingPortal({ onSelectRole }) {
       id: 'team',
       caption: 'Super-admin platform overview',
       title: 'TEAM ADMIN',
-      tagline: 'For Yatra Internal Control',
+      tagline: 'For VittAro Internal Control',
       description: 'Supervisory dashboard designed for platform operations. Check microservice health, review global revenue trends, and manage active travel agencies.',
       badge: 'Internal Operations',
       features: ['Microservice health checks', 'Global revenue reporting', 'Agency verification portal', 'Platform-wide telemetry']
@@ -50,21 +51,51 @@ export default function LandingPortal({ onSelectRole }) {
     <div style={{
       minHeight: '100vh',
       width: '100%',
-      background: 'linear-gradient(rgba(8,12,20,0.45) 0%, rgba(8,12,20,0.85) 100%), url(/ocean_waves_bg.png) center center / cover no-repeat',
+      backgroundColor: '#0a0f1d',
       display: 'flex',
       flexDirection: 'column',
       position: 'relative',
       overflow: 'hidden',
       color: 'white',
-      fontFamily: "'Inter', sans-serif"
+      fontFamily: "'Plus Jakarta Sans', sans-serif"
     }}>
+      {/* Live WebGL Gradient Waves Background */}
+      <div style={{
+        position: 'absolute',
+        inset: 0,
+        zIndex: 1,
+        pointerEvents: 'auto'
+      }}>
+        <GradientWaves
+          horizonColor="#0a0f1d"
+          waveColor="#2E4CBC"
+          crestColor="#4B65D4"
+          speed={0.4}
+          amplitude={2.5}
+          waveScale={0.6}
+          waveRatio={0.9}
+          swell={35}
+          turbulence={20}
+          tilt={1.11}
+          zoom={1.0}
+          height={5.5}
+          fogDepth={15}
+          detail="medium"
+          brightness={1.0}
+          opacity={0.9}
+          mouseInteraction={true}
+          parallaxStrength={0.5}
+          grain={true}
+          grainIntensity={0.04}
+        />
+      </div>
       {/* Header */}
       <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '24px 60px', zIndex: 10 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <div style={{ width: '40px', height: '40px', borderRadius: '10px', overflow: 'hidden', border: '1.5px solid var(--primary)', background: 'rgba(255,255,255,0.05)' }}>
-            <img src="/yatralogo.jpg" alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            <img src="/yatralogo.jpg" alt="VittAro Logo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
           </div>
-          <span style={{ fontSize: '20px', fontWeight: 800, fontFamily: "'Poppins', sans-serif", letterSpacing: '-0.5px' }}>Yatra</span>
+          <span style={{ fontSize: '20px', fontWeight: 800, fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: '-0.5px' }}>VittAro</span>
         </div>
 
         <nav style={{ display: 'flex', alignItems: 'center', gap: '32px' }}>

@@ -94,7 +94,7 @@ export function LoginModal({
             overflow: 'hidden', border: '2px solid var(--primary)',
             background: 'rgba(255,255,255,0.04)'
           }}>
-            <img src="/yatralogo.jpg" alt="Yatra" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            <img src="/yatralogo.jpg" alt="VittAro" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
           </div>
         </div>
 
@@ -113,7 +113,7 @@ export function LoginModal({
 
         {/* Heading */}
         <h2 style={{ textAlign: 'center', fontSize: '26px', fontWeight: 900, color: 'white', margin: '12px 0 4px' }}>
-          Sign in to Yatra
+          Sign in to VittAro
         </h2>
         <p style={{ textAlign: 'center', fontSize: '13px', color: 'rgba(255,255,255,0.5)', margin: '0 0 32px' }}>
           Use your Google account — no password needed.
@@ -227,7 +227,7 @@ export function LoginModal({
           textAlign: 'center', marginTop: '24px', fontSize: '11px',
           color: 'rgba(255,255,255,0.3)', lineHeight: '1.5'
         }}>
-          By signing in you agree to Yatra's terms. New accounts are auto-created on first sign-in.
+          By signing in you agree to VittAro's terms. New accounts are auto-created on first sign-in.
         </p>
       </div>
     </div>

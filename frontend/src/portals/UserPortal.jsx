@@ -301,7 +301,7 @@ export default function UserPortal({ page, onNavigate }) {
       }}>
         <div style={{ position: 'relative', zIndex: 1 }}>
           <div style={{ fontSize: '13px', opacity: 0.8, marginBottom: '6px' }}>Welcome back! 👋</div>
-          <h1 style={{ fontFamily: "'Poppins', sans-serif", fontSize: '28px', fontWeight: 800, marginBottom: '8px', lineHeight: 1 }}>{profile?.name || 'Traveller'}</h1>
+          <h1 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: '28px', fontWeight: 800, marginBottom: '8px', lineHeight: 1 }}>{profile?.name || 'Traveller'}</h1>
           <p style={{ fontSize: '13px', opacity: 0.75 }}>Your next adventure is just around the corner.</p>
           <div style={{ marginTop: '16px', display: 'flex', gap: '12px' }}>
             <button onClick={() => onNavigate('trips')} className="btn btn-xl" style={{ background: 'rgba(255,255,255,0.2)', color: 'white', border: '1px solid rgba(255,255,255,0.3)', fontSize: '13px', padding: '10px 20px', borderRadius: '10px' }}>View My Trips</button>
@@ -310,15 +310,15 @@ export default function UserPortal({ page, onNavigate }) {
         </div>
         <div style={{ position: 'relative', zIndex: 1, display: 'flex', gap: '32px' }}>
           <div style={{ textAlign: 'center' }}>
-            <div style={{ fontFamily: "'Poppins', sans-serif", fontSize: '28px', fontWeight: 900 }}>{summary?.trips_count || 0}</div>
+            <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: '28px', fontWeight: 900 }}>{summary?.trips_count || 0}</div>
             <div style={{ fontSize: '12px', opacity: 0.7 }}>Total Trips</div>
           </div>
           <div style={{ textAlign: 'center' }}>
-            <div style={{ fontFamily: "'Poppins', sans-serif", fontSize: '28px', fontWeight: 900 }}>{trips.filter(t => t.status !== 'Completed').length}</div>
+            <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: '28px', fontWeight: 900 }}>{trips.filter(t => t.status !== 'Completed').length}</div>
             <div style={{ fontSize: '12px', opacity: 0.7 }}>Upcoming</div>
           </div>
           <div style={{ textAlign: 'center' }}>
-            <div style={{ fontFamily: "'Poppins', sans-serif", fontSize: '28px', fontWeight: 900 }}>₹{((summary?.total_spent || 0) / 1000).toFixed(0)}k</div>
+            <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: '28px', fontWeight: 900 }}>₹{((summary?.total_spent || 0) / 1000).toFixed(0)}k</div>
             <div style={{ fontSize: '12px', opacity: 0.7 }}>Spent (Personal)</div>
           </div>
         </div>
@@ -381,7 +381,7 @@ export default function UserPortal({ page, onNavigate }) {
           }}>
             <div style={{ position: 'relative', zIndex: 1 }}>
               <div style={{ fontSize: '28px', marginBottom: '12px' }}>✨</div>
-              <h3 style={{ fontFamily: "'Poppins', sans-serif", fontSize: '18px', fontWeight: 800, marginBottom: '6px' }}>AI Travel Assistant</h3>
+              <h3 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: '18px', fontWeight: 800, marginBottom: '6px' }}>AI Travel Assistant</h3>
               <p style={{ fontSize: '12px', opacity: 0.8, marginBottom: '16px', lineHeight: 1.5 }}>
                 Plan your next trip with AI-powered suggestions and personalized itineraries.
               </p>

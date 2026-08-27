@@ -48,7 +48,7 @@ export function HeroSection({
           fontWeight: 900,
           lineHeight: '1.1',
           margin: '0 0 16px 0',
-          fontFamily: "'Poppins', sans-serif",
+          fontFamily: "'Plus Jakarta Sans', sans-serif",
           textShadow: '0 4px 20px rgba(0,0,0,0.5)'
         }}>
           {slide.title}

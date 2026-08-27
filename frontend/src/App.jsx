@@ -93,10 +93,10 @@ function AppContent() {
         case 'revenue': return { title: 'Platform Revenue', desc: 'Consolidated subscription fee collections' };
         case 'analytics': return { title: 'Platform Analytics', desc: 'Vitals, sessions, and transaction charts' };
         case 'health': return { title: 'Service Health', desc: 'Real-time gateway status checks' };
-        default: return { title: 'Yatra Admin Portal', desc: 'Super administration' };
+        default: return { title: 'VittAro Admin Portal', desc: 'Super administration' };
       }
     }
-    return { title: 'Yatra', desc: '' };
+    return { title: 'VittAro', desc: '' };
   };
 
   if (portal === 'landing') {

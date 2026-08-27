@@ -1,11 +1,11 @@
 /* ============================================================
-   YATRA — Global Design System
+   VittAro — Global Design System
    Minimalist · Professional · Warm Red + Teal Palette
    Warm Red #EF4444 · Warm White #FFFCF7 · Teal Green #14B8A6
    ============================================================ */
 
 /* ---- Google Fonts ---- */
-@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,300;0,14..32,400;0,14..32,500;0,14..32,600;0,14..32,700;0,14..32,800;1,14..32,400&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&family=Inter:ital,opsz,wght@0,14..32,300;0,14..32,400;0,14..32,500;0,14..32,600;0,14..32,700;0,14..32,800;1,14..32,400&display=swap');
 
 /* ---- CSS Variables ---- */
 :root {
@@ -53,8 +53,8 @@
   --space-12: 48px;
 
   /* ── Typography ── */
-  --font-primary: 'Inter', sans-serif;
-  --font-heading: 'Inter', sans-serif;
+  --font-primary: 'Plus Jakarta Sans', sans-serif;
+  --font-heading: 'Plus Jakarta Sans', sans-serif;
 
   --text-xs:   11px;
   --text-sm:   13px;

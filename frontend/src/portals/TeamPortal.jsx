@@ -82,27 +82,27 @@ export default function TeamPortal({ page }) {
             color: '#A5B4FC', fontSize: '12px', fontWeight: 700,
             padding: '5px 14px', borderRadius: '999px', letterSpacing: '0.5px', marginBottom: '16px'
           }}>
-            <Icons.Shield size={12} /> Yatra Platform — Super Admin
+            <Icons.Shield size={12} /> VittAro Platform — Super Admin
           </div>
-          <h1 style={{ fontFamily: "'Poppins', sans-serif", fontSize: '36px', fontWeight: 900, letterSpacing: '-1.5px', lineHeight: 1 }}>Platform Overview</h1>
+          <h1 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: '36px', fontWeight: 900, letterSpacing: '-1.5px', lineHeight: 1 }}>Platform Overview</h1>
           <p style={{ fontSize: '14px', opacity: 0.65, marginTop: '8px' }}>Real-time metrics across all agencies, drivers, and operations.</p>
         </div>
 
         <div className="hero-kpi-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '24px', marginTop: '28px' }}>
           <div>
-            <div style={{ fontSize: '28px', fontWeight: 900, fontFamily: "'Poppins', sans-serif" }}>{summary?.total_agencies || 0}</div>
+            <div style={{ fontSize: '28px', fontWeight: 900, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>{summary?.total_agencies || 0}</div>
             <div style={{ fontSize: '11px', opacity: 0.6 }}>Total Agencies</div>
           </div>
           <div>
-            <div style={{ fontSize: '28px', fontWeight: 900, fontFamily: "'Poppins', sans-serif" }}>{summary?.active_tours?.toLocaleString() || '0'}</div>
+            <div style={{ fontSize: '28px', fontWeight: 900, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>{summary?.active_tours?.toLocaleString() || '0'}</div>
             <div style={{ fontSize: '11px', opacity: 0.6 }}>Active Trips</div>
           </div>
           <div>
-            <div style={{ fontSize: '28px', fontWeight: 900, fontFamily: "'Poppins', sans-serif" }}>₹{summary?.total_revenue_cr || 4.8}Cr</div>
+            <div style={{ fontSize: '28px', fontWeight: 900, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>₹{summary?.total_revenue_cr || 4.8}Cr</div>
             <div style={{ fontSize: '11px', opacity: 0.6 }}>Platform Revenue</div>
           </div>
           <div>
-            <div style={{ fontSize: '28px', fontWeight: 900, fontFamily: "'Poppins', sans-serif" }}>{summary?.platform_uptime || '99.8%'}</div>
+            <div style={{ fontSize: '28px', fontWeight: 900, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>{summary?.platform_uptime || '99.8%'}</div>
             <div style={{ fontSize: '11px', opacity: 0.6 }}>Platform Uptime</div>
           </div>
         </div>
