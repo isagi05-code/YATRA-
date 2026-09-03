@@ -9,7 +9,7 @@ router = APIRouter(tags=["Agency Misc"])
 
 
 def get_db_conn():
-    return get_mysql_conn("yatra_agency")
+    return get_mysql_conn("yatra_enterprise")
 
 
 def require_agency_id(agency_id: Optional[str]) -> str:
@@ -19,20 +19,22 @@ def require_agency_id(agency_id: Optional[str]) -> str:
 # ── Customers ─────────────────────────────────────────────────────────────────
 
 @router.get("/customers")
-def get_customers():
+def get_customers(agency_id: Optional[str] = None):
+    agency_id = require_agency_id(agency_id)
     conn = get_db_conn()
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM customers")
+    cursor.execute("SELECT * FROM customers WHERE agency_id = ?", (agency_id,))
     customers = [dict(row) for row in cursor.fetchall()]
     conn.close()
     return customers
 
 
 @router.get("/customers/{customer_id}")
-def get_customer_details(customer_id: int):
+def get_customer_details(customer_id: int, agency_id: Optional[str] = None):
+    agency_id = require_agency_id(agency_id)
     conn = get_db_conn()
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM customers WHERE customer_id = ?", (customer_id,))
+    cursor.execute("SELECT * FROM customers WHERE customer_id = ? AND agency_id = ?", (customer_id, agency_id))
     row = cursor.fetchone()
     conn.close()
     if not row:
@@ -171,10 +173,11 @@ Generate exactly {days} day objects in the itinerary array. Keep descriptions pr
 # ── Invoices ──────────────────────────────────────────────────────────────────
 
 @router.get("/invoices")
-def get_invoices():
+def get_invoices(agency_id: Optional[str] = None):
+    agency_id = require_agency_id(agency_id)
     conn = get_db_conn()
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM tours WHERE status = 'Completed'")
+    cursor.execute("SELECT * FROM tours WHERE status = 'Completed' AND agency_id = ?", (agency_id,))
     completed_tours = cursor.fetchall()
     invoices = []
     for tour in completed_tours:
@@ -203,10 +206,11 @@ def get_invoices():
 
 
 @router.get("/invoices/{trip_id}")
-def generate_invoice_for_tour(trip_id: int, day: Optional[str] = None):
+def generate_invoice_for_tour(trip_id: int, day: Optional[str] = None, agency_id: Optional[str] = None):
+    agency_id = require_agency_id(agency_id)
     conn = get_db_conn()
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM tours WHERE trip_id = ?", (trip_id,))
+    cursor.execute("SELECT * FROM tours WHERE trip_id = ? AND agency_id = ?", (trip_id, agency_id))
     tour_row = cursor.fetchone()
     if not tour_row:
         conn.close()
@@ -299,20 +303,26 @@ def mark_notification_as_read(notif_id: int):
 # ── Settings ──────────────────────────────────────────────────────────────────
 
 @router.get("/settings")
-def get_settings():
+def get_settings(agency_id: Optional[str] = None):
+    agency_id = require_agency_id(agency_id)
     conn = get_db_conn()
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM settings")
+    cursor.execute("SELECT `key`, `value` FROM agency_settings WHERE agency_id = ?", (agency_id,))
     settings_dict = {row["key"]: row["value"] for row in cursor.fetchall()}
     conn.close()
     return settings_dict
 
 
 @router.put("/settings/{key}")
-def update_settings(key: str, payload: SettingsUpdate):
+def update_settings(key: str, payload: SettingsUpdate, agency_id: Optional[str] = None):
+    agency_id = require_agency_id(agency_id)
     conn = get_db_conn()
     cursor = conn.cursor()
-    cursor.execute("INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)", (key, payload.value))
+    # INSERT OR REPLACE is SQLite-only; use portable UPSERT pattern via try/except
+    try:
+        cursor.execute("INSERT INTO agency_settings (agency_id, `key`, `value`) VALUES (?, ?, ?)", (agency_id, key, payload.value))
+    except Exception:
+        cursor.execute("UPDATE agency_settings SET `value` = ? WHERE agency_id = ? AND `key` = ?", (payload.value, agency_id, key))
     conn.commit()
     conn.close()
     return {"message": f"Setting '{key}' updated successfully."}

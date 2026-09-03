@@ -38,7 +38,7 @@ def run_servers():
     
     try:
         for s in servers:
-            print(f"Launching {s['name']} on http://localhost:{s['command'][5]} ...")
+            print(f"Launching {s['name']} on http://localhost:{s['command'][6]} ...")
             # We run uvicorn as a subprocess. We don't pipe stdout so the uvicorn logs output directly to terminal.
             p = subprocess.Popen(s["command"], env=os.environ.copy(), cwd=BACKEND_DIR)
             processes.append(p)

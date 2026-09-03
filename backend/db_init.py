@@ -21,11 +21,11 @@ SQLITE_SCHEMAS = {
         "CREATE TABLE IF NOT EXISTS tour_stops (id INTEGER PRIMARY KEY AUTOINCREMENT, trip_id INTEGER, type TEXT, name TEXT, lat REAL, lng REAL, completed INTEGER DEFAULT 0)",
         "CREATE TABLE IF NOT EXISTS tour_timeline (id INTEGER PRIMARY KEY AUTOINCREMENT, trip_id INTEGER, event_name TEXT, status TEXT, updated_at DATETIME)",
         "CREATE TABLE IF NOT EXISTS expenses (expense_id INTEGER PRIMARY KEY AUTOINCREMENT, trip_id INTEGER, agency_id TEXT, amount REAL, gst REAL, vendor TEXT, category TEXT, date DATE, time TIME, description TEXT, payment_mode TEXT, approved_by TEXT, status TEXT, receipt_image TEXT, ocr_extracted_data TEXT)",
-        "CREATE TABLE IF NOT EXISTS vehicles (vehicle_number TEXT PRIMARY KEY, agency_id TEXT, model TEXT, owner TEXT, insurance TEXT, permit TEXT, fitness TEXT, puc TEXT, fuel_type TEXT, mileage REAL, current_location TEXT, availability TEXT, service_history TEXT, expenses REAL, upcoming_maintenance TEXT)",
+        "CREATE TABLE IF NOT EXISTS vehicles (vehicle_number TEXT PRIMARY KEY, agency_id TEXT, model TEXT, owner TEXT, insurance TEXT, insurance_expiry TEXT, permit TEXT, permit_expiry TEXT, fitness_expiry TEXT, puc_expiry TEXT, fuel_type TEXT, mileage REAL, current_location TEXT, availability TEXT, service_history TEXT, expenses REAL, upcoming_maintenance TEXT)",
         "CREATE TABLE IF NOT EXISTS drivers (driver_id INTEGER PRIMARY KEY AUTOINCREMENT, agency_id TEXT, name TEXT, license TEXT, aadhar TEXT, experience INTEGER, trips_completed INTEGER, assigned_tour TEXT, current_location TEXT, contact TEXT, emergency_contact TEXT, salary REAL, expense REAL, ratings REAL, documents TEXT)",
         "CREATE TABLE IF NOT EXISTS customers (customer_id INTEGER PRIMARY KEY AUTOINCREMENT, agency_id TEXT, name TEXT, contact TEXT, email TEXT, booking_history TEXT, invoices TEXT, payments TEXT, upcoming_tours TEXT, documents TEXT)",
         "CREATE TABLE IF NOT EXISTS notifications (id INTEGER PRIMARY KEY AUTOINCREMENT, agency_id TEXT, type TEXT, title TEXT, message TEXT, date DATE, read INTEGER DEFAULT 0)",
-        "CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT)"
+        "CREATE TABLE IF NOT EXISTS agency_settings (key TEXT PRIMARY KEY, value TEXT)"
     ],
     "yatra_traveller": [
         "CREATE TABLE IF NOT EXISTS trips (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id TEXT, name TEXT, route TEXT, date DATE, duration TEXT, budget REAL, status TEXT, driver TEXT, vehicle TEXT)",
@@ -239,13 +239,13 @@ def seed_agency_db():
         (3, "AGY-1001", 3000.0, 540.0, "Himalayan Mechanic", "Vehicle Maintenance", "2026-06-18", "11:00:00", "Brake pad replacement", "Cash", "Agency Head", "Approved", "maint_receipt_501.png")
     ])
 
-    # 5. Vehicles
+    # 5. Vehicles — uses MySQL column names: insurance_expiry, permit_expiry, fitness_expiry, puc_expiry
     cursor.executemany("""
-    INSERT IGNORE INTO vehicles (vehicle_number, agency_id, model, owner, insurance, permit, fitness_expiry, puc_expiry, fuel_type, mileage, current_location, availability, expenses, upcoming_maintenance)
-    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""", [
-        ("MH-01-DK-4507", "AGY-1001", "Toyota Innova Crysta", "Yatra Travels Ltd", "Active (Expires: 2027-02-15)", "National Permit (Expires: 2028-06-10)", "2027-01-20", "2026-12-05", "Diesel", 12.5, "Mumbai, MH", "Available", 12000.0, "2026-08-10 (General Service)"),
-        ("MH-02-AB-9876", "AGY-1001", "Tempo Traveller 17-Seater", "Partner Fleet Rent", "Active (Expires: 2026-11-20)", "State Permit (Expires: 2027-03-12)", "2026-09-15", "2026-08-30", "Diesel", 9.8, "Jaipur, RJ", "Assigned", 35000.0, "2026-09-01 (Tire Alignment)"),
-        ("MH-04-PQ-9102", "AGY-1001", "Suzuki Ertiga", "Yatra Travels Ltd", "Active (Expires: 2027-05-01)", "Local Permit (Expires: 2027-05-01)", "2027-05-01", "2026-11-10", "CNG", 18.0, "Delhi, DL", "Available", 5000.0, "2026-10-15 (CNG Filter Change)")
+    INSERT IGNORE INTO vehicles (vehicle_number, agency_id, model, owner, insurance, insurance_expiry, permit, permit_expiry, fitness_expiry, puc_expiry, fuel_type, mileage, current_location, availability, expenses, upcoming_maintenance)
+    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""", [
+        ("MH-01-DK-4507", "AGY-1001", "Toyota Innova Crysta", "Yatra Travels Ltd", "Active", "2027-02-15", "National Permit", "2028-06-10", "2027-01-20", "2026-12-05", "Diesel", 12.5, "Mumbai, MH", "Available", 12000.0, "2026-08-10 (General Service)"),
+        ("MH-02-AB-9876", "AGY-1001", "Tempo Traveller 17-Seater", "Partner Fleet Rent", "Active", "2026-11-20", "State Permit", "2027-03-12", "2026-09-15", "2026-08-30", "Diesel", 9.8, "Jaipur, RJ", "Assigned", 35000.0, "2026-09-01 (Tire Alignment)"),
+        ("MH-04-PQ-9102", "AGY-1001", "Suzuki Ertiga", "Yatra Travels Ltd", "Active", "2027-05-01", "Local Permit", "2027-05-01", "2027-05-01", "2026-11-10", "CNG", 18.0, "Delhi, DL", "Available", 5000.0, "2026-10-15 (CNG Filter Change)")
     ])
 
     # 6. Drivers
@@ -266,7 +266,7 @@ def seed_agency_db():
         ("AGY-1001", "Kabir Mehta", "+91 97777 66666", "kabir.mehta@example.com", json.dumps([{"trip_id": 3, "status": "Completed"}]), json.dumps([{"invoice_id": 1003, "amount": 18000.0, "status": "Paid"}]), json.dumps([{"payment_id": "PAY-9102", "amount": 18000.0}]), json.dumps([]), json.dumps({"passport": "PP-KABIR.pdf", "preferences": "CNG vehicle preferred"}))
     ])
 
-    # 8. Notifications
+    # 8. Notifications — `date` and `read` are reserved words in MySQL, require backticks
     cursor.executemany("""
     INSERT IGNORE INTO notifications (agency_id, type, title, message, `date`, `read`)
     VALUES (%s, %s, %s, %s, %s, %s)""", [
@@ -276,14 +276,14 @@ def seed_agency_db():
         ("AGY-1001", "Insurance Expiry", "MH-02-AB-9876 insurance renewal due", "Expiry on 2026-11-20.", "2026-07-01", 1)
     ])
 
-    # 9. Agency Settings
+    # 9. Agency Settings — MySQL schema has agency_id column in agency_settings
     cursor.executemany("""
-    INSERT IGNORE INTO agency_settings (`key`, `value`)
-    VALUES (%s, %s)""", [
-        ("agency_name", "Yatra Travels Ltd"),
-        ("gstin", "27AAAAA1111A1Z1"),
-        ("currency", "INR"),
-        ("auto_approve_fastag", "True")
+    INSERT IGNORE INTO agency_settings (agency_id, `key`, `value`)
+    VALUES (%s, %s, %s)""", [
+        ("AGY-1001", "agency_name", "Yatra Travels Ltd"),
+        ("AGY-1001", "gstin", "27AAAAA1111A1Z1"),
+        ("AGY-1001", "currency", "INR"),
+        ("AGY-1001", "auto_approve_fastag", "True")
     ])
 
     conn.commit()
@@ -357,12 +357,12 @@ def seed_team_db():
         ("AGY-1003", "Speedy Tour & Co", "Mohit Verma", "+919777744444", "mohit@speedy.com", "Pending Verification", 0, 0.0, 0.0, 2, 2, "Trial")
     ])
 
-    # Extra traveller profiles
+    # Extra traveller profiles — only seed basic columns that exist in both MySQL and SQLite schema
     cursor.executemany("""
-    INSERT IGNORE INTO traveller_profiles (user_id, trips_count, expenses_count, bookings_count, feedback_rating, ai_usage_tokens)
-    VALUES (%s, %s, %s, %s, %s, %s)""", [
-        ("USR-TRV-1002", 1, 0, 1, 5.0, 4200),
-        ("USR-TRV-1003", 8, 24, 10, 4.5, 34500)
+    INSERT IGNORE INTO traveller_profiles (user_id, preferences)
+    VALUES (%s, %s)""", [
+        ("USR-TRV-1002", ""),
+        ("USR-TRV-1003", "")
     ])
 
     # Payments
@@ -391,14 +391,26 @@ def seed_team_db():
         (None, "USR-TRV-1001", "App logout issue", "Getting automatically logged out from User Portal on page refresh.", "Closed", "Low", "2026-06-28")
     ])
 
-    # Audit logs
-    cursor.executemany("""
-    INSERT IGNORE INTO audit_logs (`timestamp`, level, message)
-    VALUES (%s, %s, %s)""", [
+    # Audit logs — table is named 'logs' in SQLite schema, 'audit_logs' in MySQL schema
+    # Use a try/except to handle both DB types gracefully
+    for log_entry in [
         ("2026-07-05 12:00:00", "INFO", "Database seed completed successfully."),
         ("2026-07-05 12:15:30", "WARNING", "SMS Gateway response latency exceeded threshold (3.2s)."),
         ("2026-07-05 12:45:00", "INFO", "User Yugal Kishor logged into Traveller App.")
-    ])
+    ]:
+        try:
+            cursor.execute(
+                "INSERT IGNORE INTO audit_logs (`timestamp`, level, message) VALUES (%s, %s, %s)",
+                log_entry
+            )
+        except Exception:
+            try:
+                cursor.execute(
+                    "INSERT OR IGNORE INTO logs (timestamp, level, message) VALUES (?, ?, ?)",
+                    log_entry
+                )
+            except Exception:
+                pass
 
     conn.commit()
     conn.close()

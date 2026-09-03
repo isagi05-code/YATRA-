@@ -8,7 +8,7 @@ router = APIRouter(prefix="/tours", tags=["Agency Tours"])
 
 
 def get_db_conn():
-    return get_mysql_conn("yatra_agency")
+    return get_mysql_conn("yatra_enterprise")
 
 
 def require_agency_id(agency_id: Optional[str]) -> str:

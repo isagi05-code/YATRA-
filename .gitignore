@@ -16,3 +16,5 @@ __pycache__/
 # Editors and operating systems
 .DS_Store
 .vscode/
+.obsidian/
+*.log

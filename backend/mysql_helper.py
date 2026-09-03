@@ -50,6 +50,9 @@ class MySQLRow:
     def __iter__(self):
         return iter(self._values)
 
+    def __contains__(self, key):
+        return key in self._mapping
+
     def __len__(self):
         return len(self._values)
 

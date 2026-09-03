@@ -34,7 +34,10 @@ print(f"[AUTH STARTUP] GOOGLE_CLIENT_ID = {'SET (' + _gcid[:20] + '...)' if _gci
 
 @router.get("/debug-env")
 async def debug_env():
-    """Dev-only: confirm what env vars the worker process has."""
+    """Dev-only: confirm what env vars the worker process has. Disabled in production."""
+    is_production = os.environ.get("YATRA_ENV", "development").lower() == "production"
+    if is_production:
+        raise HTTPException(status_code=404, detail="Not found")
     gcid = os.environ.get("GOOGLE_CLIENT_ID", "")
     return {
         "GOOGLE_CLIENT_ID_set": bool(gcid),
@@ -146,6 +149,10 @@ def build_jwt_payload(user: dict, portal: str, agency_id: Optional[str], role: s
     }
 
 
+# Valid portal values
+_VALID_PORTALS = {"agency", "traveller", "team"}
+
+
 @router.post("/send-otp")
 async def send_otp(payload: SendOtpRequest):
     ident = payload.identifier or payload.email
@@ -154,13 +161,18 @@ async def send_otp(payload: SendOtpRequest):
 
     identifier = ident.strip().lower()
     portal = (payload.portal or "agency").lower()
+    if portal not in _VALID_PORTALS:
+        raise HTTPException(status_code=400, detail=f"Invalid portal. Must be one of: {', '.join(_VALID_PORTALS)}")
     mode = payload.mode.lower()
+    if mode not in ("register", "login", "reset"):
+        raise HTTPException(status_code=400, detail="Invalid mode. Use 'register', 'login', or 'reset'.")
+
     existing_user = get_user_by_identifier(identifier)
 
     if mode == "register":
         if existing_user:
             raise HTTPException(status_code=409, detail="User already registered. Please log in instead.")
-    elif mode == "login":
+    elif mode in ("login", "reset"):
         if not existing_user:
             raise HTTPException(status_code=404, detail="No account found with this email/phone. Please register first.")
         if existing_user.get("status") == "Blocked":
@@ -178,12 +190,12 @@ async def send_otp(payload: SendOtpRequest):
         except Exception as e:
             print(f"[AUTH] Email send failed: {e}")
 
+    # Never return OTP in response — log to console only (visible in server logs for dev)
     print(f"[AUTH OTP] {mode.upper()} OTP for '{identifier}' (portal={portal}): {otp_code}")
     return {
         "status": "success",
         "success": True,
-        "message": f"OTP sent successfully to {target_email}",
-        "otp": otp_code
+        "message": f"OTP sent successfully to {target_email}"
     }
 
 
@@ -426,12 +438,22 @@ async def login(payload: LoginRequest):
 
 @router.post("/set-password")
 async def set_password(payload: SetPasswordRequest):
+    """Set or change password. Requires a valid OTP to be verified first (mode='reset')."""
     if payload.password != payload.confirm_password:
         raise HTTPException(status_code=400, detail="Passwords do not match")
     if len(payload.password) < 8:
         raise HTTPException(status_code=400, detail="Password must be at least 8 characters")
 
     identifier = payload.identifier.strip().lower()
+
+    # Security: require OTP verification before allowing password set/reset
+    if not payload.otp:
+        raise HTTPException(status_code=400, detail="OTP is required to set a new password. Please request an OTP first.")
+
+    otp_valid = verify_and_consume_otp(identifier, payload.otp.strip())
+    if not otp_valid:
+        raise HTTPException(status_code=400, detail="Invalid or expired OTP. Please request a new OTP.")
+
     user = get_user_by_identifier(identifier)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -440,7 +462,11 @@ async def set_password(payload: SetPasswordRequest):
     try:
         conn = get_mysql_conn("yatra_enterprise")
         cursor = conn.cursor()
-        cursor.execute("UPDATE users SET password_hash = ?, token_version = token_version + 1 WHERE user_id = ?", (hashed, user["user_id"]))
+        cursor.execute(
+            "UPDATE users SET password_hash = ?, token_version = token_version + 1 WHERE user_id = ?",
+            (hashed, user["user_id"])
+        )
+        conn.commit()
         conn.close()
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to set password: {str(e)}")
@@ -623,7 +649,7 @@ async def google_login(payload: GoogleLoginRequest):
     try:
         cursor.execute("""
             SELECT user_id, email, name, status, token_version, agency_id, user_type
-            FROM users WHERE (LOWER(email) = %s OR google_id = %s) AND is_deleted = 0
+            FROM users WHERE (LOWER(email) = ? OR google_id = ?) AND is_deleted = 0
         """, (email, google_id))
         row = cursor.fetchone()
         if row:
@@ -633,7 +659,7 @@ async def google_login(payload: GoogleLoginRequest):
         try:
             cursor.execute("""
                 SELECT user_id, email, name, status, token_version, agency_id, user_type
-                FROM users WHERE LOWER(email) = %s AND is_deleted = 0
+                FROM users WHERE LOWER(email) = ? AND is_deleted = 0
             """, (email,))
             row = cursor.fetchone()
             if row:
@@ -657,7 +683,7 @@ async def google_login(payload: GoogleLoginRequest):
         # Update google_id and profile pic if missing
         try:
             cursor.execute("""
-                UPDATE users SET google_id = %s, profile_picture = %s WHERE user_id = %s
+                UPDATE users SET google_id = ?, profile_picture = ? WHERE user_id = ?
             """, (google_id, picture, user_id))
             conn.commit()
         except Exception:
@@ -675,31 +701,31 @@ async def google_login(payload: GoogleLoginRequest):
                 cursor.execute("""
                     INSERT INTO agencies (agency_id, name, owner_name, email, contact, status,
                         active_tours, revenue, expenses, drivers_count, vehicles_count, subscription_status)
-                    VALUES (%s, %s, %s, %s, %s, 'Active', 0, 0.00, 0.00, 0, 0, 'Trial')
+                    VALUES (?, ?, ?, ?, ?, 'Active', 0, 0.00, 0.00, 0, 0, 'Trial')
                 """, (agency_id, name, name, email, ""))
                 cursor.execute("""
                     INSERT INTO users (user_id, agency_id, user_type, name, email, google_id,
                         profile_picture, status, token_version)
-                    VALUES (%s, %s, 'AgencyAdmin', %s, %s, %s, %s, 'Active', 1)
+                    VALUES (?, ?, 'AgencyAdmin', ?, ?, ?, ?, 'Active', 1)
                 """, (user_id, agency_id, name, email, google_id, picture))
                 cursor.execute("""
                     INSERT INTO agency_members (agency_id, user_id, role, is_owner)
-                    VALUES (%s, %s, 'Agency Owner', 1)
+                    VALUES (?, ?, 'Agency Owner', 1)
                 """, (agency_id, user_id))
             except Exception:
                 # Fallback insert without google_id column if schema not migrated
                 cursor.execute("""
                     INSERT INTO agencies (agency_id, name, owner_name, email, contact, status,
                         active_tours, revenue, expenses, drivers_count, vehicles_count, subscription_status)
-                    VALUES (%s, %s, %s, %s, %s, 'Active', 0, 0.00, 0.00, 0, 0, 'Trial')
+                    VALUES (?, ?, ?, ?, ?, 'Active', 0, 0.00, 0.00, 0, 0, 'Trial')
                 """, (agency_id, name, name, email, ""))
                 cursor.execute("""
                     INSERT INTO users (user_id, agency_id, user_type, name, email, status, token_version)
-                    VALUES (%s, %s, 'AgencyAdmin', %s, %s, 'Active', 1)
+                    VALUES (?, ?, 'AgencyAdmin', ?, ?, 'Active', 1)
                 """, (user_id, agency_id, name, email))
                 cursor.execute("""
                     INSERT INTO agency_members (agency_id, user_id, role, is_owner)
-                    VALUES (%s, %s, 'Agency Owner', 1)
+                    VALUES (?, ?, 'Agency Owner', 1)
                 """, (agency_id, user_id))
 
         elif portal == "traveller":
@@ -707,15 +733,15 @@ async def google_login(payload: GoogleLoginRequest):
             try:
                 cursor.execute("""
                     INSERT INTO users (user_id, user_type, name, email, google_id, profile_picture, status, token_version)
-                    VALUES (%s, 'Traveller', %s, %s, %s, %s, 'Active', 1)
+                    VALUES (?, 'Traveller', ?, ?, ?, ?, 'Active', 1)
                 """, (user_id, name, email, google_id, picture))
             except Exception:
                 cursor.execute("""
                     INSERT INTO users (user_id, user_type, name, email, status, token_version)
-                    VALUES (%s, 'Traveller', %s, %s, 'Active', 1)
+                    VALUES (?, 'Traveller', ?, ?, 'Active', 1)
                 """, (user_id, name, email))
             try:
-                cursor.execute("INSERT INTO traveller_profiles (user_id, preferences) VALUES (%s, '')", (user_id,))
+                cursor.execute("INSERT INTO traveller_profiles (user_id, preferences) VALUES (?, '')", (user_id,))
             except Exception:
                 pass
 
@@ -724,15 +750,15 @@ async def google_login(payload: GoogleLoginRequest):
             try:
                 cursor.execute("""
                     INSERT INTO users (user_id, user_type, name, email, google_id, profile_picture, status, token_version)
-                    VALUES (%s, 'SuperAdmin', %s, %s, %s, %s, 'Active', 1)
+                    VALUES (?, 'SuperAdmin', ?, ?, ?, ?, 'Active', 1)
                 """, (user_id, name, email, google_id, picture))
             except Exception:
                 cursor.execute("""
                     INSERT INTO users (user_id, user_type, name, email, status, token_version)
-                    VALUES (%s, 'SuperAdmin', %s, %s, 'Active', 1)
+                    VALUES (?, 'SuperAdmin', ?, ?, 'Active', 1)
                 """, (user_id, name, email))
             try:
-                cursor.execute("INSERT INTO team_members (user_id, role) VALUES (%s, 'Admin')", (user_id,))
+                cursor.execute("INSERT INTO team_members (user_id, role) VALUES (?, 'Admin')", (user_id,))
             except Exception:
                 pass
 
@@ -743,14 +769,14 @@ async def google_login(payload: GoogleLoginRequest):
         try:
             if portal == "agency" and agency_id:
                 cursor.execute(
-                    "SELECT role FROM agency_members WHERE user_id = %s AND agency_id = %s",
+                    "SELECT role FROM agency_members WHERE user_id = ? AND agency_id = ?",
                     (user_id, agency_id)
                 )
                 row = cursor.fetchone()
                 if row:
                     role = row["role"]
             elif portal == "team":
-                cursor.execute("SELECT role FROM team_members WHERE user_id = %s", (user_id,))
+                cursor.execute("SELECT role FROM team_members WHERE user_id = ?", (user_id,))
                 row = cursor.fetchone()
                 if row:
                     role = row["role"]

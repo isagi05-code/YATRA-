@@ -74,6 +74,7 @@ def create_refresh_token(user_id: str, token_version: int = 1) -> str:
             INSERT INTO refresh_tokens (user_id, token_hash, expires_at, revoked)
             VALUES (?, ?, ?, 0)
         """, (user_id, token_hash, expires_at_str))
+        conn.commit()
         conn.close()
     except Exception as e:
         print(f"[AUTH] Error saving refresh token: {e}")
@@ -122,7 +123,7 @@ def generate_and_save_otp(identifier: str, portal: str, mode: str) -> str:
             INSERT INTO otps (identifier, otp_code, portal, mode, expires_at, is_used)
             VALUES (?, ?, ?, ?, ?, 0)
         """, (clean_id, otp_code, portal, mode, expires_str))
-        
+        conn.commit()
         conn.close()
     except Exception as e:
         print(f"[AUTH_UTILS] Error saving OTP to DB: {e}")
@@ -152,6 +153,7 @@ def verify_and_consume_otp(identifier: str, otp_code: str) -> bool:
         otp_id = row["id"] if hasattr(row, "__getitem__") else row[0]
         # Invalidate after successful verification
         cursor.execute("UPDATE otps SET is_used = 1 WHERE id = ?", (otp_id,))
+        conn.commit()
         conn.close()
         return True
     except Exception as e:

@@ -1,10 +1,11 @@
 from fastapi import Depends, HTTPException, status, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from typing import Optional, List, Dict, Any
+from typing import Optional, List
 from auth_utils import decode_access_token
 from core.database import get_db_conn as get_mysql_conn
 
 security = HTTPBearer(auto_error=False)
+
 
 class AuthUser:
     def __init__(self, user_id: str, email: str, name: str, portal: str, role: str, agency_id: Optional[str] = None, permissions: Optional[List[str]] = None):
@@ -27,34 +28,28 @@ class AuthUser:
             "permissions": self.permissions
         }
 
-async def get_current_user(request: Request, credentials: Optional[HTTPAuthorizationCredentials] = Depends(security)) -> AuthUser:
+
+async def get_current_user(
+    request: Request,
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security)
+) -> AuthUser:
     """
     Decodes JWT token from Authorization Bearer header.
     Validates token expiration, user active status, and token_version.
     Returns AuthUser object with user_id, agency_id, role, portal, permissions.
+
+    SECURITY: No unauthenticated fallback — every request MUST supply a valid Bearer token.
     """
     token = None
     if credentials:
         token = credentials.credentials
     else:
-        # Fallback to query param or header
+        # Fallback to manual Authorization header parse (handles non-standard clients)
         auth_header = request.headers.get("Authorization")
         if auth_header and auth_header.startswith("Bearer "):
-            token = auth_header.split(" ")[1]
+            token = auth_header.split(" ", 1)[1]
 
     if not token:
-        # Check if agency_id query param fallback is present for backward compatibility
-        aid_query = request.query_params.get("agency_id")
-        if aid_query:
-            return AuthUser(
-                user_id="USR-MOCK",
-                email="agency@yatratravels.com",
-                name="Agency Partner",
-                portal="agency",
-                role="Agency Owner",
-                agency_id=aid_query,
-                permissions=["*"]
-            )
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Authentication token is missing. Please log in.",
@@ -79,59 +74,62 @@ async def get_current_user(request: Request, credentials: Optional[HTTPAuthoriza
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    # Verify user in database
+    # Verify user in database — hard failure, no silent fallback
     try:
         conn = get_mysql_conn("yatra_enterprise")
         cursor = conn.cursor()
-        cursor.execute("SELECT user_id, email, name, status, token_version FROM users WHERE user_id = ?", (user_id,))
+        cursor.execute(
+            "SELECT user_id, email, name, status, token_version FROM users WHERE user_id = ?",
+            (user_id,)
+        )
         user_row = cursor.fetchone()
         conn.close()
-
-        if not user_row:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User account not found")
-
-        if user_row["status"] != "Active":
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="User account is inactive or blocked")
-
-        if user_row["token_version"] != token_version:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Session expired due to password change or logout")
-
-        return AuthUser(
-            user_id=user_id,
-            email=payload.get("email") or user_row["email"],
-            name=user_row["name"],
-            portal=payload.get("portal", "agency"),
-            role=payload.get("role", "Agency Owner"),
-            agency_id=payload.get("agency_id"),
-            permissions=payload.get("permissions", [])
-        )
-    except HTTPException:
-        raise
     except Exception as e:
-        print(f"[AUTH_DEPS] Error validating user token: {e}")
-        # Fallback payload if DB check fails
-        return AuthUser(
-            user_id=user_id,
-            email=payload.get("email", ""),
-            name="Agency User",
-            portal=payload.get("portal", "agency"),
-            role=payload.get("role", "Agency Owner"),
-            agency_id=payload.get("agency_id"),
-            permissions=payload.get("permissions", [])
+        print(f"[AUTH_DEPS] DB error during token validation: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Authentication service temporarily unavailable. Please try again.",
         )
+
+    if not user_row:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User account not found")
+
+    if user_row["status"] != "Active":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="User account is inactive or blocked")
+
+    if user_row["token_version"] != token_version:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Session expired due to password change or logout. Please log in again.",
+        )
+
+    return AuthUser(
+        user_id=user_id,
+        email=payload.get("email") or user_row["email"],
+        name=user_row["name"],
+        portal=payload.get("portal", "agency"),
+        role=payload.get("role", "Agency Owner"),
+        agency_id=payload.get("agency_id"),
+        permissions=payload.get("permissions", [])
+    )
+
 
 def require_agency_id_context(request: Request, current_user: AuthUser = Depends(get_current_user)) -> str:
     """
     CRITICAL SECURITY REQUIREMENT:
     Backend MUST NOT trust agency_id coming directly from client query/body if JWT contains agency_id.
-    Extract agency_id from JWT payload. Fallback to query param only if JWT has no agency_id.
+    Extract agency_id from JWT payload. Fallback to query param only if JWT has no agency_id (e.g. team admins).
     """
     if current_user.agency_id:
         return current_user.agency_id
 
-    # Fallback to query param if token didn't contain agency_id
+    # Fallback to query param ONLY when JWT does not contain an agency_id
+    # (e.g. a team admin scoping to a specific agency for admin operations)
     query_aid = request.query_params.get("agency_id")
     if query_aid:
         return query_aid
 
-    return "AGY-1001"
+    raise HTTPException(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        detail="agency_id is required but could not be determined from your session. Please log in again."
+    )
