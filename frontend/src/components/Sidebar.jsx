@@ -14,12 +14,6 @@ const AGENCY_NAV = [
   { icon: 'MapPin',          label: 'Maps',          id: 'tour-detail',  badge: null },
 ];
 
-const TRAVELLER_NAV = [
-  { icon: 'LayoutDashboard', label: 'Dashboard',      id: 'dashboard',      badge: null },
-  { icon: 'Calendar',         label: 'My Trips',       id: 'trips',          badge: null },
-  { icon: 'Receipt',          label: 'My Expenses',    id: 'expenses',       badge: null },
-  { icon: 'Star',             label: 'Reviews',        id: 'reviews',        badge: null },
-];
 
 const YATRA_TEAM_NAV = [
   { icon: 'LayoutDashboard', label: 'Overview',     id: 'overview',   badge: null },
@@ -36,7 +30,6 @@ export default function Sidebar({ portal, activePage, onNavigate, onLogout }) {
   const getNavItems = () => {
     switch (portal) {
       case 'agency': return AGENCY_NAV;
-      case 'user': return TRAVELLER_NAV;
       case 'yatra-team': return YATRA_TEAM_NAV;
       default: return [];
     }
@@ -45,7 +38,6 @@ export default function Sidebar({ portal, activePage, onNavigate, onLogout }) {
   const getPortalName = () => {
     switch (portal) {
       case 'agency': return 'Agency Portal';
-      case 'user': return 'Traveller App';
       case 'yatra-team': return 'Team Admin';
       default: return 'VittAro';
     }
@@ -53,7 +45,7 @@ export default function Sidebar({ portal, activePage, onNavigate, onLogout }) {
 
   const navItems = getNavItems();
 
-  const userName = user?.name || (portal === 'agency' ? 'Agency User' : portal === 'user' ? 'Traveller User' : 'VittAro Admin');
+  const userName = user?.name || (portal === 'agency' ? 'Agency User' : 'VittAro Admin');
   const userId = user?.agency_id || user?.user_id || user?.id || agencyId || (portal === 'agency' ? 'AGY-1001' : portal === 'user' ? 'TRV-1001' : 'ADM-1001');
   const initials = userName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() || 'VA';
 

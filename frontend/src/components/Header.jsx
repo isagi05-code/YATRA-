@@ -29,7 +29,6 @@ export default function Header({ title, description, portal, onPortalSwitch }) {
   const getPortalLabel = () => {
     switch (portal) {
       case 'agency': return 'Agency Portal';
-      case 'user': return 'Traveller App';
       case 'yatra-team': return 'VittAro Team Admin';
       default: return 'Portal Select';
     }
@@ -38,7 +37,6 @@ export default function Header({ title, description, portal, onPortalSwitch }) {
   const getPortalIconColor = () => {
     switch (portal) {
       case 'agency': return '#2563EB';
-      case 'user': return '#10B981';
       case 'yatra-team': return '#6366F1';
       default: return '#64748B';
     }
@@ -55,7 +53,7 @@ export default function Header({ title, description, portal, onPortalSwitch }) {
 
   const userCode = user?.agency_id || user?.user_id || user?.id || agencyId;
   const userName = user?.name || getPortalLabel();
-  const initials = userName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() || (portal === 'agency' ? 'AG' : 'TR');
+  const initials = userName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() || (portal === 'agency' ? 'AG' : 'AD');
 
   return (
     <header className="header" style={{
@@ -153,21 +151,6 @@ export default function Header({ title, description, portal, onPortalSwitch }) {
                 >
                   <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#2563EB' }}></span>
                   Agency Portal
-                </button>
-                <button 
-                  onClick={() => { onPortalSwitch('user'); setShowPortalMenu(false); }}
-                  className="dropdown-item" 
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: '8px', width: '100%',
-                    padding: '8px 12px', borderRadius: '6px', fontSize: '12px', textAlign: 'left',
-                    color: portal === 'user' ? 'var(--success)' : 'var(--text-primary)',
-                    background: portal === 'user' ? 'var(--success-bg)' : 'transparent',
-                    fontWeight: portal === 'user' ? 600 : 500,
-                    cursor: 'pointer', border: 'none'
-                  }}
-                >
-                  <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10B981' }}></span>
-                  Traveller Portal
                 </button>
                 <button 
                   onClick={() => { onPortalSwitch('yatra-team'); setShowPortalMenu(false); }}

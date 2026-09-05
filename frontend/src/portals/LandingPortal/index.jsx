@@ -19,15 +19,6 @@ export default function LandingPortal({ onSelectRole }) {
       features: ['Tour & Itinerary builder', 'Driver dispatch & tracking', 'Receipt scanner & billing', 'Invoice & report generator']
     },
     {
-      id: 'traveller',
-      caption: 'Your personal trip companion',
-      title: 'TRAVELLER APP',
-      tagline: 'For Individual Travellers & Groups',
-      description: 'Your premium personal itinerary vault. Track trip timelines, log travel expenses, view active tours, and generate custom plans using our AI assistant.',
-      badge: 'Best for Tourists',
-      features: ['Interactive trip timeline', 'Expense ledger & charts', 'AI travel planner', 'Tour review system']
-    },
-    {
       id: 'team',
       caption: 'Super-admin platform overview',
       title: 'TEAM ADMIN',
@@ -43,7 +34,6 @@ export default function LandingPortal({ onSelectRole }) {
 
   const getActiveRole = () => {
     if (activeSlide === 0) return 'agency';
-    if (activeSlide === 1) return 'user';
     return 'yatra-team';
   };
 
@@ -99,7 +89,7 @@ export default function LandingPortal({ onSelectRole }) {
         </div>
 
         <nav style={{ display: 'flex', alignItems: 'center', gap: '32px' }}>
-          {['Agency', 'Traveller', 'Team Admin'].map((label, i) => (
+          {['Agency', 'Team Admin'].map((label, i) => (
             <button
               key={label}
               onClick={() => setActiveSlide(i)}
