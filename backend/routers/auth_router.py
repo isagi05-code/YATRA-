@@ -29,7 +29,7 @@ security = HTTPBearer(auto_error=False)
 
 # Startup confirmation — visible in uvicorn logs
 _gcid = os.environ.get("GOOGLE_CLIENT_ID", "")
-print(f"[AUTH STARTUP] GOOGLE_CLIENT_ID = {'SET (' + _gcid[:20] + '...)' if _gcid else 'NOT SET — will use dev fallback'}")
+print(f"[AUTH STARTUP] GOOGLE_CLIENT_ID = {'SET (' + _gcid[:20] + '...)' if _gcid else 'NOT SET'}")
 
 
 @router.get("/debug-env")
@@ -42,7 +42,6 @@ async def debug_env():
     return {
         "GOOGLE_CLIENT_ID_set": bool(gcid),
         "GOOGLE_CLIENT_ID_preview": gcid[:20] + "..." if gcid else "NOT SET",
-        "mode": "production" if gcid else "dev_fallback"
     }
 
 
@@ -575,60 +574,21 @@ async def google_login(payload: GoogleLoginRequest):
     """
     google_client_id = os.environ.get("GOOGLE_CLIENT_ID", "").strip()
 
-    # ── 1. Verify the Google ID token (with Dev/Demo Mode Fallback) ───────────
-    id_info = None
+    # ── 1. Verify the Google ID token strictly ───────────────────────────────
+    if not google_client_id:
+        raise HTTPException(status_code=500, detail="Google Client ID is not configured on the server")
 
-    if payload.credential.startswith("mock_") or payload.credential.startswith("demo_"):
-        # Explicit mock/demo token from frontend
-        print("[AUTH GOOGLE] Explicit Mock/Demo Google Login triggered")
-        id_info = {
-            "sub": "DEV-GOOGLE-1001",
-            "email": "urva546@gmail.com",
-            "name": "Urva Desai (Google)",
-            "picture": "https://lh3.googleusercontent.com/a/default-user"
-        }
-    elif not google_client_id or google_client_id == "PASTE_YOUR_GOOGLE_CLIENT_ID_HERE":
-        # Dev fallback when Google Client ID is not pasted in backend/.env yet
-        print("[AUTH GOOGLE] Dev Mode Fallback triggered (GOOGLE_CLIENT_ID not set in .env)")
-        # Try decoding unverified JWT if coming from frontend Google button
-        try:
-            import jwt
-            unverified = jwt.decode(payload.credential, options={"verify_signature": False})
-            if unverified and unverified.get("email"):
-                id_info = unverified
-        except Exception:
-            pass
-
-        if not id_info:
-            id_info = {
-                "sub": "DEV-GOOGLE-1001",
-                "email": "urva546@gmail.com",
-                "name": "Urva Desai (Google)",
-                "picture": "https://lh3.googleusercontent.com/a/default-user"
-            }
-    else:
-        # Production Google OAuth 2.0 Token Verification
-        try:
-            id_info = id_token.verify_oauth2_token(
-                payload.credential,
-                google_requests.Request(),
-                google_client_id,
-                clock_skew_in_seconds=10
-            )
-            if id_info.get("aud") != google_client_id:
-                raise HTTPException(status_code=401, detail="Token audience mismatch")
-        except ValueError as e:
-            # Fallback: attempt unverified payload decode if dev token
-            try:
-                import jwt
-                unverified = jwt.decode(payload.credential, options={"verify_signature": False})
-                if unverified and unverified.get("email"):
-                    id_info = unverified
-            except Exception:
-                pass
-
-            if not id_info:
-                raise HTTPException(status_code=401, detail=f"Invalid Google token: {str(e)}")
+    try:
+        id_info = id_token.verify_oauth2_token(
+            payload.credential,
+            google_requests.Request(),
+            google_client_id,
+            clock_skew_in_seconds=10
+        )
+        if id_info.get("aud") != google_client_id:
+            raise HTTPException(status_code=401, detail="Token audience mismatch")
+    except ValueError as e:
+        raise HTTPException(status_code=401, detail=f"Invalid Google token: {str(e)}")
 
     # ── 2. Extract user info from Google payload ───────────────────────────────
     google_id   = id_info["sub"]

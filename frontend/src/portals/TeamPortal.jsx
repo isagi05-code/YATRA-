@@ -24,7 +24,7 @@ export default function TeamPortal({ page }) {
       .then(([summaryData, analyticsData, agenciesData, healthData]) => {
         setSummary(summaryData);
         setAnalytics(analyticsData);
-        setAgencies(agenciesData);
+        setAgencies(agenciesData || []);
         setHealth(healthData.gateways || []);
         setLoading(false);
       })
@@ -40,9 +40,9 @@ export default function TeamPortal({ page }) {
 
   if (loading) {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '80vh', flexDirection: 'column', gap: '16px' }}>
-        <Icons.Loader className="animate-spin" size={48} style={{ color: '#6366F1' }} />
-        <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>Loading platform control panel...</p>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '60vh', flexDirection: 'column', gap: '16px' }}>
+        <Icons.Loader size={36} style={{ color: '#2563EB', animation: 'ui-spin 0.8s linear infinite' }} />
+        <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>Connecting to platform mission control...</p>
       </div>
     );
   }
@@ -50,12 +50,15 @@ export default function TeamPortal({ page }) {
   const lineData = {
     labels: analytics?.revenue_growth?.labels || ['Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct'],
     datasets: [{
-      label: 'Platform Revenue (Crores)',
+      label: 'Platform Revenue (₹ Crores)',
       data: analytics?.revenue_growth?.data || [3.2, 3.8, 4.1, 4.8, 5.2, 5.0, 6.1],
-      borderColor: '#6366F1',
-      backgroundColor: 'rgba(99, 102, 241, 0.05)',
+      borderColor: '#2563EB',
+      backgroundColor: 'rgba(37, 99, 235, 0.08)',
       fill: true,
-      tension: 0.4
+      tension: 0.35,
+      borderWidth: 2.5,
+      pointBackgroundColor: '#2563EB',
+      pointHoverRadius: 6
     }]
   };
 
@@ -63,72 +66,82 @@ export default function TeamPortal({ page }) {
     labels: analytics?.regional_spread?.labels || ['Maharashtra', 'Gujarat', 'Rajasthan', 'Others'],
     datasets: [{
       data: analytics?.regional_spread?.data || [34, 17, 15, 34],
-      backgroundColor: ['#10B981', '#2563EB', '#F59E0B', '#6366F1', '#14B8A6']
+      backgroundColor: ['#2563EB', '#059669', '#D97706', '#6366F1', '#0D9488'],
+      borderWidth: 2,
+      borderColor: '#FFFFFF'
     }]
   };
 
   return (
     <div className="fade-in">
       {/* Super Hero Welcome Banner */}
-      <div className="super-hero" style={{
-        background: 'linear-gradient(135deg, #0F172A 0%, #1E293B 30%, #312e81 70%, #4338ca 100%)',
-        borderRadius: '20px', padding: '36px 40px', color: 'white',
-        marginBottom: '28px', position: 'relative', overflow: 'hidden'
-      }}>
-        <div style={{ position: 'relative', zIndex: 1 }}>
-          <div className="platform-badge" style={{
-            display: 'inline-flex', alignItems: 'center', gap: '8px',
-            background: 'rgba(99,102,241,0.2)', border: '1px solid rgba(99,102,241,0.4)',
-            color: '#A5B4FC', fontSize: '12px', fontWeight: 700,
-            padding: '5px 14px', borderRadius: '999px', letterSpacing: '0.5px', marginBottom: '16px'
-          }}>
-            <Icons.Shield size={12} /> VittAro Platform — Super Admin
-          </div>
-          <h1 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: '36px', fontWeight: 900, letterSpacing: '-1.5px', lineHeight: 1 }}>Platform Overview</h1>
-          <p style={{ fontSize: '14px', opacity: 0.65, marginTop: '8px' }}>Real-time metrics across all agencies, drivers, and operations.</p>
+      <div className="agency-hero" style={{ marginBottom: '24px' }}>
+        <div className="agency-hero__content">
+          <div className="agency-hero__eyebrow">Platform Mission Control</div>
+          <h1 className="agency-hero__title">Super Admin Overview</h1>
+          <p className="agency-hero__text">Telemetry and vitals across all partner agencies, fleets, and payment gateways.</p>
         </div>
 
-        <div className="hero-kpi-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '24px', marginTop: '28px' }}>
-          <div>
-            <div style={{ fontSize: '28px', fontWeight: 900, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>{summary?.total_agencies || 0}</div>
-            <div style={{ fontSize: '11px', opacity: 0.6 }}>Total Agencies</div>
+        <div className="agency-hero__metrics">
+          <div className="agency-hero__metric">
+            <strong>{summary?.total_agencies || 0}</strong>
+            <span>Agencies</span>
           </div>
-          <div>
-            <div style={{ fontSize: '28px', fontWeight: 900, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>{summary?.active_tours?.toLocaleString() || '0'}</div>
-            <div style={{ fontSize: '11px', opacity: 0.6 }}>Active Trips</div>
+          <div className="agency-hero__metric">
+            <strong>{summary?.active_tours?.toLocaleString() || '0'}</strong>
+            <span>Active Tours</span>
           </div>
-          <div>
-            <div style={{ fontSize: '28px', fontWeight: 900, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>₹{summary?.total_revenue_cr || 4.8}Cr</div>
-            <div style={{ fontSize: '11px', opacity: 0.6 }}>Platform Revenue</div>
+          <div className="agency-hero__metric">
+            <strong>₹{summary?.total_revenue_cr || 4.8}Cr</strong>
+            <span>Platform GMV</span>
           </div>
-          <div>
-            <div style={{ fontSize: '28px', fontWeight: 900, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>{summary?.platform_uptime || '99.8%'}</div>
-            <div style={{ fontSize: '11px', opacity: 0.6 }}>Platform Uptime</div>
+          <div className="agency-hero__metric">
+            <strong>{summary?.platform_uptime || '99.9%'}</strong>
+            <span>Uptime</span>
           </div>
         </div>
       </div>
 
       {/* Main Charts Grid */}
       <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '20px', marginBottom: '20px' }}>
-        <div className="card card-padded" style={{ height: '320px', background: 'white' }}>
-          <h3 style={{ fontSize: '14px', fontWeight: 700, marginBottom: '12px' }}>Platform Revenue Growth (MoM)</h3>
-          <div style={{ height: '220px' }}>
-            <Line data={lineData} options={{ responsive: true, maintainAspectRatio: false }} />
+        <div className="card card-padded" style={{ minHeight: '340px' }}>
+          <div className="card-title" style={{ marginBottom: '16px' }}>Platform Revenue Growth (MoM)</div>
+          <div style={{ height: '250px' }}>
+            <Line
+              data={lineData}
+              options={{
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { labels: { usePointStyle: true, boxWidth: 7, font: { family: "'Inter', sans-serif", size: 12, weight: 600 } } } },
+                scales: {
+                  x: { grid: { display: false } },
+                  y: { grid: { color: '#F1F5F9' }, border: { display: false } }
+                }
+              }}
+            />
           </div>
         </div>
-        <div className="card card-padded" style={{ height: '320px', background: 'white' }}>
-          <h3 style={{ fontSize: '14px', fontWeight: 700, marginBottom: '12px' }}>Agency Regional Spread</h3>
-          <div style={{ height: '220px' }}>
-            <Doughnut data={donutData} options={{ responsive: true, maintainAspectRatio: false }} />
+        <div className="card card-padded" style={{ minHeight: '340px' }}>
+          <div className="card-title" style={{ marginBottom: '16px' }}>Agency Regional Spread</div>
+          <div style={{ height: '250px' }}>
+            <Doughnut
+              data={donutData}
+              options={{
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, boxWidth: 7, font: { family: "'Inter', sans-serif", size: 11, weight: 600 } } } }
+              }}
+            />
           </div>
         </div>
       </div>
 
       {/* Bottom Grid: Top Agencies & Health Status */}
       <div style={{ display: 'grid', gridTemplateColumns: '1.8fr 1.2fr', gap: '20px' }}>
-        <div className="card" style={{ background: 'white' }}>
-          <div className="card-header" style={{ borderBottom: '1px solid var(--border-light)' }}>
+        <div className="card" style={{ display: 'flex', flexDirection: 'column' }}>
+          <div className="card-header">
             <div className="card-title">Top Performing Partner Agencies</div>
+            <span className="badge blue">{agencies.length} Active</span>
           </div>
           <div className="table-wrapper">
             <table className="table">
@@ -148,8 +161,8 @@ export default function TeamPortal({ page }) {
                       <strong>{ag.name}</strong>
                       <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Contact: {ag.contact}</div>
                     </td>
-                    <td>{ag.active_tours}</td>
-                    <td>{ag.drivers_count} Drv / {ag.vehicles_count} Veh</td>
+                    <td style={{ fontWeight: 600 }}>{ag.active_tours}</td>
+                    <td style={{ fontSize: '12px' }}>{ag.drivers_count} Drv / {ag.vehicles_count} Veh</td>
                     <td><strong>{ag.subscription_status}</strong></td>
                     <td>
                       <span className={`badge ${ag.status === 'Active' ? 'green' : 'orange'}`}>
@@ -163,17 +176,17 @@ export default function TeamPortal({ page }) {
           </div>
         </div>
 
-        <div className="card card-padded" style={{ background: 'white' }}>
-          <h3 style={{ fontSize: '14px', fontWeight: 700, marginBottom: '16px' }}>System Health Monitor</h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        <div className="card card-padded" style={{ display: 'flex', flexDirection: 'column' }}>
+          <div className="card-title" style={{ marginBottom: '16px' }}>System Health Telemetry</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             {health.map((sh, i) => (
-              <div key={i} className="health-item" style={{ display: 'flex', alignItems: 'center', gap: '12px', paddingBottom: '10px', borderBottom: '1px solid var(--border-light)' }}>
-                <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: sh.status === 'Healthy' || sh.status === 'Online' ? '#10B981' : '#F59E0B' }}></span>
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 12px', background: 'var(--bg)', borderRadius: '8px', border: '1px solid var(--border)' }}>
+                <span style={{ width: '9px', height: '9px', borderRadius: '50%', background: sh.status === 'Healthy' || sh.status === 'Online' ? '#059669' : '#D97706', boxShadow: sh.status === 'Healthy' ? '0 0 8px #059669' : 'none' }}></span>
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: '12px', fontWeight: 600 }}>{sh.name}</div>
-                  <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>{sh.latency}</div>
+                  <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)' }}>{sh.name}</div>
+                  <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Latency: {sh.latency}</div>
                 </div>
-                <span className={`badge ${sh.status === 'Healthy' || sh.status === 'Online' ? 'green' : 'orange'}`} style={{ fontSize: '10px' }}>
+                <span className={`badge ${sh.status === 'Healthy' || sh.status === 'Online' ? 'green' : 'orange'}`}>
                   {sh.status}
                 </span>
               </div>

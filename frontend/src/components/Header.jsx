@@ -30,7 +30,7 @@ export default function Header({ title, description, portal, onPortalSwitch }) {
     switch (portal) {
       case 'agency': return 'Agency Portal';
       case 'user': return 'Traveller App';
-      case 'yatra-team': return 'VittAro Team Admin';
+      case 'yatra-team': return 'Team Admin';
       default: return 'Portal Select';
     }
   };
@@ -38,7 +38,7 @@ export default function Header({ title, description, portal, onPortalSwitch }) {
   const getPortalIconColor = () => {
     switch (portal) {
       case 'agency': return '#2563EB';
-      case 'user': return '#10B981';
+      case 'user': return '#059669';
       case 'yatra-team': return '#6366F1';
       default: return '#64748B';
     }
@@ -58,47 +58,24 @@ export default function Header({ title, description, portal, onPortalSwitch }) {
   const initials = userName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() || (portal === 'agency' ? 'AG' : 'TR');
 
   return (
-    <header className="header" style={{
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      padding: '0 24px',
-      borderBottom: '1px solid var(--border)',
-      height: 'var(--header-height)',
-      background: 'var(--surface)',
-      position: 'sticky',
-      top: 0,
-      zIndex: 90
-    }}>
+    <header className="header">
       {/* Title / Description */}
       <div>
-        <h2 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)' }}>{title}</h2>
+        <h2 className="header-title">{title}</h2>
         {description && (
-          <p style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '2px' }}>{description}</p>
+          <p className="header-subtitle">{description}</p>
         )}
       </div>
 
       {/* Right Controls */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '16px', position: 'relative' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '14px', position: 'relative' }}>
         
         {/* Search */}
-        <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-          <Icons.Search size={16} style={{ position: 'absolute', left: '12px', color: 'var(--text-muted)' }} />
+        <div className="header-search">
+          <Icons.Search size={15} style={{ color: 'var(--text-muted)' }} />
           <input 
             type="text" 
-            placeholder="Search..." 
-            style={{
-              padding: '8px 12px 8px 36px',
-              border: '1px solid var(--border)',
-              borderRadius: '8px',
-              fontSize: '13px',
-              outline: 'none',
-              background: 'var(--bg)',
-              width: '180px',
-              transition: 'all 0.2s'
-            }}
-            onFocus={(e) => e.target.style.width = '240px'}
-            onBlur={(e) => e.target.style.width = '180px'}
+            placeholder="Search anything..." 
           />
         </div>
 
@@ -110,79 +87,79 @@ export default function Header({ title, description, portal, onPortalSwitch }) {
               display: 'flex',
               alignItems: 'center',
               gap: '8px',
-              padding: '8px 14px',
+              padding: '7px 12px',
               borderRadius: '8px',
-              background: 'var(--bg-secondary)',
+              background: '#fff',
               border: '1px solid var(--border)',
               fontSize: '12px',
               fontWeight: 600,
               color: 'var(--text-primary)',
-              cursor: 'pointer'
+              cursor: 'pointer',
+              boxShadow: 'var(--shadow-xs)',
+              transition: 'all var(--transition)'
             }}
           >
             <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: getPortalIconColor() }}></span>
             {getPortalLabel()}
-            <Icons.ChevronDown size={14} />
+            <Icons.ChevronDown size={14} style={{ color: 'var(--text-muted)' }} />
           </button>
 
           {showPortalMenu && (
-            <div className="dropdown-menu show" style={{
+            <div style={{
               position: 'absolute',
               right: 0,
-              top: '40px',
-              background: 'var(--surface)',
+              top: '42px',
+              background: '#fff',
               border: '1px solid var(--border)',
               borderRadius: '12px',
               boxShadow: 'var(--shadow-lg)',
-              width: '180px',
+              width: '190px',
               overflow: 'hidden',
-              zIndex: 100
+              zIndex: 100,
+              padding: '6px'
             }}>
-              <div style={{ padding: '8px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
                 <button 
                   onClick={() => { onPortalSwitch('agency'); setShowPortalMenu(false); }}
-                  className="dropdown-item" 
                   style={{
-                    display: 'flex', alignItems: 'center', gap: '8px', width: '100%',
-                    padding: '8px 12px', borderRadius: '6px', fontSize: '12px', textAlign: 'left',
-                    color: portal === 'agency' ? 'var(--primary)' : 'var(--text-primary)',
-                    background: portal === 'agency' ? 'var(--primary-10)' : 'transparent',
-                    fontWeight: portal === 'agency' ? 600 : 500,
+                    display: 'flex', alignItems: 'center', gap: '10px', width: '100%',
+                    padding: '8px 12px', borderRadius: '7px', fontSize: '12px', textAlign: 'left',
+                    color: portal === 'agency' ? '#2563EB' : 'var(--text-primary)',
+                    background: portal === 'agency' ? 'rgba(37,99,235,0.08)' : 'transparent',
+                    fontWeight: portal === 'agency' ? 700 : 500,
                     cursor: 'pointer', border: 'none'
                   }}
                 >
-                  <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#2563EB' }}></span>
+                  <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#2563EB' }}></span>
                   Agency Portal
                 </button>
                 <button 
                   onClick={() => { onPortalSwitch('user'); setShowPortalMenu(false); }}
-                  className="dropdown-item" 
                   style={{
-                    display: 'flex', alignItems: 'center', gap: '8px', width: '100%',
-                    padding: '8px 12px', borderRadius: '6px', fontSize: '12px', textAlign: 'left',
-                    color: portal === 'user' ? 'var(--success)' : 'var(--text-primary)',
-                    background: portal === 'user' ? 'var(--success-bg)' : 'transparent',
-                    fontWeight: portal === 'user' ? 600 : 500,
+                    display: 'flex', alignItems: 'center', gap: '10px', width: '100%',
+                    padding: '8px 12px', borderRadius: '7px', fontSize: '12px', textAlign: 'left',
+                    color: portal === 'user' ? '#059669' : 'var(--text-primary)',
+                    background: portal === 'user' ? 'rgba(5,150,105,0.08)' : 'transparent',
+                    fontWeight: portal === 'user' ? 700 : 500,
                     cursor: 'pointer', border: 'none'
                   }}
                 >
-                  <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10B981' }}></span>
+                  <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#059669' }}></span>
                   Traveller Portal
                 </button>
                 <button 
                   onClick={() => { onPortalSwitch('yatra-team'); setShowPortalMenu(false); }}
-                  className="dropdown-item" 
                   style={{
-                    display: 'flex', alignItems: 'center', gap: '8px', width: '100%',
-                    padding: '8px 12px', borderRadius: '6px', fontSize: '12px', textAlign: 'left',
-                    color: portal === 'yatra-team' ? 'var(--info)' : 'var(--text-primary)',
-                    background: portal === 'yatra-team' ? 'var(--info-bg)' : 'transparent',
-                    fontWeight: portal === 'yatra-team' ? 600 : 500,
+                    display: 'flex', alignItems: 'center', gap: '10px', width: '100%',
+                    padding: '8px 12px', borderRadius: '7px', fontSize: '12px', textAlign: 'left',
+                    color: portal === 'yatra-team' ? '#6366F1' : 'var(--text-primary)',
+                    background: portal === 'yatra-team' ? 'rgba(99,102,241,0.08)' : 'transparent',
+                    fontWeight: portal === 'yatra-team' ? 700 : 500,
                     cursor: 'pointer', border: 'none'
                   }}
                 >
-                  <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#6366F1' }}></span>
-                  VittAro Team Admin
+                  <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#6366F1' }}></span>
+                  Team Admin
                 </button>
               </div>
             </div>
@@ -194,33 +171,37 @@ export default function Header({ title, description, portal, onPortalSwitch }) {
           <button 
             onClick={() => { setShowNotifMenu(!showNotifMenu); setShowPortalMenu(false); }}
             style={{
-              padding: '8px',
+              width: '36px',
+              height: '36px',
               borderRadius: '8px',
               border: '1px solid var(--border)',
-              background: 'var(--surface)',
+              background: '#fff',
               position: 'relative',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              cursor: 'pointer'
+              cursor: 'pointer',
+              color: 'var(--text-secondary)',
+              boxShadow: 'var(--shadow-xs)'
             }}
           >
             <Icons.Bell size={16} />
             {unreadCount > 0 && (
               <span style={{
                 position: 'absolute',
-                top: '-4px',
-                right: '-4px',
+                top: '-3px',
+                right: '-3px',
                 background: 'var(--danger)',
                 color: 'white',
                 fontSize: '9px',
-                fontWeight: 700,
+                fontWeight: 800,
                 width: '16px',
                 height: '16px',
                 borderRadius: '50%',
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'center'
+                justifyContent: 'center',
+                border: '2px solid #fff'
               }}>
                 {unreadCount}
               </span>
@@ -231,37 +212,37 @@ export default function Header({ title, description, portal, onPortalSwitch }) {
             <div style={{
               position: 'absolute',
               right: 0,
-              top: '40px',
-              background: 'var(--surface)',
+              top: '44px',
+              background: '#fff',
               border: '1px solid var(--border)',
-              borderRadius: '12px',
-              boxShadow: 'var(--shadow-lg)',
+              borderRadius: '14px',
+              boxShadow: 'var(--shadow-xl)',
               width: '320px',
               overflow: 'hidden',
               zIndex: 100
             }}>
-              <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: '13px', fontWeight: 700 }}>Notifications</span>
+              <div style={{ padding: '14px 18px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)' }}>Notifications</span>
                 {unreadCount > 0 && (
                   <button onClick={markAllRead} style={{ fontSize: '11px', color: 'var(--primary)', fontWeight: 600, border: 'none', background: 'none', cursor: 'pointer' }}>Mark all read</button>
                 )}
               </div>
               <div style={{ maxHeight: '240px', overflowY: 'auto' }}>
                 {notifications.length === 0 ? (
-                  <div style={{ padding: '16px', fontSize: '12px', color: 'var(--text-muted)', textAlign: 'center' }}>
-                    No notifications
+                  <div style={{ padding: '24px 16px', fontSize: '13px', color: 'var(--text-muted)', textAlign: 'center' }}>
+                    No new notifications
                   </div>
                 ) : (
                   notifications.map(notif => (
                     <div key={notif.id} style={{
-                      padding: '12px 16px',
+                      padding: '12px 18px',
                       borderBottom: '1px solid var(--border-light)',
-                      background: notif.read ? 'white' : 'var(--primary-10)',
+                      background: notif.read ? '#fff' : 'rgba(37,99,235,0.04)',
                       display: 'flex',
                       flexDirection: 'column',
-                      gap: '2px'
+                      gap: '3px'
                     }}>
-                      <span style={{ fontSize: '12px', color: 'var(--text-primary)', fontWeight: notif.read ? 500 : 600 }}>{notif.text}</span>
+                      <span style={{ fontSize: '12px', color: 'var(--text-primary)', fontWeight: notif.read ? 500 : 700 }}>{notif.text}</span>
                       <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>{notif.time}</span>
                     </div>
                   ))
@@ -272,24 +253,24 @@ export default function Header({ title, description, portal, onPortalSwitch }) {
         </div>
 
         {/* User Profile Avatar & ID Badge */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           {userCode && (
             <span style={{
               fontSize: '11px',
-              fontWeight: 800,
-              background: 'rgba(37, 99, 235, 0.1)',
+              fontWeight: 700,
+              background: 'rgba(37, 99, 235, 0.08)',
               color: 'var(--primary)',
               padding: '4px 8px',
               borderRadius: '6px',
               fontFamily: 'monospace',
-              border: '1px solid rgba(37, 99, 235, 0.2)'
+              border: '1px solid rgba(37, 99, 235, 0.15)'
             }}>
-              ID: {userCode}
+              {userCode}
             </span>
           )}
           <div 
             className="avatar sm" 
-            style={{ background: 'linear-gradient(135deg, var(--primary), var(--primary-light))', color: 'white', fontWeight: 700 }}
+            style={{ background: 'linear-gradient(135deg, #2563EB, #1D4ED8)', color: 'white', fontWeight: 700 }}
             title={userName}
           >
             {initials}

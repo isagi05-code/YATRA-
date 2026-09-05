@@ -20,44 +20,49 @@ export function HeroSection({
       alignItems: 'center',
       padding: '0 80px',
       position: 'relative',
-      zIndex: 5
+      zIndex: 5,
+      maxWidth: '1440px',
+      margin: '0 auto',
+      width: '100%',
+      boxSizing: 'border-box'
     }}>
       {/* Left Column: Copy, Badges & CTA */}
-      <div style={{ paddingRight: '40px' }}>
+      <div style={{ paddingRight: '48px' }}>
         <div style={{
           display: 'inline-flex',
           alignItems: 'center',
           gap: '8px',
           padding: '6px 14px',
           borderRadius: '30px',
-          background: 'rgba(217, 119, 6, 0.15)',
-          border: '1px solid rgba(217, 119, 6, 0.3)',
-          color: 'var(--primary)',
+          background: 'rgba(37, 99, 235, 0.15)',
+          border: '1px solid rgba(59, 130, 246, 0.3)',
+          color: '#60A5FA',
           fontSize: '12px',
           fontWeight: 700,
           textTransform: 'uppercase',
           letterSpacing: '1px',
-          marginBottom: '24px'
+          marginBottom: '20px'
         }}>
           <Icons.Sparkles size={14} />
           {slide.badge}
         </div>
 
         <h1 style={{
-          fontSize: '56px',
+          fontSize: '52px',
           fontWeight: 900,
           lineHeight: '1.1',
-          margin: '0 0 16px 0',
+          margin: '0 0 14px 0',
           fontFamily: "'Plus Jakarta Sans', sans-serif",
-          textShadow: '0 4px 20px rgba(0,0,0,0.5)'
+          letterSpacing: '-0.03em',
+          color: '#FFFFFF'
         }}>
           {slide.title}
         </h1>
 
         <p style={{
-          fontSize: '20px',
+          fontSize: '18px',
           fontWeight: 600,
-          color: 'var(--primary)',
+          color: '#38BDF8',
           margin: '0 0 16px 0'
         }}>
           {slide.tagline}
@@ -66,7 +71,7 @@ export function HeroSection({
         <p style={{
           fontSize: '15px',
           lineHeight: '1.6',
-          color: 'rgba(255,255,255,0.75)',
+          color: 'rgba(255, 255, 255, 0.72)',
           maxWidth: '520px',
           margin: '0 0 32px 0'
         }}>
@@ -79,12 +84,12 @@ export function HeroSection({
           gridTemplateColumns: '1fr 1fr',
           gap: '12px',
           maxWidth: '520px',
-          marginBottom: '40px'
+          marginBottom: '36px'
         }}>
           {slide.features.map((feat, idx) => (
-            <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: 'rgba(255,255,255,0.9)' }}>
-              <div style={{ width: '18px', height: '18px', borderRadius: '50%', background: 'rgba(217,119,6,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary)' }}>
-                <Icons.Check size={12} />
+            <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px', color: 'rgba(255,255,255,0.85)', fontWeight: 500 }}>
+              <div style={{ width: '20px', height: '20px', borderRadius: '50%', background: 'rgba(37,99,235,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#60A5FA', flexShrink: 0 }}>
+                <Icons.Check size={12} strokeWidth={3} />
               </div>
               {feat}
             </div>
@@ -96,38 +101,42 @@ export function HeroSection({
           <button
             onClick={() => handleOpenAuth('login')}
             style={{
-              padding: '16px 36px',
-              borderRadius: '12px',
-              background: 'var(--primary)',
-              color: '#000',
-              fontWeight: 800,
-              fontSize: '15px',
+              padding: '14px 32px',
+              borderRadius: '10px',
+              background: '#2563EB',
+              color: '#FFFFFF',
+              fontWeight: 700,
+              fontSize: '14px',
               border: 'none',
               cursor: 'pointer',
-              boxShadow: '0 8px 30px rgba(217, 119, 6, 0.4)',
-              transition: 'transform 0.2s, boxShadow 0.2s',
+              boxShadow: '0 10px 25px -5px rgba(37, 99, 235, 0.4)',
+              transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
               display: 'flex',
               alignItems: 'center',
-              gap: '10px'
+              gap: '8px'
             }}
+            onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.background = '#1D4ED8'; }}
+            onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.background = '#2563EB'; }}
           >
-            Sign In / Register <Icons.ArrowRight size={18} />
+            Sign In / Register <Icons.ArrowRight size={16} />
           </button>
 
           <button
             onClick={() => onSelectRole(getActiveRole())}
             style={{
-              padding: '16px 28px',
-              borderRadius: '12px',
-              background: 'rgba(255,255,255,0.08)',
-              border: '1px solid rgba(255,255,255,0.15)',
+              padding: '14px 26px',
+              borderRadius: '10px',
+              background: 'rgba(255,255,255,0.06)',
+              border: '1px solid rgba(255,255,255,0.14)',
               color: 'white',
-              fontWeight: 700,
+              fontWeight: 600,
               fontSize: '14px',
               cursor: 'pointer',
               backdropFilter: 'blur(10px)',
-              transition: 'background 0.2s'
+              transition: 'all 0.2s'
             }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.12)'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; }}
           >
             Explore Guest Demo
           </button>
@@ -137,22 +146,32 @@ export function HeroSection({
       {/* Right Column: Interactive Carousel Card */}
       <div style={{ position: 'relative' }}>
         <div style={{
-          background: 'rgba(15, 23, 42, 0.65)',
+          background: 'rgba(15, 23, 42, 0.75)',
           border: '1px solid rgba(255, 255, 255, 0.12)',
           borderRadius: '24px',
-          padding: '36px',
-          backdropFilter: 'blur(16px)',
-          boxShadow: '0 20px 50px rgba(0,0,0,0.5)'
+          padding: '32px',
+          backdropFilter: 'blur(20px)',
+          boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)'
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-            <span style={{ fontSize: '12px', fontWeight: 700, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase' }}>
+            <span style={{ fontSize: '11px', fontWeight: 800, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
               PORTAL 0{activeSlide + 1} / 03
             </span>
             <div style={{ display: 'flex', gap: '8px' }}>
-              <button onClick={handlePrev} style={{ width: '36px', height: '36px', borderRadius: '50%', border: '1px solid rgba(255,255,255,0.15)', background: 'rgba(255,255,255,0.05)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+              <button
+                onClick={handlePrev}
+                style={{ width: '36px', height: '36px', borderRadius: '50%', border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.05)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'background 0.2s' }}
+                onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.15)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
+              >
                 <Icons.ChevronLeft size={18} />
               </button>
-              <button onClick={handleNext} style={{ width: '36px', height: '36px', borderRadius: '50%', border: '1px solid rgba(255,255,255,0.15)', background: 'rgba(255,255,255,0.05)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+              <button
+                onClick={handleNext}
+                style={{ width: '36px', height: '36px', borderRadius: '50%', border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.05)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'background 0.2s' }}
+                onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.15)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
+              >
                 <Icons.ChevronRight size={18} />
               </button>
             </div>
@@ -161,7 +180,7 @@ export function HeroSection({
           <div style={{
             height: '240px',
             borderRadius: '16px',
-            background: 'linear-gradient(135deg, rgba(30,41,59,0.8), rgba(15,23,42,0.9))',
+            background: 'linear-gradient(135deg, rgba(30,41,59,0.7), rgba(15,23,42,0.9))',
             border: '1px solid rgba(255,255,255,0.08)',
             display: 'flex',
             flexDirection: 'column',
@@ -170,12 +189,12 @@ export function HeroSection({
             textAlign: 'center',
             padding: '24px'
           }}>
-            {activeSlide === 0 && <Icons.Building2 size={54} color="var(--primary)" style={{ marginBottom: '16px' }} />}
-            {activeSlide === 1 && <Icons.UserCheck size={54} color="var(--primary)" style={{ marginBottom: '16px' }} />}
-            {activeSlide === 2 && <Icons.ShieldAlert size={54} color="var(--primary)" style={{ marginBottom: '16px' }} />}
+            {activeSlide === 0 && <Icons.Building2 size={50} color="#60A5FA" style={{ marginBottom: '16px' }} />}
+            {activeSlide === 1 && <Icons.Compass size={50} color="#34D399" style={{ marginBottom: '16px' }} />}
+            {activeSlide === 2 && <Icons.ShieldCheck size={50} color="#818CF8" style={{ marginBottom: '16px' }} />}
 
-            <h3 style={{ fontSize: '20px', fontWeight: 800, margin: '0 0 8px 0' }}>{slide.caption}</h3>
-            <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.6)', margin: 0 }}>Click "Sign In / Register" to test real OTP authentication.</p>
+            <h3 style={{ fontSize: '20px', fontWeight: 800, margin: '0 0 8px 0', color: '#fff' }}>{slide.caption}</h3>
+            <p style={{ fontSize: '13px', color: '#94A3B8', margin: 0 }}>Click "Explore Guest Demo" to test live features instantly.</p>
           </div>
         </div>
       </div>

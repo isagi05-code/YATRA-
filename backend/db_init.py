@@ -4,46 +4,6 @@ import json
 import re
 from core.database import MYSQL_CONFIG, get_db_conn, MySQLConnectionWrapper
 
-SQLITE_SCHEMAS = {
-    "yatra_enterprise": [
-        "CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id TEXT UNIQUE, agency_id TEXT, user_type TEXT, name TEXT, email TEXT, phone TEXT, password_hash TEXT, status TEXT DEFAULT 'Active', token_version INTEGER DEFAULT 1, is_deleted INTEGER DEFAULT 0)",
-        "CREATE TABLE IF NOT EXISTS agencies (id INTEGER PRIMARY KEY AUTOINCREMENT, agency_id TEXT UNIQUE, name TEXT, owner_name TEXT, email TEXT, contact TEXT, status TEXT DEFAULT 'Active', active_tours INTEGER DEFAULT 0, revenue REAL DEFAULT 0, expenses REAL DEFAULT 0, drivers_count INTEGER DEFAULT 0, vehicles_count INTEGER DEFAULT 0, subscription_status TEXT DEFAULT 'Trial')",
-        "CREATE TABLE IF NOT EXISTS agency_members (id INTEGER PRIMARY KEY AUTOINCREMENT, agency_id TEXT, user_id TEXT, role TEXT, is_owner INTEGER DEFAULT 0)",
-        "CREATE TABLE IF NOT EXISTS traveller_profiles (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id TEXT UNIQUE, preferences TEXT)",
-        "CREATE TABLE IF NOT EXISTS team_members (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id TEXT, role TEXT)",
-        "CREATE TABLE IF NOT EXISTS roles (id INTEGER PRIMARY KEY AUTOINCREMENT, agency_id TEXT, role_name TEXT, description TEXT, is_system_role INTEGER DEFAULT 1)",
-        "CREATE TABLE IF NOT EXISTS permissions (id INTEGER PRIMARY KEY AUTOINCREMENT, permission_key TEXT UNIQUE, module TEXT, description TEXT)",
-        "CREATE TABLE IF NOT EXISTS otps (id INTEGER PRIMARY KEY AUTOINCREMENT, identifier TEXT, otp_code TEXT, portal TEXT, mode TEXT, expires_at TEXT, is_used INTEGER DEFAULT 0)",
-        "CREATE TABLE IF NOT EXISTS refresh_tokens (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id TEXT, token_hash TEXT, expires_at TEXT, revoked INTEGER DEFAULT 0)"
-    ],
-    "yatra_agency": [
-        "CREATE TABLE IF NOT EXISTS tours (trip_id INTEGER PRIMARY KEY AUTOINCREMENT, agency_id TEXT, destination TEXT, customer TEXT, agency TEXT, start_date DATE, end_date DATE, status TEXT, vehicle TEXT, driver TEXT, passengers INTEGER, guide TEXT, budget REAL, current_lat REAL, current_lng REAL, timeline_status TEXT)",
-        "CREATE TABLE IF NOT EXISTS tour_stops (id INTEGER PRIMARY KEY AUTOINCREMENT, trip_id INTEGER, type TEXT, name TEXT, lat REAL, lng REAL, completed INTEGER DEFAULT 0)",
-        "CREATE TABLE IF NOT EXISTS tour_timeline (id INTEGER PRIMARY KEY AUTOINCREMENT, trip_id INTEGER, event_name TEXT, status TEXT, updated_at DATETIME)",
-        "CREATE TABLE IF NOT EXISTS expenses (expense_id INTEGER PRIMARY KEY AUTOINCREMENT, trip_id INTEGER, agency_id TEXT, amount REAL, gst REAL, vendor TEXT, category TEXT, date DATE, time TIME, description TEXT, payment_mode TEXT, approved_by TEXT, status TEXT, receipt_image TEXT, ocr_extracted_data TEXT)",
-        "CREATE TABLE IF NOT EXISTS vehicles (vehicle_number TEXT PRIMARY KEY, agency_id TEXT, model TEXT, owner TEXT, insurance TEXT, insurance_expiry TEXT, permit TEXT, permit_expiry TEXT, fitness_expiry TEXT, puc_expiry TEXT, fuel_type TEXT, mileage REAL, current_location TEXT, availability TEXT, service_history TEXT, expenses REAL, upcoming_maintenance TEXT)",
-        "CREATE TABLE IF NOT EXISTS drivers (driver_id INTEGER PRIMARY KEY AUTOINCREMENT, agency_id TEXT, name TEXT, license TEXT, aadhar TEXT, experience INTEGER, trips_completed INTEGER, assigned_tour TEXT, current_location TEXT, contact TEXT, emergency_contact TEXT, salary REAL, expense REAL, ratings REAL, documents TEXT)",
-        "CREATE TABLE IF NOT EXISTS customers (customer_id INTEGER PRIMARY KEY AUTOINCREMENT, agency_id TEXT, name TEXT, contact TEXT, email TEXT, booking_history TEXT, invoices TEXT, payments TEXT, upcoming_tours TEXT, documents TEXT)",
-        "CREATE TABLE IF NOT EXISTS notifications (id INTEGER PRIMARY KEY AUTOINCREMENT, agency_id TEXT, type TEXT, title TEXT, message TEXT, date DATE, read INTEGER DEFAULT 0)",
-        "CREATE TABLE IF NOT EXISTS agency_settings (key TEXT PRIMARY KEY, value TEXT)"
-    ],
-    "yatra_traveller": [
-        "CREATE TABLE IF NOT EXISTS trips (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id TEXT, name TEXT, route TEXT, date DATE, duration TEXT, budget REAL, status TEXT, driver TEXT, vehicle TEXT)",
-        "CREATE TABLE IF NOT EXISTS expenses (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id TEXT, title TEXT, amount REAL, date DATE, category TEXT, status TEXT)",
-        "CREATE TABLE IF NOT EXISTS bookings (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id TEXT, trip_id INTEGER, name TEXT, status TEXT, details TEXT)",
-        "CREATE TABLE IF NOT EXISTS documents (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id TEXT, name TEXT, type TEXT, file_url TEXT, upload_date DATE)",
-        "CREATE TABLE IF NOT EXISTS profile (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id TEXT UNIQUE, name TEXT, email TEXT, contact TEXT, preferences TEXT)"
-    ],
-    "yatra_team": [
-        "CREATE TABLE IF NOT EXISTS agencies (id INTEGER PRIMARY KEY AUTOINCREMENT, agency_id TEXT UNIQUE, name TEXT, owner TEXT, contact TEXT, email TEXT, status TEXT, active_tours INTEGER, revenue REAL, expenses REAL, drivers_count INTEGER, vehicles_count INTEGER, subscription_status TEXT, documents TEXT)",
-        "CREATE TABLE IF NOT EXISTS travellers (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id TEXT UNIQUE, name TEXT, email TEXT, trips_count INTEGER, expenses_count INTEGER, bookings_count INTEGER, feedback_rating REAL, ai_usage_tokens INTEGER)",
-        "CREATE TABLE IF NOT EXISTS payments (id INTEGER PRIMARY KEY AUTOINCREMENT, agency_id TEXT, amount REAL, date DATE, status TEXT, description TEXT)",
-        "CREATE TABLE IF NOT EXISTS subscriptions (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, cost REAL, type TEXT, features TEXT)",
-        "CREATE TABLE IF NOT EXISTS support_tickets (id INTEGER PRIMARY KEY AUTOINCREMENT, agency_id INTEGER, traveller_id INTEGER, subject TEXT, description TEXT, status TEXT, priority TEXT, date DATE)",
-        "CREATE TABLE IF NOT EXISTS logs (id INTEGER PRIMARY KEY AUTOINCREMENT, timestamp DATETIME, level TEXT, message TEXT)"
-    ]
-}
-
 def get_root_conn():
     config = MYSQL_CONFIG.copy()
     if 'database' in config:
@@ -52,60 +12,48 @@ def get_root_conn():
     return MySQLConnectionWrapper(conn)
 
 def initialize_mysql_databases():
-    try:
-        print("Connecting to MySQL server...")
-        root_conn = get_root_conn()
-        root_cursor = root_conn.cursor()
-        
-        print("Dropping existing enterprise and virtual databases...")
-        root_cursor.execute("DROP DATABASE IF EXISTS yatra_agency")
-        root_cursor.execute("DROP DATABASE IF EXISTS yatra_traveller")
-        root_cursor.execute("DROP DATABASE IF EXISTS yatra_team")
-        root_cursor.execute("DROP DATABASE IF EXISTS yatra_enterprise")
-        
-        sql_dir = os.path.join(os.path.dirname(__file__), "sql")
-        sql_files = sorted([f for f in os.listdir(sql_dir) if f.endswith(".sql")])
-        
-        print(f"Executing {len(sql_files)} enterprise SQL scripts from {sql_dir}...")
-        for filename in sql_files:
-            filepath = os.path.join(sql_dir, filename)
-            print(f"Running script: {filename}...")
-            with open(filepath, "r", encoding="utf-8") as f:
-                sql_content = f.read()
-                
-            statements = []
-            current_statement = []
-            for line in sql_content.split('\n'):
-                stripped = line.strip()
-                if stripped.startswith('--') or stripped.startswith('#') or not stripped:
-                    continue
-                current_statement.append(line)
-                if line.endswith(';'):
-                    statements.append('\n'.join(current_statement))
-                    current_statement = []
-                    
-            for statement in statements:
-                if statement.strip():
-                    try:
-                        root_cursor.execute(statement)
-                    except Exception as err:
-                        print(f"Error executing statement in {filename}: {err}")
-                        raise err
-                        
-        root_conn.close()
-        print("All enterprise SQL scripts and compatibility views executed successfully.")
-    except Exception as e:
-        print(f"[DB_INIT] MySQL server offline or error ({e}). Initializing SQLite fallback databases...")
-        for db_name, queries in SQLITE_SCHEMAS.items():
-            conn = get_db_conn(db_name)
-            cursor = conn.cursor()
-            for query in queries:
-                try:
-                    cursor.execute(query)
-                except Exception as ex:
-                    print(f"SQLite init error on {db_name}: {ex}")
-            conn.close()
+    print("Connecting to MySQL server...")
+    root_conn = get_root_conn()
+    root_cursor = root_conn.cursor()
+    
+    print("Dropping existing enterprise and virtual databases...")
+    root_cursor.execute("DROP DATABASE IF EXISTS yatra_agency")
+    root_cursor.execute("DROP DATABASE IF EXISTS yatra_traveller")
+    root_cursor.execute("DROP DATABASE IF EXISTS yatra_team")
+    root_cursor.execute("DROP DATABASE IF EXISTS yatra_enterprise")
+    
+    sql_dir = os.path.join(os.path.dirname(__file__), "sql")
+    sql_files = sorted([f for f in os.listdir(sql_dir) if f.endswith(".sql")])
+    
+    print(f"Executing {len(sql_files)} enterprise SQL scripts from {sql_dir}...")
+    for filename in sql_files:
+        filepath = os.path.join(sql_dir, filename)
+        print(f"Running script: {filename}...")
+        with open(filepath, "r", encoding="utf-8") as f:
+            sql_content = f.read()
             
+        statements = []
+        current_statement = []
+        for line in sql_content.split('\n'):
+            stripped = line.strip()
+            if stripped.startswith('--') or stripped.startswith('#') or not stripped:
+                continue
+            current_statement.append(line)
+            if line.endswith(';'):
+                statements.append('\n'.join(current_statement))
+                current_statement = []
+                
+        for statement in statements:
+            if statement.strip():
+                try:
+                    root_cursor.execute(statement)
+                except Exception as err:
+                    print(f"Error executing statement in {filename}: {err}")
+                    raise err
+                    
+    root_conn.close()
+    print("All enterprise SQL scripts and compatibility views executed successfully.")
+        
     seed_enterprise_db()
     seed_agency_db()
     seed_traveller_db()

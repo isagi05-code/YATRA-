@@ -13,28 +13,28 @@ export default function LandingPortal({ onSelectRole }) {
       id: 'agency',
       caption: 'Organize, manage, automate',
       title: 'AGENCY PORTAL',
-      tagline: 'For Travel Agencies & Operators',
-      description: 'The complete software suite for planning tours, managing expenses, tracking drivers, and maintaining fleets with real-time compliance dashboards.',
-      badge: 'Best for Operators',
-      features: ['Tour & Itinerary builder', 'Driver dispatch & tracking', 'Receipt scanner & billing', 'Invoice & report generator']
+      tagline: 'For Tour Operators & Fleet Managers',
+      description: 'The complete command center for planning custom tours, managing expenses, tracking drivers, and maintaining fleets with real-time analytics.',
+      badge: 'For Tour Operators',
+      features: ['Tour & Itinerary builder', 'Driver dispatch & tracking', 'Expense scanner & billing', 'Instant invoice generation']
     },
     {
       id: 'traveller',
       caption: 'Your personal trip companion',
       title: 'TRAVELLER APP',
       tagline: 'For Individual Travellers & Groups',
-      description: 'Your premium personal itinerary vault. Track trip timelines, log travel expenses, view active tours, and generate custom plans using our AI assistant.',
-      badge: 'Best for Tourists',
-      features: ['Interactive trip timeline', 'Expense ledger & charts', 'AI travel planner', 'Tour review system']
+      description: 'Your premium personal travel vault. Track itineraries, log group expenses, view trip details, and generate day-by-day smart plans using our AI assistant.',
+      badge: 'For Travellers',
+      features: ['Interactive trip timeline', 'Expense ledger & charts', 'AI travel itinerary planner', 'Driver feedback & reviews']
     },
     {
       id: 'team',
-      caption: 'Super-admin platform overview',
+      caption: 'Platform mission control',
       title: 'TEAM ADMIN',
-      tagline: 'For VittAro Internal Control',
-      description: 'Supervisory dashboard designed for platform operations. Check microservice health, review global revenue trends, and manage active travel agencies.',
-      badge: 'Internal Operations',
-      features: ['Microservice health checks', 'Global revenue reporting', 'Agency verification portal', 'Platform-wide telemetry']
+      tagline: 'For VittAro Internal Operations',
+      description: 'Supervisory dashboard designed for platform operations. Check microservice health, review global revenue trends, and manage verified travel agencies.',
+      badge: 'Platform Control',
+      features: ['Microservice health checks', 'Global revenue telemetry', 'Agency verification queue', 'System status monitoring']
     }
   ];
 
@@ -51,7 +51,7 @@ export default function LandingPortal({ onSelectRole }) {
     <div style={{
       minHeight: '100vh',
       width: '100%',
-      backgroundColor: '#0a0f1d',
+      backgroundColor: '#0B0F19',
       display: 'flex',
       flexDirection: 'column',
       position: 'relative',
@@ -67,47 +67,50 @@ export default function LandingPortal({ onSelectRole }) {
         pointerEvents: 'auto'
       }}>
         <GradientWaves
-          horizonColor="#0a0f1d"
-          waveColor="#2E4CBC"
-          crestColor="#4B65D4"
-          speed={0.4}
-          amplitude={2.5}
-          waveScale={0.6}
+          horizonColor="#0B0F19"
+          waveColor="#1E3A8A"
+          crestColor="#3B82F6"
+          speed={0.35}
+          amplitude={2.2}
+          waveScale={0.65}
           waveRatio={0.9}
-          swell={35}
-          turbulence={20}
+          swell={30}
+          turbulence={18}
           tilt={1.11}
           zoom={1.0}
           height={5.5}
-          fogDepth={15}
+          fogDepth={16}
           detail="medium"
           brightness={1.0}
-          opacity={0.9}
+          opacity={0.85}
           mouseInteraction={true}
-          parallaxStrength={0.5}
+          parallaxStrength={0.4}
           grain={true}
-          grainIntensity={0.04}
+          grainIntensity={0.03}
         />
       </div>
+
       {/* Header */}
-      <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '24px 60px', zIndex: 10 }}>
+      <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '24px 60px', zIndex: 10, maxWidth: '1440px', margin: '0 auto', width: '100%', boxSizing: 'border-box' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div style={{ width: '40px', height: '40px', borderRadius: '10px', overflow: 'hidden', border: '1.5px solid var(--primary)', background: 'rgba(255,255,255,0.05)' }}>
+          <div style={{ width: '38px', height: '38px', borderRadius: '10px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.15)', background: 'rgba(255,255,255,0.05)', boxShadow: '0 4px 12px rgba(0,0,0,0.3)' }}>
             <img src="/yatralogo.jpg" alt="VittAro Logo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
           </div>
-          <span style={{ fontSize: '20px', fontWeight: 800, fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: '-0.5px' }}>VittAro</span>
+          <span style={{ fontSize: '19px', fontWeight: 800, letterSpacing: '-0.5px' }}>VittAro</span>
         </div>
 
-        <nav style={{ display: 'flex', alignItems: 'center', gap: '32px' }}>
+        <nav style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(255,255,255,0.04)', padding: '4px', borderRadius: '30px', border: '1px solid rgba(255,255,255,0.08)', backdropFilter: 'blur(10px)' }}>
           {['Agency', 'Traveller', 'Team Admin'].map((label, i) => (
             <button
               key={label}
               onClick={() => setActiveSlide(i)}
               style={{
-                background: 'none', border: 'none',
-                color: activeSlide === i ? 'var(--primary)' : 'rgba(255,255,255,0.6)',
-                fontSize: '13px', fontWeight: 700, letterSpacing: '1px',
-                textTransform: 'uppercase', cursor: 'pointer', transition: 'color 0.3s'
+                background: activeSlide === i ? 'rgba(59, 130, 246, 0.2)' : 'transparent',
+                border: activeSlide === i ? '1px solid rgba(59, 130, 246, 0.4)' : '1px solid transparent',
+                color: activeSlide === i ? '#60A5FA' : 'rgba(255,255,255,0.6)',
+                fontSize: '12px', fontWeight: 700, letterSpacing: '0.5px',
+                padding: '7px 16px', borderRadius: '20px',
+                cursor: 'pointer', transition: 'all 0.2s'
               }}
             >
               {label}
@@ -115,20 +118,20 @@ export default function LandingPortal({ onSelectRole }) {
           ))}
         </nav>
 
-        {/* Sign-In Button in header */}
+        {/* Sign-In Button */}
         <button
           onClick={() => setShowModal(true)}
           style={{
             display: 'flex', alignItems: 'center', gap: '8px',
-            padding: '10px 20px', borderRadius: '10px',
+            padding: '9px 18px', borderRadius: '8px',
             background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)',
-            color: 'white', fontSize: '13px', fontWeight: 700, cursor: 'pointer',
-            backdropFilter: 'blur(10px)', transition: 'background 0.2s'
+            color: 'white', fontSize: '13px', fontWeight: 600, cursor: 'pointer',
+            backdropFilter: 'blur(10px)', transition: 'all 0.2s'
           }}
-          onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.14)'}
+          onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.16)'}
           onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.08)'}
         >
-          <Icons.LogIn size={16} />
+          <Icons.LogIn size={15} />
           Sign In
         </button>
       </header>
