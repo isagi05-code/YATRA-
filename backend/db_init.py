@@ -1,4 +1,5 @@
 import os
+import sys
 import pymysql
 import json
 import re
@@ -11,12 +12,35 @@ def get_root_conn():
     conn = pymysql.connect(**config)
     return MySQLConnectionWrapper(conn)
 
-def initialize_mysql_databases():
+def db_exists():
+    """Check if yatra_enterprise database already exists."""
+    try:
+        root_conn = get_root_conn()
+        root_cursor = root_conn.cursor()
+        root_cursor.execute("SHOW DATABASES LIKE 'yatra_enterprise'")
+        result = root_cursor.fetchone()
+        root_conn.close()
+        return result is not None
+    except Exception:
+        return False
+
+def initialize_mysql_databases(force=False):
     print("Connecting to MySQL server...")
+
+    if not force and db_exists():
+        print("=" * 60)
+        print(" Database 'yatra_enterprise' already exists.")
+        print(" Skipping initialization to protect existing data.")
+        print(" Run with --force to drop and reinitialize:")
+        print("   python db_init.py --force")
+        print("=" * 60)
+        return
+
     root_conn = get_root_conn()
     root_cursor = root_conn.cursor()
-    
-    print("Dropping existing yatra_enterprise database...")
+
+    if force:
+        print("WARNING: --force flag detected. Dropping existing yatra_enterprise database...")
     root_cursor.execute("DROP DATABASE IF EXISTS yatra_enterprise")
     
     sql_dir = os.path.join(os.path.dirname(__file__), "sql")
@@ -363,9 +387,16 @@ def seed_team_db():
 
 
 def main():
+    force = "--force" in sys.argv
+    if force:
+        confirm = input("⚠️  This will DELETE ALL DATA in yatra_enterprise. Type 'yes' to confirm: ").strip()
+        if confirm.lower() != "yes":
+            print("Aborted.")
+            return
     try:
-        initialize_mysql_databases()
-        print("\nAll Enterprise database tables, compatibility views, and master seed data initialized successfully!")
+        initialize_mysql_databases(force=force)
+        if force or not db_exists():
+            print("\nAll Enterprise database tables, compatibility views, and master seed data initialized successfully!")
     except Exception as e:
         print(f"\nDatabase initialization failed: {e}")
         raise e
