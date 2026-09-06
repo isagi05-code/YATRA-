@@ -4,11 +4,11 @@ from fastapi import APIRouter, HTTPException, Query
 from core.database import get_db_conn as get_mysql_conn
 from schemas.team import AgencyUpdate, TicketUpdate, PlatformSettingUpdate
 
-router = APIRouter(tags=["Team Admin"])
+router = APIRouter(prefix="/team", tags=["Team Admin"])
 
 
 def get_db_conn():
-    return get_mysql_conn("yatra_team")
+    return get_mysql_conn("yatra_enterprise")
 
 
 # ── Dashboard ─────────────────────────────────────────────────────────────────

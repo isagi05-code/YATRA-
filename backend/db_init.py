@@ -16,10 +16,7 @@ def initialize_mysql_databases():
     root_conn = get_root_conn()
     root_cursor = root_conn.cursor()
     
-    print("Dropping existing enterprise and virtual databases...")
-    root_cursor.execute("DROP DATABASE IF EXISTS yatra_agency")
-    root_cursor.execute("DROP DATABASE IF EXISTS yatra_traveller")
-    root_cursor.execute("DROP DATABASE IF EXISTS yatra_team")
+    print("Dropping existing yatra_enterprise database...")
     root_cursor.execute("DROP DATABASE IF EXISTS yatra_enterprise")
     
     sql_dir = os.path.join(os.path.dirname(__file__), "sql")

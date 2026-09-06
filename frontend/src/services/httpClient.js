@@ -1,7 +1,9 @@
-export const AGENCY_BASE = "http://localhost:8000";
-export const TRAVELLER_BASE = "http://localhost:8001";
-export const ADMIN_BASE = "http://localhost:8002";
-export const AUTH_BASE = "http://localhost:8003";
+const API_BASE = "http://localhost:8000";
+
+export const AGENCY_BASE = API_BASE;
+export const TRAVELLER_BASE = `${API_BASE}/traveller`;
+export const ADMIN_BASE = `${API_BASE}/team`;
+export const AUTH_BASE = API_BASE;
 
 export function getAuthToken() {
   try {

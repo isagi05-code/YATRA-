@@ -143,13 +143,16 @@ class MySQLConnectionWrapper:
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.close()
 
-def get_db_conn(db_name: str = "yatra_agency") -> MySQLConnectionWrapper:
+MYSQL_CONFIG['database'] = setting('MYSQL_DATABASE', 'yatra_enterprise')
+
+def get_db_conn(db_name: str = "yatra_enterprise") -> MySQLConnectionWrapper:
     """
     Connect directly to MySQL database with autocommit enabled.
-    Raises exception on failure — no SQLite fallback.
+    Raises exception on failure.
     """
     config = MYSQL_CONFIG.copy()
-    config['database'] = db_name
+    config['database'] = db_name or "yatra_enterprise"
     conn = pymysql.connect(**config)
     return MySQLConnectionWrapper(conn)
+
 
