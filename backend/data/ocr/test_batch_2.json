@@ -1,0 +1,16 @@
+{
+  "merchant": {
+    "name": "Station 2"
+  },
+  "financials": {
+    "total_amount": 2000.0,
+    "total_tax": 180.0
+  },
+  "invoice_metadata": {
+    "date": "2026-09-06"
+  },
+  "payment": {
+    "method": "UPI"
+  },
+  "category_hint": "Fuel"
+}

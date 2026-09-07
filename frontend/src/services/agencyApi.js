@@ -92,7 +92,33 @@ export const agencyApi = {
     const aid = getAgencyId();
     return request(`${AGENCY_BASE}/expenses/${id}${aid ? `?agency_id=${aid}` : ''}`, { method: "DELETE" });
   },
-  ocrReceipt: (imageName) => request(`${AGENCY_BASE}/expenses/ocr?receipt_image=${imageName}`, { method: "POST" }),
+  createExpenseBatch: (expenses) => {
+    const aid = getAgencyId();
+    return request(`${AGENCY_BASE}/expenses/batch${aid ? `?agency_id=${aid}` : ''}`, {
+      method: "POST",
+      body: JSON.stringify(expenses)
+    });
+  },
+  batchOcrReceipts: (files) => {
+    const aid = getAgencyId();
+    const formData = new FormData();
+    files.forEach(file => {
+      formData.append("files", file);
+    });
+    return request(`${AGENCY_BASE}/expenses/ocr/batch${aid ? `?agency_id=${aid}` : ''}`, {
+      method: "POST",
+      body: formData
+    });
+  },
+  ocrReceipt: (file) => {
+    const aid = getAgencyId();
+    const formData = new FormData();
+    formData.append("file", file);
+    return request(`${AGENCY_BASE}/expenses/ocr${aid ? `?agency_id=${aid}` : ''}`, {
+      method: "POST",
+      body: formData
+    });
+  },
   getVehicles: () => {
     const aid = getAgencyId();
     return request(`${AGENCY_BASE}/vehicles${aid ? `?agency_id=${aid}` : ''}`);

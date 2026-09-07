@@ -37,13 +37,17 @@ export function getUserId() {
 
 export async function request(url, options = {}) {
   const token = getAuthToken();
+  const headers = {
+    ...(token ? { "Authorization": `Bearer ${token}` } : {}),
+    ...options.headers,
+  };
+  // Do not set Content-Type for FormData so browser can set boundary
+  if (!(options.body instanceof FormData) && !headers["Content-Type"]) {
+    headers["Content-Type"] = "application/json";
+  }
   const res = await fetch(url, {
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { "Authorization": `Bearer ${token}` } : {}),
-      ...options.headers,
-    },
     ...options,
+    headers,
   });
   if (!res.ok) {
     const text = await res.text();

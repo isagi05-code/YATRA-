@@ -1,0 +1,20 @@
+{
+  "raw_text": "INDIAN OIL PETROL PUMP DIESEL 3000",
+  "merchant": {
+    "name": "Indian Oil Auto Care",
+    "gstin": "07AAACH1234F1Z1"
+  },
+  "financials": {
+    "total_amount": 3000.0,
+    "total_tax": 457.63
+  },
+  "invoice_metadata": {
+    "date": "2026-09-05",
+    "time": "10:15:00"
+  },
+  "payment": {
+    "method": "UPI"
+  },
+  "category_hint": "Fuel",
+  "confidence_score": 0.99
+}

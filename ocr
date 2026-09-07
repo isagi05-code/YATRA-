@@ -1,0 +1,265 @@
+# AI OCR Receipt Extraction Engine — Architecture & Implementation Plan
+
+An enterprise-grade, high-throughput AI OCR pipeline designed for the **Yatra Expense Module**. It enables concurrent extraction of up to **5 receipts or bills**, persists raw extracted data into JSON format, applies strict business-logic filtering to distill required expense fields, and renders a batch review interface in the UI — all engineered to execute within a strict **2–3 second SLA** with **zero fallbacks**.
+
+---
+
+## 1. Executive Summary & Design Constraints
+
+| Constraint / Requirement | Engineering Solution |
+| :--- | :--- |
+| **Throughput & Capacity** | Batch upload of up to **5 receipts/bills** in a single user action. |
+| **Strict Latency SLA (2–3 sec)** | **Concurrent asynchronous pipeline** (`asyncio.gather` + worker concurrency) with in-memory image optimization. Images are processed in parallel, not sequentially. |
+| **Two-Phase Extraction & Filtering** | **Stage 1**: Full multimodal OCR extraction to raw structured JSON (`raw_text`, line items, taxes, merchant, timestamps) persisted to disk/DB.<br>**Stage 2**: Filtering engine extracts only required fields (`vendor`, `amount`, `gst`, `category`, `date`, `time`, `payment_mode`, `description`). |
+| **Zero Fallback Policy** | Absolutely **no mock/synthetic fallbacks**, no hardcoded dummy vendors, no fake toll/fuel defaults. Every error (corrupt image, unreadable receipt, network/API failure) produces a structured validation failure with explicit error feedback. |
+| **User Experience (UI)** | Multi-receipt batch upload dropzone, live latency timer, card-based side-by-side review of filtered fields, batch "Confirm & Add All" to agency expenses. |
+
+---
+
+## 2. High-Level Architecture & Pipeline
+
+```mermaid
+flowchart TD
+    subgraph Client ["Frontend (React / Vite)"]
+        UI_Upload["User drops 1–5 Receipt Images\n(PNG, JPG, WebP, PDF)"]
+        PreValidation["Client-Side Pre-Flight Check\n(Max 5 files, Max 10MB each, Format Check)"]
+        FormDataPrep["Pack into multipart/form-data\nPOST /expenses/ocr/batch"]
+        UI_Review["Batch Review Component\nFiltered fields displayed with live latency timer"]
+    end
+
+    subgraph FastAPIServer ["Backend Gateway (FastAPI)"]
+        Ingress["Batch Ingress Controller\nValidate file count <= 5 & MIME types"]
+        ParallelDispatch["Async Task Orchestrator\nasyncio.gather(*[process_receipt(f) for f in files])"]
+    end
+
+    subgraph WorkerPipeline ["Parallel Worker Execution Pipeline (Per Receipt)"]
+        direction TB
+        subgraph P1 ["Step 1: Image Normalization (< 150ms)"]
+            ImgBuf["Load image stream to memory"]
+            ResizeNorm["PIL auto-rotate EXIF + downsample max 1600px\nCompress to optimized JPEG buffer"]
+        end
+
+        subgraph P2 ["Step 2: AI Vision Extraction (< 1200ms)"]
+            VisionCall["Multimodal AI Vision Model\n(Gemini 2.0 Flash / Vision Engine)"]
+            JSONGen["Enforce Strict Response Schema\nReturn comprehensive raw receipt JSON"]
+        end
+
+        subgraph P3 ["Step 3: JSON Persistence (< 50ms)"]
+            DiskJSON["Save raw batch extraction\n`backend/data/ocr/{batch_id}_{receipt_id}.json`"]
+            AuditDB["Log OCR audit record\n(ocr_results table ready)"]
+        end
+
+        subgraph P4 ["Step 4: Filtering Engine (< 10ms)"]
+            Filter["Deterministic Field Filter & Normalizer:\n• Vendor extraction & cleanup\n• Amount & GST parsing\n• Date/Time ISO normalization\n• Category classification\n• Payment mode mapping\n• Confidence score calculation"]
+        end
+
+        ImgBuf --> ResizeNorm --> VisionCall --> JSONGen --> DiskJSON --> Filter
+    end
+
+    subgraph UIResponse ["Filtered Response (< 2000ms total)"]
+        BatchResponse["Return Batch Payload:\n{ batch_id, total_time_ms, items: [ { filtered_data, raw_json_ref, confidence } ] }"]
+    end
+
+    UI_Upload --> PreValidation --> FormDataPrep --> Ingress
+    Ingress --> ParallelDispatch
+    ParallelDispatch --> P1
+    Filter --> AuditDB
+    Filter --> BatchResponse
+    BatchResponse --> UI_Review
+```
+
+---
+
+## 3. Detailed Step-by-Step Pipeline Flow
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User as Agency Manager / Driver
+    participant UI as ExpensesPage (Frontend)
+    participant API as FastAPI (/expenses/ocr/batch)
+    participant Worker as Async Workers (1..5)
+    participant Preproc as In-Memory Preprocessor (PIL)
+    participant AI as Gemini 2.0 Flash (Multimodal)
+    participant Storage as File / DB Storage
+    participant Filter as Rule & Classifier Filter
+
+    User->>UI: Selects or drops 1 to 5 receipt files
+    UI->>UI: Validate: count <= 5, type in (png, jpg, webp, pdf)
+    UI->>API: POST /expenses/ocr/batch (multipart/form-data) [T0]
+    API->>API: Validate batch size (1 <= N <= 5)
+    
+    par Worker 1 to N in parallel via asyncio.gather
+        API->>Worker: Dispatch Receipt File [i]
+        Worker->>Preproc: Read bytes & optimize (max 1600px, quality 85)
+        Preproc-->>Worker: Optimized image buffer (sub-200KB)
+        Worker->>AI: Send optimized image with strict receipt extraction prompt
+        AI-->>Worker: Full structured JSON (merchant, line items, taxes, total, date)
+        Worker->>Storage: Write to backend/data/ocr/{batch_id}_{i}.json
+        Worker->>Filter: Pass raw JSON for extraction & normalization
+        Filter->>Filter: Extract vendor, amount, gst, category, date, time, payment_mode
+        Filter-->>Worker: Cleaned filtered record + confidence
+    end
+
+    Worker-->>API: All parallel results gathered (Total Latency: 1.8s - 2.5s)
+    API-->>UI: 200 OK: { batch_id, latency_ms, items: [...] }
+    UI->>User: Renders 1-5 editable receipt cards with extracted fields & timing badge
+```
+
+---
+
+## 4. Latency Budget & 2–3s SLA Breakdown
+
+To guarantee complete execution in under 3 seconds for up to 5 receipts simultaneously:
+
+| Pipeline Stage | Sequential (Naive) | Parallel Async (Our Architecture) | SLA Budget |
+| :--- | :--- | :--- | :--- |
+| **1. Client-to-Server Ingress** | 100–300 ms | 100–300 ms | 300 ms |
+| **2. Image In-Memory Preprocessing** | 5 × 120 ms = 600 ms | **120 ms (concurrent)** | 200 ms |
+| **3. AI Multimodal Vision Inference** | 5 × 1200 ms = 6,000 ms *(Fails SLA)* | **1,100–1,500 ms (concurrent)** | 1,800 ms |
+| **4. Raw JSON Persistence** | 5 × 20 ms = 100 ms | **20 ms (concurrent)** | 50 ms |
+| **5. Business Logic Filtering** | 5 × 5 ms = 25 ms | **5 ms (in-memory)** | 10 ms |
+| **6. Server-to-Client Egress & Render** | 50 ms | **50 ms** | 100 ms |
+| **TOTAL TURNAROUND TIME** | **~7,000 ms (7.0s ❌)** | **~1,400–2,100 ms (1.4–2.1s ✅)** | **< 3.0s** |
+
+---
+
+## 5. Structured Data Schema
+
+### 5.1 Stage 1: Full Raw Extracted Content (Saved into JSON file)
+Saved to `backend/data/ocr/{batch_id}_{receipt_index}.json`:
+```json
+{
+  "batch_id": "ocr_b8f219ad",
+  "receipt_index": 0,
+  "filename": "petrol_pump_bill.jpg",
+  "extracted_at": "2026-09-06T17:45:00Z",
+  "raw_text": "INDIAN OIL CORPORATION LTD\nAUTO CARE CENTRE\nGSTIN: 27AABCI1234F1Z5\nDATE: 04/09/2026 14:22\nPETROL SPEED\nRATE: 104.50 QTY: 28.71 LTR\nTOTAL AMOUNT: Rs. 3000.00\nMODE: UPI / GPAY\nTHANK YOU VISIT AGAIN",
+  "merchant": {
+    "name": "Indian Oil Corporation Ltd",
+    "branch_or_station": "Auto Care Centre",
+    "gstin": "27AABCI1234F1Z5",
+    "phone": null,
+    "address": null
+  },
+  "invoice_metadata": {
+    "invoice_number": null,
+    "date": "2026-09-04",
+    "time": "14:22:00",
+    "currency": "INR"
+  },
+  "line_items": [
+    {
+      "description": "PETROL SPEED",
+      "quantity": 28.71,
+      "unit_price": 104.50,
+      "total": 3000.00
+    }
+  ],
+  "financials": {
+    "subtotal": 2542.37,
+    "cgst": 228.81,
+    "sgst": 228.82,
+    "total_tax": 457.63,
+    "discount": 0.0,
+    "total_amount": 3000.00
+  },
+  "payment": {
+    "method": "UPI",
+    "reference_id": null
+  },
+  "category_hint": "Fuel",
+  "confidence_score": 0.98
+}
+```
+
+### 5.2 Stage 2: Filtered Schema (Sent to Frontend UI)
+Only the required fields needed for the expense accounting record:
+```json
+{
+  "receipt_id": "ocr_b8f219ad_0",
+  "filename": "petrol_pump_bill.jpg",
+  "vendor": "Indian Oil Corporation Ltd",
+  "amount": 3000.00,
+  "gst": 457.63,
+  "category": "Fuel",
+  "date": "2026-09-04",
+  "time": "14:22:00",
+  "payment_mode": "UPI",
+  "description": "Fuel - PETROL SPEED (28.71 LTR)",
+  "confidence_score": 0.98,
+  "raw_json_file": "backend/data/ocr/ocr_b8f219ad_0.json"
+}
+```
+
+---
+
+## 6. Zero Fallbacks Policy & Strict Error Handling
+
+> [!IMPORTANT]
+> In accordance with the system rule of **zero fallbacks in any step**, the pipeline operates on deterministic validation:
+> 1. **No Mock Data**: The legacy mock implementation in `backend/routers/agency_expenses.py:extract_ocr_receipt` that returned fake "Shell Fuel Station" or "Himalayan Lodge" data will be completely eliminated.
+> 2. **Authentication / Key Validation**: If the AI model service key is invalid or unavailable, the endpoint returns an explicit `503 Service Unavailable` with descriptive error details, rather than quietly faking an extraction.
+> 3. **Format & Integrity Validation**: Corrupt or unparsable images fail with explicit `422 Unprocessable Entity` stating the specific file that could not be decoded.
+> 4. **Item-Level Failures in Batch**: If 4 out of 5 receipts succeed and 1 is completely unreadable (e.g. blank black image), the response returns 4 valid filtered records and 1 structured failure entry with `status: "failed", error: "No legible text or receipt detected"`. It never fabricates fallback numbers.
+
+---
+
+## 7. Proposed Code Changes
+
+### Backend Component
+
+#### [NEW] [ocr_service.py](file:///c:/Users/yugal/OneDrive/Desktop/yatra/backend/services/ocr_service.py)
+- High-performance asynchronous AI vision client using `google.genai` / Gemini 2.0 Flash multimodal API.
+- In-memory PIL image preprocessing (EXIF correction, downsampling to max 1600px, turbo JPEG encoding).
+- Strict JSON schema prompt enforcing the full raw extraction schema.
+- Asynchronous task wrapper with timeout control (4.0s timeout per image).
+
+#### [NEW] [ocr_filter.py](file:///c:/Users/yugal/OneDrive/Desktop/yatra/backend/services/ocr_filter.py)
+- Deterministic extraction and filtering service.
+- Maps raw extraction JSON to filtered required fields (`vendor`, `amount`, `gst`, `category`, `date`, `time`, `payment_mode`, `description`).
+- Normalizes categories strictly into `['Fuel', 'Stay', 'Food', 'Toll', 'Vehicle Maintenance', 'Salary', 'Miscellaneous']`.
+- Normalizes payment modes into `['UPI', 'Cash', 'Card', 'Bank Transfer', 'Fuel Card', 'FASTag']`.
+- Writes the full raw JSON to `backend/data/ocr/{batch_id}_{i}.json`.
+
+#### [MODIFY] [agency_expenses.py](file:///c:/Users/yugal/OneDrive/Desktop/yatra/backend/routers/agency_expenses.py)
+- Replace legacy mock `/expenses/ocr` endpoint.
+- Add `POST /expenses/ocr/batch` accepting `List[UploadFile] = File(...)` (max 5 files).
+- Orchestrate parallel async execution with `asyncio.gather`.
+- Add `POST /expenses/batch` to save multiple reviewed expenses in a single database transaction.
+
+### Frontend Component
+
+#### [MODIFY] [agencyApi.js](file:///c:/Users/yugal/OneDrive/Desktop/yatra/frontend/src/services/agencyApi.js)
+- Add `batchOcrReceipts(files)` sending `multipart/form-data`.
+- Add `createExpenseBatch(expensesList)`.
+
+#### [MODIFY] [ExpensesPage.jsx](file:///c:/Users/yugal/OneDrive/Desktop/yatra/frontend/src/portals/AgencyPortal/ExpensesPage.jsx)
+- Add **"⚡ AI Receipt Scanner (Up to 5 Bills)"** modal / drawer.
+- Drag-and-drop zone with multi-file preview (up to 5 thumbnail cards).
+- Visual progress state with live millisecond latency counter.
+- Side-by-side editable review table/grid showing the filtered required fields for each receipt.
+- "Save All [N] Expenses" bulk action button and single-item save buttons.
+
+---
+
+## 8. Verification & Performance Testing Plan
+
+### Automated & Latency Verification
+1. **Concurrency & SLA Test (`test_ocr_performance.py`)**:
+   - Execute batch test with 1, 3, and 5 sample receipt images.
+   - Measure total roundtrip latency; assert `latency <= 3.0s` for 5 simultaneous receipts.
+2. **Zero Fallback Assertion**:
+   - Send an invalid/corrupt image file; assert HTTP 422 / explicit structured error is returned, confirming zero fallback data.
+   - Assert all extracted records contain genuine vendor names, non-zero values, and valid dates matching the receipt contents.
+3. **End-to-End UI Verification**:
+   - Test drag-and-drop of 5 receipt images in `ExpensesPage.jsx`.
+   - Confirm filtered fields display cleanly in the UI and can be committed to the database.
+
+---
+
+## User Review Required
+
+> [!IMPORTANT]
+> 1. **Gemini API Key Format**: In `.env`, line 10 currently has a key starting with `AQ.Ab8RN6...` which Google rejects as an unsupported credential type (Google AI Studio Gemini API keys typically start with `AIzaSy...`). For genuine multimodal OCR inference without fallbacks, a valid Google AI Studio Gemini API key or compatible Vision API key will be required.
+> 2. **Review Approval**: Please review the pipeline architecture, concurrency model, and filtering structure above. Once approved, execution will begin immediately.

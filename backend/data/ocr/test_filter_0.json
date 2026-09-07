@@ -1,0 +1,19 @@
+{
+  "raw_text": "HOTEL HIMALAYAN RETREAT ROOM CHARGES 4200 GST 756",
+  "merchant": {
+    "name": "Hotel Himalayan Retreat"
+  },
+  "financials": {
+    "total_amount": 4956.0,
+    "total_tax": 756.0
+  },
+  "invoice_metadata": {
+    "date": "05/09/2026",
+    "time": "18:00:00"
+  },
+  "payment": {
+    "method": "Card"
+  },
+  "category_hint": "Stay",
+  "confidence_score": 0.96
+}

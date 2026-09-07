@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import * as Icons from 'lucide-react';
 import { api } from '../../services/api';
+import BatchOcrModal from './components/BatchOcrModal';
 
 const CATEGORIES = ['Fuel', 'Stay', 'Food', 'Toll', 'Vehicle Maintenance', 'Salary', 'Miscellaneous'];
 const PAYMENT_MODES = ['UPI', 'Cash', 'Card', 'Bank Transfer', 'Fuel Card', 'FASTag'];
 
-function AddExpenseModal({ tours, onClose, onSaved }) {
+function AddExpenseModal({ tours, onClose, onSaved, onOpenScanner }) {
   const today = new Date().toISOString().split('T')[0];
   const [form, setForm] = useState({
     category: 'Fuel',
@@ -102,6 +103,42 @@ function AddExpenseModal({ tours, onClose, onSaved }) {
               ⚠️ {error}
             </div>
           )}
+
+          {/* Quick AI OCR Scanner shortcut banner */}
+          <div style={{
+            background: 'linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%)',
+            border: '1px solid #BFDBFE',
+            borderRadius: '10px',
+            padding: '10px 14px',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Icons.Zap size={16} style={{ color: '#2563EB' }} />
+              <span style={{ fontSize: '12px', fontWeight: 600, color: '#1E40AF' }}>
+                Have receipts or bills? Scan up to 5 bills in 2–3s
+              </span>
+            </div>
+            {onOpenScanner && (
+              <button
+                type="button"
+                onClick={() => { onClose(); onOpenScanner(); }}
+                style={{
+                  background: '#2563EB',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '6px',
+                  padding: '5px 12px',
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  cursor: 'pointer'
+                }}
+              >
+                ⚡ Scan Receipts
+              </button>
+            )}
+          </div>
 
           {/* Row 1: Category + Payment Mode */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
@@ -207,6 +244,7 @@ export default function ExpensesPage() {
   const [categoryFilter, setCategoryFilter] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [showModal, setShowModal] = useState(false);
+  const [showBatchOcr, setShowBatchOcr] = useState(false);
 
   const loadExpenses = () => {
     setLoading(true);
@@ -257,17 +295,48 @@ export default function ExpensesPage() {
           tours={tours}
           onClose={() => setShowModal(false)}
           onSaved={loadExpenses}
+          onOpenScanner={() => setShowBatchOcr(true)}
         />
       )}
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+      {showBatchOcr && (
+        <BatchOcrModal
+          tours={tours}
+          onClose={() => setShowBatchOcr(false)}
+          onSaved={loadExpenses}
+        />
+      )}
+
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
         <div>
           <h1 className="page-title" style={{ fontSize: '24px', fontWeight: 700 }}>Expense Management</h1>
           <p className="page-desc" style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Track and manage all agency expenses across tours, drivers, and general operations.</p>
         </div>
-        <button onClick={() => setShowModal(true)} className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <Icons.Plus size={14} /> Add Expense
-        </button>
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+          <button
+            onClick={() => setShowBatchOcr(true)}
+            style={{
+              background: 'linear-gradient(135deg, #1E3A8A 0%, #2563EB 100%)',
+              color: '#FFFFFF',
+              border: 'none',
+              borderRadius: '8px',
+              padding: '9px 16px',
+              fontWeight: 700,
+              fontSize: '13px',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              boxShadow: '0 4px 14px rgba(37, 99, 235, 0.35)',
+              transition: 'transform 0.15s'
+            }}
+          >
+            <Icons.Zap size={15} style={{ color: '#FDE047' }} /> AI Receipt Scanner (Up to 5)
+          </button>
+          <button onClick={() => setShowModal(true)} className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Icons.Plus size={14} /> Add Expense
+          </button>
+        </div>
       </div>
 
       {/* Main Layout Grid */}
