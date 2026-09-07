@@ -1,0 +1,48 @@
+{
+  "raw_text": "PRAGATI AUTO GARAGE\nBUS BODY BUILDERS & FABRICATORS\nTaibai Laxman Mahatre Wadi, Nana Compound, Tamatar Market, Opp. Linqu Building, New Link Road, I.C. Colony, Borivali (W), Mumbai - 103.\nMob.: 9769161849\nBill No. 331\nDate: 28/5/026\nM/s. ड्राईड्रिया ट्रान्स\nMH46 BB 3559\n1. पिछे एउ आंगे बम्फर डेंटिंग फायवरींग एंड पोटेग एंड गोलाई पेटींग\n8000\nTOTAL 8000\nFor PRAGATI AUTO GARAGE",
+  "merchant": {
+    "name": "PRAGATI AUTO GARAGE",
+    "branch_or_station": "Borivali (W), Mumbai",
+    "gstin": null,
+    "phone": "9769161849",
+    "address": "Taibai Laxman Mahatre Wadi, Nana Compound, Tamatar Market, Opp. Linqu Building, New Link Road, I.C. Colony, Borivali (W), Mumbai - 103."
+  },
+  "invoice_metadata": {
+    "invoice_number": "331",
+    "date": null,
+    "time": null,
+    "currency": "INR"
+  },
+  "line_items": [
+    {
+      "description": "पिछे एउ आंगे बम्फर डेंटिंग फायवरींग एंड पोटेग एंड गोलाई पेटींग",
+      "quantity": null,
+      "unit_price": null,
+      "total": 8000.0
+    }
+  ],
+  "financials": {
+    "subtotal": 8000.0,
+    "cgst": null,
+    "sgst": null,
+    "total_tax": null,
+    "discount": null,
+    "total_amount": 8000.0
+  },
+  "payment": {
+    "method": "Unknown",
+    "reference_id": null
+  },
+  "category_hint": "Vehicle Maintenance",
+  "confidence_score": 0.92,
+  "_meta": {
+    "filename": "other 2.jpeg",
+    "prep_latency_sec": 0.053,
+    "total_latency_sec": 4.983,
+    "dimensions": [
+      900,
+      1200
+    ],
+    "model": "gemini-3.5-flash-lite"
+  }
+}

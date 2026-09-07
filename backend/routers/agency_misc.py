@@ -51,8 +51,8 @@ def generate_ai_itinerary(destination: str, days: int, budget: float = 0):
     import requests as _requests
 
     gemini_key = os.environ.get("GEMINI_API_KEY", "").strip()
-    preferred_model = os.environ.get("GEMINI_MODEL", "gemini-2.0-flash").strip()
-    models_to_try = [preferred_model, "gemini-2.0-flash", "gemini-2.5-flash", "gemini-1.5-flash-latest"]
+    preferred_model = os.environ.get("GEMINI_MODEL", "gemini-3.6-flash").strip()
+    models_to_try = [preferred_model, "gemini-3.6-flash", "gemini-flash-latest", "gemini-3.5-flash"]
     
     # Remove duplicates preserving order
     seen = set()

@@ -1,0 +1,54 @@
+{
+  "raw_text": "श्री विघ्नहर्ता Arts Vighnharta Arts Sign Board • Banners • Digital Glow Sign Boards Computerised Digital Flex BannerFlat & Room Painting • Radium Number Plate 2 B, Bldg. No.2, Shree Krupa CHS. Krishna Sthal Complex, Mira Village, Mira Road (E), Thane - 401 107 Mobile: 9892905666 8169269757 Date 11/6/26 No. 075 M/s. RBK SCHOOL BHAYANDER (E) PARTICULARS Qty. Amount Rs. P. 1 3 Bus Two Side School Name painting with colour 3X1200 3X10 3600 1 Bus Two Side School Name & Brown colour patta paint with labour 1700 TOTAL 5300 SANTOSH JPGDAND",
+  "merchant": {
+    "name": "Vighnharta Arts",
+    "branch_or_station": "Mira Road (E), Thane",
+    "gstin": null,
+    "phone": "9892905666",
+    "address": "2 B, Bldg. No.2, Shree Krupa CHS. Krishna Sthal Complex, Mira Village, Mira Road (E), Thane - 401 107"
+  },
+  "invoice_metadata": {
+    "invoice_number": "075",
+    "date": "2026-06-11",
+    "time": null,
+    "currency": "INR"
+  },
+  "line_items": [
+    {
+      "description": "3 Bus Two Side School Name painting with colour",
+      "quantity": 3.0,
+      "unit_price": 1200.0,
+      "total": 3600.0
+    },
+    {
+      "description": "1 Bus Two Side School Name & Brown colour patta paint with labour",
+      "quantity": 1.0,
+      "unit_price": 1700.0,
+      "total": 1700.0
+    }
+  ],
+  "financials": {
+    "subtotal": 5300.0,
+    "cgst": null,
+    "sgst": null,
+    "total_tax": null,
+    "discount": null,
+    "total_amount": 5300.0
+  },
+  "payment": {
+    "method": "Unknown",
+    "reference_id": null
+  },
+  "category_hint": "Vehicle Maintenance",
+  "confidence_score": 0.95,
+  "_meta": {
+    "filename": "others 1.jpeg",
+    "prep_latency_sec": 0.067,
+    "total_latency_sec": 4.737,
+    "dimensions": [
+      900,
+      1200
+    ],
+    "model": "gemini-3.5-flash-lite"
+  }
+}

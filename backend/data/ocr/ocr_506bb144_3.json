@@ -1,0 +1,48 @@
+{
+  "raw_text": "हिन्दुस्तान पेट्रोलियम HP HP AUTO CARE CENTER SEC 71 NOIDA Bill No: Jan-225195-ORGNL Trns.ID: 0000000300252620 Atnd.ID: Receipt: Physical Receipt Vehi.No: 6925 Mob.No : NotEntered Date : 01/01/2024 Time : 20:49:23 FP. ID : 3 Nozl No: 3 Fuel : PETROL 0000 Density: 7497kg/m3 Preset : Rs. 1000 Rate : Rs. 96.77 Sale : Rs. 1000.00 Volume : 10.33L",
+  "merchant": {
+    "name": "HP Auto Care Center",
+    "branch_or_station": "Sec 71 Noida",
+    "gstin": null,
+    "phone": null,
+    "address": "Sec 71 Noida"
+  },
+  "invoice_metadata": {
+    "invoice_number": "Jan-225195-ORGNL",
+    "date": "2024-01-01",
+    "time": "20:49:23",
+    "currency": "INR"
+  },
+  "line_items": [
+    {
+      "description": "PETROL",
+      "quantity": 10.33,
+      "unit_price": 96.77,
+      "total": 1000.0
+    }
+  ],
+  "financials": {
+    "subtotal": 1000.0,
+    "cgst": null,
+    "sgst": null,
+    "total_tax": null,
+    "discount": null,
+    "total_amount": 1000.0
+  },
+  "payment": {
+    "method": "Unknown",
+    "reference_id": "0000000300252620"
+  },
+  "category_hint": "Fuel",
+  "confidence_score": 0.98,
+  "_meta": {
+    "filename": "sam2.jpg",
+    "prep_latency_sec": 0.014,
+    "total_latency_sec": 6.407,
+    "dimensions": [
+      616,
+      1200
+    ],
+    "model": "gemini-3.5-flash-lite"
+  }
+}

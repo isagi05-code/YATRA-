@@ -1,0 +1,66 @@
+{
+  "raw_text": "MOTOR-EX ESTIMATE 20/6/26 3559 (1) oil pipe 400 (2) Tvs Lukas Baccha switch 1875 (3) Bendas 850 (4) Bush 150",
+  "merchant": {
+    "name": "MOTOR-EX",
+    "branch_or_station": null,
+    "gstin": null,
+    "phone": null,
+    "address": null
+  },
+  "invoice_metadata": {
+    "invoice_number": "3559",
+    "date": "2026-06-20",
+    "time": null,
+    "currency": "INR"
+  },
+  "line_items": [
+    {
+      "description": "oil pipe",
+      "quantity": 1,
+      "unit_price": 400.0,
+      "total": 400.0
+    },
+    {
+      "description": "Tvs Lukas Baccha switch",
+      "quantity": 1,
+      "unit_price": 1875.0,
+      "total": 1875.0
+    },
+    {
+      "description": "Bendas",
+      "quantity": 1,
+      "unit_price": 850.0,
+      "total": 850.0
+    },
+    {
+      "description": "Bush",
+      "quantity": 1,
+      "unit_price": 150.0,
+      "total": 150.0
+    }
+  ],
+  "financials": {
+    "subtotal": 3275.0,
+    "cgst": null,
+    "sgst": null,
+    "total_tax": null,
+    "discount": null,
+    "total_amount": 3275.0
+  },
+  "payment": {
+    "method": "Unknown",
+    "reference_id": null
+  },
+  "category_hint": "Vehicle Maintenance",
+  "confidence_score": 0.95,
+  "_meta": {
+    "filename": "1782728432400_image.png",
+    "prep_latency_sec": 0.064,
+    "total_latency_sec": 7.946,
+    "dimensions": [
+      900,
+      1200
+    ],
+    "model": "gemini-3.5-flash-lite"
+  }
+}

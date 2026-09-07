@@ -1,0 +1,48 @@
+{
+  "raw_text": "BHAWANI TYRE SERVICES\nAUTHORISED DEALERS: M.R.F. EXIDE BATTERY, ALLOY WHEEL, NITROGEN AIR\nShop No. 06, K. D. Villa Bldg., Opp. Mira Bhayandar Sports Complex,\nNew Golden Nest Road, Mira Road (East) - 401 107.\nBill No. 3263 Date: 02/06/26\nMs. R.B. Rasheed\n101 H 46 BB. 3557\nSr. No. Particulars Qty. Rate Amount Rs. P.\n1 1nos puncture fit 1 200 200\nTOTAL\nG. TOTAL 200\nGSTIN: 27ABGPY0560Q1ZX\nGoods once sold will not be taken back.\nE. & O. E.\nSignature of Receiver's\nFor BHAWANI TYRE SERVICES\nProprietor",
+  "merchant": {
+    "name": "BHAWANI TYRE SERVICES",
+    "branch_or_station": "Mira Road (East)",
+    "gstin": "27ABGPY0560Q1ZX",
+    "phone": null,
+    "address": "Shop No. 06, K. D. Villa Bldg., Opp. Mira Bhayandar Sports Complex, New Golden Nest Road, Mira Road (East) - 401 107."
+  },
+  "invoice_metadata": {
+    "invoice_number": "3263",
+    "date": "2026-06-02",
+    "time": null,
+    "currency": "INR"
+  },
+  "line_items": [
+    {
+      "description": "puncture fit",
+      "quantity": 1,
+      "unit_price": 200.0,
+      "total": 200.0
+    }
+  ],
+  "financials": {
+    "subtotal": 200.0,
+    "cgst": null,
+    "sgst": null,
+    "total_tax": null,
+    "discount": null,
+    "total_amount": 200.0
+  },
+  "payment": {
+    "method": "Unknown",
+    "reference_id": null
+  },
+  "category_hint": "Vehicle Maintenance",
+  "confidence_score": 0.95,
+  "_meta": {
+    "filename": "vehicle 2.jpeg",
+    "prep_latency_sec": 0.047,
+    "total_latency_sec": 5.449,
+    "dimensions": [
+      675,
+      1200
+    ],
+    "model": "gemini-3.5-flash-lite"
+  }
+}

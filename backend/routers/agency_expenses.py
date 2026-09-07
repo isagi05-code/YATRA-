@@ -160,7 +160,7 @@ async def extract_ocr_batch(
             }
         
         try:
-            raw_data = await extract_receipt_multimodal(content, filename, timeout_seconds=4.0)
+            raw_data = await extract_receipt_multimodal(content, filename, timeout_seconds=60.0)
             filtered = filter_receipt_data(batch_id, idx, filename, raw_data)
             return filtered
         except Exception as e:

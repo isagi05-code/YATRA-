@@ -12,8 +12,30 @@ import asyncio
 from typing import Dict, Any, Tuple
 from PIL import Image, ImageOps
 
-# Default to gemini-2.0-flash or gemini-2.5-flash for ultra-low latency multimodal extraction
-DEFAULT_MODEL = "gemini-2.0-flash"
+# Default to gemini-3.5-flash-lite or gemini-flash-latest for ultra-fast, sub 2-4s multimodal extraction
+DEFAULT_MODEL = "gemini-3.5-flash-lite"
+FALLBACK_MODELS = ["gemini-3.5-flash-lite", "gemini-flash-latest", "gemini-3.6-flash"]
+
+
+def get_gemini_model() -> str:
+    """Dynamically retrieve GEMINI_MODEL, reloading from .env if updated."""
+    model = os.environ.get("GEMINI_MODEL", "").strip()
+    try:
+        from pathlib import Path
+        for env_path in [Path(__file__).resolve().parents[2] / ".env", Path(__file__).resolve().parents[1] / ".env"]:
+            if env_path.exists():
+                for raw_line in env_path.read_text(encoding="utf-8").splitlines():
+                    line = raw_line.strip()
+                    if line.startswith("GEMINI_MODEL=") or line.startswith("GEMINI_MODEL ="):
+                        _, _, val = line.partition("=")
+                        val = val.split("#")[0].strip()
+                        if val:
+                            model = val
+                            os.environ["GEMINI_MODEL"] = val
+                            break
+    except Exception:
+        pass
+    return model or DEFAULT_MODEL
 
 
 def get_gemini_api_key() -> str:
@@ -38,7 +60,7 @@ def get_gemini_api_key() -> str:
     return key
 
 
-def optimize_receipt_image(file_bytes: bytes, max_dim: int = 1600, quality: int = 85) -> Tuple[bytes, str, Tuple[int, int]]:
+def optimize_receipt_image(file_bytes: bytes, max_dim: int = 1200, quality: int = 80) -> Tuple[bytes, str, Tuple[int, int]]:
     """In-memory image preprocessing & normalization.
     
     - Validates image integrity using PIL
@@ -141,10 +163,11 @@ def clean_json_response(text: str) -> Dict[str, Any]:
     return json.loads(cleaned)
 
 
-async def extract_receipt_multimodal(file_bytes: bytes, filename: str, timeout_seconds: float = 4.0) -> Dict[str, Any]:
+async def extract_receipt_multimodal(file_bytes: bytes, filename: str, timeout_seconds: float = 60.0) -> Dict[str, Any]:
     """Perform asynchronous multimodal AI extraction on a single receipt image.
     
-    Zero-fallback: raises explicit exceptions on API failure, timeout, or parsing failure.
+    Zero-fallback to mock: raises explicit exceptions on API failure, timeout, or parsing failure.
+    Includes automated fallback across available Gemini Flash models if a specific model is sunset.
     """
     t_start = time.perf_counter()
     
@@ -152,16 +175,18 @@ async def extract_receipt_multimodal(file_bytes: bytes, filename: str, timeout_s
     opt_bytes, mime_type, dimensions = optimize_receipt_image(file_bytes)
     t_prep = time.perf_counter() - t_start
 
-    # Step 2: AI Multimodal Inference (< 1500ms)
+    # Step 2: AI Multimodal Inference
     api_key = get_gemini_api_key()
     if not api_key:
         raise ValueError("GEMINI_API_KEY is not configured in .env. Real AI OCR extraction requires a valid API key (no fallbacks allowed).")
     
-    model_name = os.environ.get("GEMINI_MODEL", DEFAULT_MODEL).strip()
+    preferred_model = get_gemini_model()
+    # Deduplicate candidate models maintaining priority order
+    candidate_models = [preferred_model] + [m for m in FALLBACK_MODELS if m != preferred_model]
 
     loop = asyncio.get_running_loop()
 
-    def _sync_call() -> str:
+    def _sync_call() -> Tuple[str, str]:
         from google import genai
         from google.genai import types
 
@@ -173,21 +198,30 @@ async def extract_receipt_multimodal(file_bytes: bytes, filename: str, timeout_s
             mime_type=mime_type,
         )
 
-        response = client.models.generate_content(
-            model=model_name,
-            contents=[
-                EXTRACTION_PROMPT,
-                image_part
-            ],
-            config=types.GenerateContentConfig(
-                temperature=0.1,
-                response_mime_type="application/json"
-            )
-        )
-        return response.text
+        last_error = None
+        for target_model in candidate_models:
+            try:
+                response = client.models.generate_content(
+                    model=target_model,
+                    contents=[
+                        EXTRACTION_PROMPT,
+                        image_part
+                    ],
+                    config=types.GenerateContentConfig(
+                        temperature=0.1,
+                        response_mime_type="application/json"
+                    )
+                )
+                return response.text, target_model
+            except Exception as e:
+                last_error = e
+                # Attempt next fallback model in candidate list
+                continue
+
+        raise last_error or RuntimeError("Multimodal extraction failed across all candidate models")
 
     try:
-        response_text = await asyncio.wait_for(
+        response_text, used_model = await asyncio.wait_for(
             loop.run_in_executor(None, _sync_call),
             timeout=timeout_seconds
         )
@@ -208,7 +242,7 @@ async def extract_receipt_multimodal(file_bytes: bytes, filename: str, timeout_s
         "prep_latency_sec": round(t_prep, 3),
         "total_latency_sec": round(t_total, 3),
         "dimensions": dimensions,
-        "model": model_name
+        "model": used_model
     }
 
     return raw_data
